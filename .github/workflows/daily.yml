@@ -55,4 +55,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: short-${{ github.run_id }}
-          path: |
+          path: out
+          if-no-files-found: warn
+          retention-days: 5
