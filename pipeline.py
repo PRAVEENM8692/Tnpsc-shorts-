@@ -23,8 +23,8 @@ W, H = 1080, 1920
 
 
 def env(name, default=None):
-    v = os.environ.get(name, default)
-    if v is None or v == "":
+    v = os.environ.get(name) or default  # GitHub passes unset variables as empty text
+    if not v:
         sys.exit(f"Missing setting: {name}")
     return v
 
