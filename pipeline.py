@@ -70,22 +70,54 @@ def search_news():
 
 
 # ---------------------------------------------------------------- 2. Tamil script
-def llm_json(prompt):
-    r = requests.post(
-        env("LLM_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/") + "/chat/completions",
-        headers={"Authorization": f"Bearer {env('LLM_API_KEY')}"},
-        json={
-            "model": env("LLM_MODEL", "llama-3.3-70b-versatile"),
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.5,
-            "response_format": {"type": "json_object"},
-        },
-        timeout=120,
-    )
+_MODEL = {"name": None}
+
+
+def pick_model(base, headers):
+    """Ask the provider which chat models exist today and choose a good one."""
+    r = requests.get(base + "/models", headers=headers, timeout=60)
     r.raise_for_status()
+    ids = [m["id"] for m in r.json().get("data", []) if m.get("active", True)]
+    bad = ("whisper", "guard", "tts", "orpheus", "embed", "safeguard")
+    ids = [i for i in ids if not any(b in i.lower() for b in bad)]
+    for pref in ("gpt-oss-120b", "llama-3.3-70b", "llama-4-maverick", "llama-4-scout",
+                 "qwen", "kimi", "gpt-oss-20b", "llama-3.1-8b"):
+        for i in ids:
+            if pref in i.lower():
+                return i
+    if ids:
+        return ids[0]
+    sys.exit("No usable chat model found on the LLM provider.")
+
+
+def llm_json(prompt):
+    base = env("LLM_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
+    headers = {"Authorization": f"Bearer {env('LLM_API_KEY')}"}
+    user_model = os.environ.get("LLM_MODEL") or ""
+    if not _MODEL["name"]:
+        _MODEL["name"] = user_model or "llama-3.3-70b-versatile"
+
+    def call(json_mode=True):
+        payload = {"model": _MODEL["name"], "messages": [{"role": "user", "content": prompt}],
+                   "temperature": 0.5}
+        if json_mode:
+            payload["response_format"] = {"type": "json_object"}
+        return requests.post(base + "/chat/completions", headers=headers, json=payload, timeout=120)
+
+    r = call()
+    if r.status_code in (400, 404):
+        log(f"LLM error {r.status_code}: {r.text[:300]}")
+        if not user_model:  # you did not choose a model, so pick a current one automatically
+            _MODEL["name"] = pick_model(base, headers)
+            log(f"using model: {_MODEL['name']}")
+            r = call()
+        if r.status_code == 400:
+            r = call(json_mode=False)
+    if not r.ok:
+        sys.exit(f"LLM error {r.status_code}: {r.text[:500]}")
     txt = r.json()["choices"][0]["message"]["content"].strip()
-    txt = txt.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-    return json.loads(txt)
+    a, b = txt.find("{"), txt.rfind("}")
+    return json.loads(txt[a:b + 1])
 
 
 def write_script(notes, today):
