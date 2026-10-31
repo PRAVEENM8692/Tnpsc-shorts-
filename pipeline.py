@@ -115,10 +115,12 @@ def llm_json(prompt):
 
     def call(json_mode=True):
         payload = {"model": _MODEL["name"], "messages": [{"role": "user", "content": prompt}],
-                   "temperature": 0.5}
+                   "temperature": 0.5, "max_tokens": 6000}
+        if "gpt-oss" in _MODEL["name"]:
+            payload["reasoning_effort"] = "low"  # reasoning models can use up the budget and return nothing
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
-        return requests.post(base + "/chat/completions", headers=headers, json=payload, timeout=120)
+        return requests.post(base + "/chat/completions", headers=headers, json=payload, timeout=180)
 
     r = call()
     if r.status_code in (400, 404):
@@ -129,11 +131,25 @@ def llm_json(prompt):
             r = call()
         if r.status_code == 400:
             r = call(json_mode=False)
-    if not r.ok:
-        sys.exit(f"LLM error {r.status_code}: {r.text[:500]}")
-    txt = r.json()["choices"][0]["message"]["content"].strip()
-    a, b = txt.find("{"), txt.rfind("}")
-    return json.loads(txt[a:b + 1])
+    for attempt in range(4):
+        if r.status_code == 429:  # free-tier rate limit: wait and retry
+            log("LLM rate limited; waiting 30s")
+            time.sleep(30)
+            r = call()
+            continue
+        if not r.ok:
+            sys.exit(f"LLM error {r.status_code}: {r.text[:500]}")
+        txt = (r.json()["choices"][0]["message"].get("content") or "").strip()
+        a, b = txt.find("{"), txt.rfind("}")
+        if a >= 0 and b > a:
+            try:
+                return json.loads(txt[a:b + 1])
+            except json.JSONDecodeError:
+                pass
+        log(f"LLM returned no valid JSON (attempt {attempt + 1}); retrying")
+        time.sleep(5)
+        r = call()
+    sys.exit("LLM kept returning invalid JSON.")
 
 
 def write_script(notes, today, focus="", part=1, total=1):
