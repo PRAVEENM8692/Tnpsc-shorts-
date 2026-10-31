@@ -136,13 +136,15 @@ title (Tamil, under 85 characters),
 description (Tamil, 3-5 line recap of the facts),
 tags (list of 8 strings, Tamil and English),
 voiceover (Tamil),
-scenes (list of exactly 3 English prompts for vertical cinematic images that suit a motivational study video,
-e.g. aspirant studying at dawn, Tamil Nadu temple towers, Chennai Marina. NO text, NO logos, NO real people)."""
+scenes (list of exactly 5 English prompts, one per fact in the order they are spoken. Each is a vertical
+cinematic image that visually relates to THAT fact: places, buildings, objects and symbols, for example
+Fort St George Chennai, a laptop with students, a glowing light bulb, a gold ring on silk, Tamil Nadu map
+with festival lamps. NO text or letters in the image, NO logos, NO faces, NO real people or politicians)."""
     for attempt in range(3):
         d = llm_json(prompt)
         words = len(d.get("voiceover", "").split())
         if all(k in d for k in ("title", "description", "tags", "voiceover", "scenes")) \
-                and 70 <= words <= 150 and len(d["scenes"]) >= 3:
+                and 70 <= words <= 150 and len(d["scenes"]) >= 4:
             return d
         log(f"script attempt {attempt + 1} invalid (words={words}); retrying")
     sys.exit("Could not get a valid script from the LLM.")
@@ -150,12 +152,26 @@ e.g. aspirant studying at dawn, Tamil Nadu temple towers, Chennai Marina. NO tex
 
 # ---------------------------------------------------------------- 3. voice
 def make_voice(text, path):
+    """Makes the voiceover and returns timing segments (start_s, dur_s, text) for the captions."""
     import edge_tts
 
+    segs = []
+
     async def go():
-        await edge_tts.Communicate(text, env("TTS_VOICE", "ta-IN-PallaviNeural"), rate="+0%").save(str(path))
+        voice = env("TTS_VOICE", "ta-IN-PallaviNeural")
+        try:
+            comm = edge_tts.Communicate(text, voice, rate="+0%", boundary="WordBoundary")
+        except TypeError:  # older edge-tts versions
+            comm = edge_tts.Communicate(text, voice, rate="+0%")
+        with open(path, "wb") as f:
+            async for ch in comm.stream():
+                if ch["type"] == "audio":
+                    f.write(ch["data"])
+                elif ch["type"] in ("WordBoundary", "SentenceBoundary"):
+                    segs.append((ch["offset"] / 1e7, ch["duration"] / 1e7, ch["text"]))
 
     asyncio.run(go())
+    return segs
 
 
 # ---------------------------------------------------------------- 4. images
@@ -200,12 +216,68 @@ def make_clip(img, seconds, out, zoom_in):
     z = "min(zoom+0.0007,1.25)" if zoom_in else "if(eq(on,1),1.25,max(zoom-0.0007,1.0))"
     vf = (f"scale=1620:2880:force_original_aspect_ratio=increase,crop=1620:2880,"
           f"zoompan=z='{z}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={frames}:s={W}x{H}:fps=30,"
-          f"format=yuv420p")
+          f"eq=brightness=-0.12:saturation=1.05,format=yuv420p")  # slightly darker so text stands out
     run(["ffmpeg", "-y", "-i", str(img), "-vf", vf, "-t", f"{seconds:.2f}", "-r", "30",
          "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", str(out)])
 
 
-def build_video(images, voice, out, workdir, bgm=BGM):
+def tamil_chunks(text, max_words=4):
+    """Split the voiceover into short on-screen phrases (sentence ends first, then every few words)."""
+    import re
+    chunks = []
+    for sent in re.split(r"(?<=[.!?।—])\s+|\n+", text.strip()):
+        words = [w for w in sent.replace("{", "").replace("}", "").replace("\\", "").split() if w]
+        for i in range(0, len(words), max_words):
+            chunks.append(words[i:i + max_words])
+    return [c for c in chunks if c]
+
+
+def ass_time(t):
+    cs = int(round(t * 100))
+    return f"{cs // 360000}:{cs // 6000 % 60:02d}:{cs // 100 % 60:02d}.{cs % 100:02d}"
+
+
+def write_ass(text, speech_seconds, path, start=0.15, date_text=""):
+    """Running Tamil text: each phrase appears and its words light up as they are spoken.
+    Timing is spread over the voice length by letter count (works with any TTS).
+    Also adds the 'TNPSC CURRENT AFFAIRS' title block with the date at the top for the whole video."""
+    font = os.environ.get("SUB_FONT") or "Noto Sans Tamil"
+    latin = os.environ.get("SUB_LATIN_FONT") or "DejaVu Sans"
+    chunks = tamil_chunks(text)
+    weights = [sum(len(w) for w in c) for c in chunks]
+    scale = max(speech_seconds - start, 1.0) / max(sum(weights), 1)
+    header = (
+        "[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\nWrapStyle: 0\n\n"
+        "[V4+ Styles]\n"
+        "Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,"
+        "Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,"
+        "MarginV,Encoding\n"
+        f"Style: Run,{font},78,&H0000D7FF,&H00FFFFFF,&H00000000,&H90000000,-1,0,0,0,100,100,0,0,1,5,2,2,70,70,430,1\n"
+        f"Style: Head,{latin},60,&H00FFFFFF,&H00FFFFFF,&H00000000,&H90000000,-1,0,0,0,100,100,0,0,1,3,1,8,40,40,100,1\n\n"
+        "[Events]\nFormat: Layer,Start,End,Style,MarginL,MarginR,MarginV,Effect,Text\n"
+    )
+    total = speech_seconds + 1.2
+    gold = r"\c&H3CC8FF&"
+    white = r"\c&HFFFFFF&"
+    title = (rf"{{\fs125{gold}}}TNPSC\N{{\fs62{white}}}CURRENT AFFAIRS\N"
+             rf"{{\fn{font}\fs54{white}}}நடப்பு நிகழ்வுகள்\N"
+             rf"{{\fn{latin}\fs50{gold}}}{date_text}")
+    lines, t = [f"Dialogue: 0,{ass_time(0)},{ass_time(total)},Head,0,0,0,,{title}"], start
+    for c, wt in zip(chunks, weights):
+        dur = wt * scale
+        ks, used = [], 0
+        for w in c:
+            k = int(round(dur * 100 * len(w) / max(wt, 1)))
+            ks.append(k)
+            used += k
+        ks[-1] += int(round(dur * 100)) - used
+        body = "".join(f"{{\\kf{max(k, 1)}}}{w} " for k, w in zip(ks, c)).strip()
+        lines.append(f"Dialogue: 0,{ass_time(t)},{ass_time(t + dur + 0.05)},Run,0,0,0,,{{\\fad(120,60)}}{body}")
+        t += dur
+    Path(path).write_text(header + "\n".join(lines) + "\n", encoding="utf-8")
+
+
+def build_video(images, voice, out, workdir, bgm=BGM, subs=None):
     total = duration(voice) + 1.0
     per = total / len(images)
     clips = []
@@ -226,6 +298,9 @@ def build_video(images, voice, out, workdir, bgm=BGM):
     else:
         log("WARNING: assets/bgm.mp3 not found, publishing without BGM")
         cmd += ["-filter_complex", "[1:a]apad=pad_dur=1[a]"]
+    if subs:
+        # dark panel behind the title block, then the title and running Tamil text from the .ass file
+        cmd += ["-vf", f"drawbox=x=0:y=70:w=iw:h=370:color=black@0.55:t=fill,ass={Path(subs).resolve()}"]
     cmd += ["-map", "0:v", "-map", "[a]", "-t", f"{total:.2f}", "-c:v", "libx264", "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(out)]
     run(cmd)
@@ -279,18 +354,20 @@ def main():
 
     log("making voiceover")
     voice = work / "voice.mp3"
-    make_voice(s["voiceover"], voice)
+    segs = make_voice(s["voiceover"], voice)
 
     log("making images")
     imgs = []
-    for i, scene in enumerate(s["scenes"][:3]):
+    for i, scene in enumerate(s["scenes"][:5]):
         p = work / f"img{i}.png"
         fetch_image(scene, p, seed=int(stamp) % 1000 + i)
         imgs.append(p)
 
     log("building video")
     final = OUT / f"tnpsc-{stamp}.mp4"
-    secs = build_video(imgs, voice, final, work)
+    subs = work / "captions.ass"
+    write_ass(s["voiceover"], duration(voice), subs, date_text=dt.datetime.now(IST).strftime("%d %B %Y"))
+    secs = build_video(imgs, voice, final, work, subs=subs)
     log(f"video ready ({secs:.0f}s): {final}")
 
     if env("UPLOAD", "true").lower() == "true":
