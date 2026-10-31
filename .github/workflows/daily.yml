@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-core fonts-dejavu-core && fc-list | grep -i "noto sans tamil" | head -2
       - run: pip install -r requirements.txt
       - name: Build and publish
         run: python pipeline.py
