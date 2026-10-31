@@ -2,17 +2,24 @@ name: daily-tnpsc-short
 
 on:
   schedule:
-    - cron: "30 14 * * *"   # 14:30 UTC = 20:00 IST
+    - cron: "30 2 * * *"    # 08:00 IST  slot 1  current affairs (Tamil Nadu)
+    - cron: "0 5 * * *"     # 10:30 IST  slot 2  current affairs (India & economy)
+    - cron: "30 7 * * *"    # 13:00 IST  slot 3  aptitude shortcut
+    - cron: "0 10 * * *"    # 15:30 IST  slot 4  current affairs (science, sports, world)
+    - cron: "30 12 * * *"   # 18:00 IST  slot 5  aptitude shortcut
   workflow_dispatch:
     inputs:
       upload:
         description: "Upload to YouTube? (true/false)"
         default: "false"
+      slot:
+        description: "Which video: 1-5, or all"
+        default: "1"
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -21,6 +28,14 @@ jobs:
       - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-core fonts-dejavu-core && fc-list | grep -i "noto sans tamil" | head -2
       - run: pip install -r requirements.txt
+      - name: Pick the video slot from the schedule
+        id: slot
+        run: |
+          case "${{ github.event.schedule }}" in
+            "30 2 * * *") S=1;; "0 5 * * *") S=2;; "30 7 * * *") S=3;; "0 10 * * *") S=4;; "30 12 * * *") S=5;;
+            *) S="${{ github.event.inputs.slot }}";;
+          esac
+          echo "slot=${S:-1}" >> "$GITHUB_OUTPUT"
       - name: Build and publish
         run: python pipeline.py
         env:
@@ -33,6 +48,7 @@ jobs:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          SLOT: ${{ steps.slot.outputs.slot }}
           YT_PRIVACY: ${{ vars.YT_PRIVACY }}
       - name: Keep the output for review
         if: always()
@@ -40,7 +56,3 @@ jobs:
         with:
           name: short-${{ github.run_id }}
           path: |
-            out/*.mp4
-            out/*.json
-            out/*.txt
-          retention-days: 5
