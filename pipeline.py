@@ -34,22 +34,38 @@ def log(msg):
 
 
 # ---------------------------------------------------------------- 1. news search
-QUERIES = [
-    "Tamil Nadu government announcement news",
-    "India national news important today",
-    "India economy RBI government scheme news",
-    "India awards appointments sports science news",
+# 5 videos a day: 3 current affairs + 2 aptitude (see .github/workflows/daily.yml for the clock times)
+SLOTS = {
+    1: ("news", "Tamil Nadu", ["Tamil Nadu government announcement news", "Tamil Nadu scheme policy news today"],
+        "Tamil Nadu government, schemes, places, appointments"),
+    2: ("news", "India & economy", ["India national news important today", "India economy RBI budget scheme news"],
+        "India national affairs, government decisions, laws, polity, economy, banking"),
+    3: ("aptitude", "Aptitude A", None, None),
+    4: ("news", "Science, sports & world", ["India science technology ISRO environment news",
+                                          "India sports awards international summit news"],
+        "science, technology, space, environment, sports, awards, international events"),
+    5: ("aptitude", "Aptitude B", None, None),
+}
+APTITUDE_TOPICS = [
+    "Percentage shortcuts", "Ratio and proportion", "Time and work", "Speed, time and distance",
+    "Simple interest", "Compound interest shortcut", "Average", "Profit and loss", "HCF and LCM",
+    "Ages problems", "Number series", "Square and cube tricks", "Mixtures and alligation",
+    "Pipes and cisterns", "Trains problems", "Boats and streams", "Mensuration (area, perimeter)",
+    "Divisibility rules", "Simplification (BODMAS tricks)", "Calendar and clock problems",
 ]
 
 
-def search_news():
+
+
+
+def search_news(queries):
     key = env("TAVILY_API_KEY")
     seen, items = set(), []
-    for q in QUERIES:
+    for q in queries:
         r = requests.post(
             "https://api.tavily.com/search",
             headers={"Authorization": f"Bearer {key}"},
-            json={"query": q, "topic": "news", "days": 2, "max_results": 5},
+            json={"query": q, "topic": "news", "days": 2, "max_results": 6},
             timeout=60,
         )
         r.raise_for_status()
@@ -59,7 +75,7 @@ def search_news():
             seen.add(x["url"])
             host = urllib.parse.urlparse(x["url"]).netloc.replace("www.", "")
             items.append({"title": x.get("title", ""), "host": host, "text": (x.get("content") or "")[:450]})
-    if len(items) < 3:
+    if len(items) < 2:
         sys.exit("Too little news found; stopping instead of inventing facts.")
     notes = "\n".join(f"- {i['title']} ({i['host']}): {i['text']}" for i in items)
     hosts = []
@@ -120,13 +136,13 @@ def llm_json(prompt):
     return json.loads(txt[a:b + 1])
 
 
-def write_script(notes, today):
+def write_script(notes, today, focus="", part=1, total=1):
     prompt = f"""You write 45-second YouTube Shorts for TNPSC aspirants in simple spoken TAMIL.
 Date: {today}.
 Use ONLY facts that appear in these news notes. Do not add facts from memory:
 {notes}
 
-Pick the 5 most exam-relevant facts (Tamil Nadu first, then India). Make them EASY TO REMEMBER: a punchy hook
+This is video {part} of {total} today, so cover ONLY this theme: {focus}. Pick the 5 most exam-relevant facts for that theme. Make them EASY TO REMEMBER: a punchy hook
 line, one short sentence per fact, ONE memory trick (a catchy word, acronym or rhyme in Tamil), then a quick
 question for viewers and a line asking them to follow for daily current affairs.
 The voiceover must be 90-115 Tamil words, written exactly as it should be spoken (no emojis, no bullets).
@@ -148,6 +164,67 @@ with festival lamps. NO text or letters in the image, NO logos, NO faces, NO rea
             return d
         log(f"script attempt {attempt + 1} invalid (words={words}); retrying")
     sys.exit("Could not get a valid script from the LLM.")
+
+
+def safe_eval(expr):
+    import ast
+    import operator as op
+    ops = {ast.Add: op.add, ast.Sub: op.sub, ast.Mult: op.mul, ast.Div: op.truediv, ast.Pow: op.pow,
+           ast.USub: op.neg, ast.UAdd: op.pos, ast.Mod: op.mod}
+
+    def ev(n):
+        if isinstance(n, ast.Expression):
+            return ev(n.body)
+        if isinstance(n, ast.Constant) and isinstance(n.value, (int, float)):
+            return n.value
+        if isinstance(n, ast.BinOp) and type(n.op) in ops:
+            l, r = ev(n.left), ev(n.right)
+            if isinstance(n.op, ast.Pow) and abs(r) > 6:
+                raise ValueError("power too large")
+            return ops[type(n.op)](l, r)
+        if isinstance(n, ast.UnaryOp) and type(n.op) in ops:
+            return ops[type(n.op)](ev(n.operand))
+        raise ValueError("unsupported expression")
+    return ev(ast.parse(str(expr), mode="eval"))
+
+
+def write_aptitude_script(topic, today):
+    prompt = f"""You write 45-second YouTube Shorts for TNPSC / Tamil Nadu competitive-exam aspirants, in simple
+spoken TAMIL. Date: {today}. Topic: {topic}.
+
+Teach ONE solved aptitude question using a SHORTCUT TRICK that saves time compared with the long method.
+Use small, easy numbers. Structure of the voiceover: a punchy hook, the question stated slowly, the shortcut
+in 3-4 very short steps with the numbers, the final answer, a one-line memory tip, then a similar practice
+question for the viewer and a line asking them to follow for daily TNPSC aptitude tricks.
+The voiceover must be 90-115 Tamil words, written exactly as spoken (no emojis, no bullets, no markdown).
+The maths MUST be correct.
+
+Return JSON with keys:
+title (Tamil, under 85 characters, mention the topic),
+description (Tamil, 3-5 lines: the question, the trick, the answer),
+tags (list of 8 strings, Tamil and English),
+voiceover (Tamil),
+check_expr (a plain Python arithmetic expression using only numbers and + - * / ** that evaluates to the final answer),
+answer (the final numeric answer as a number),
+scenes (list of exactly 5 English prompts for vertical cinematic images that relate to the problem's story or to
+studying maths: for example a notebook and pencil on a desk, an old analog clock, coins and a calculator, a
+train on a bridge, a balance scale. NO text or letters in the image, NO logos, NO faces, NO real people)."""
+    for attempt in range(4):
+        d = llm_json(prompt)
+        words = len(d.get("voiceover", "").split())
+        ok = all(k in d for k in ("title", "description", "tags", "voiceover", "scenes", "check_expr", "answer"))
+        if ok and 70 <= words <= 150 and len(d["scenes"]) >= 4:
+            try:
+                got, want = float(safe_eval(d["check_expr"])), float(d["answer"])
+                if abs(got - want) <= 1e-6 * max(1.0, abs(want)):
+                    return d
+                log(f"aptitude attempt {attempt + 1}: maths mismatch ({got} vs {want}); retrying")
+                continue
+            except Exception as e:
+                log(f"aptitude attempt {attempt + 1}: cannot verify maths ({e}); retrying")
+                continue
+        log(f"aptitude attempt {attempt + 1} invalid (words={words}); retrying")
+    sys.exit("Could not get a verified aptitude script from the LLM.")
 
 
 # ---------------------------------------------------------------- 3. voice
@@ -193,19 +270,29 @@ def fallback_image(path, color):
     run(["ffmpeg", "-y", "-f", "lavfi", "-i", f"color=c={color}:s={W}x{H}", "-frames:v", "1", str(path)])
 
 
+_LAST_GOOD = {"path": None}
+
+
 def fetch_image(prompt, path, seed):
     style = ". Cinematic, soft warm light, vertical composition, no text, no watermark"
-    url = ("https://image.pollinations.ai/prompt/" + urllib.parse.quote(prompt + style)
-           + f"?width={W}&height={H}&nologo=true&seed={seed}")
-    for attempt in range(3):
+    for attempt in range(5):
+        # smaller size is faster and more reliable on the free service; ffmpeg scales it up
+        url = ("https://image.pollinations.ai/prompt/" + urllib.parse.quote(prompt + style)
+               + f"?width=720&height=1280&nologo=true&seed={seed + attempt}")
         try:
-            r = requests.get(url, timeout=150)
+            r = requests.get(url, timeout=120)
             if r.ok and r.headers.get("content-type", "").startswith("image") and len(r.content) > 10_000:
                 path.write_bytes(r.content)
+                _LAST_GOOD["path"] = path
                 return
         except requests.RequestException:
             pass
-        time.sleep(8 * (attempt + 1))
+        time.sleep(10 * (attempt + 1))
+    prev = _LAST_GOOD["path"]
+    if prev and Path(prev).exists():
+        log(f"image failed for '{prompt[:40]}', reusing previous image")
+        path.write_bytes(Path(prev).read_bytes())
+        return
     log(f"image failed for '{prompt[:40]}', using plain background")
     fallback_image(path, ["0x14213d", "0x1b4332", "0x3d2c5a"][seed % 3])
 
@@ -237,7 +324,7 @@ def ass_time(t):
     return f"{cs // 360000}:{cs // 6000 % 60:02d}:{cs // 100 % 60:02d}.{cs % 100:02d}"
 
 
-def write_ass(text, speech_seconds, path, start=0.15, date_text=""):
+def write_ass(text, speech_seconds, path, start=0.15, date_text="", head2="CURRENT AFFAIRS", head3="நடப்பு நிகழ்வுகள்"):
     """Running Tamil text: each phrase appears and its words light up as they are spoken.
     Timing is spread over the voice length by letter count (works with any TTS).
     Also adds the 'TNPSC CURRENT AFFAIRS' title block with the date at the top for the whole video."""
@@ -259,8 +346,8 @@ def write_ass(text, speech_seconds, path, start=0.15, date_text=""):
     total = speech_seconds + 1.2
     gold = r"\c&H3CC8FF&"
     white = r"\c&HFFFFFF&"
-    title = (rf"{{\fs125{gold}}}TNPSC\N{{\fs62{white}}}CURRENT AFFAIRS\N"
-             rf"{{\fn{font}\fs54{white}}}நடப்பு நிகழ்வுகள்\N"
+    title = (rf"{{\fs125{gold}}}TNPSC\N{{\fs62{white}}}{head2}\N"
+             rf"{{\fn{font}\fs54{white}}}{head3}\N"
              rf"{{\fn{latin}\fs50{gold}}}{date_text}")
     lines, t = [f"Dialogue: 0,{ass_time(0)},{ass_time(total)},Head,0,0,0,,{title}"], start
     for c, wt in zip(chunks, weights):
@@ -337,45 +424,86 @@ def upload(video, title, description, tags):
 
 
 # ---------------------------------------------------------------- main
-def main():
-    OUT.mkdir(exist_ok=True)
-    today = dt.datetime.now(IST).strftime("%d %B %Y")
-    stamp = dt.datetime.now(IST).strftime("%Y%m%d")
-    work = OUT / f"work-{stamp}"
-    work.mkdir(exist_ok=True)
+def make_one(slot, today, stamp, upload_it):
+    kind, name, queries, focus = SLOTS[slot]
+    tag = f"{stamp}-s{slot}"
+    work = OUT / f"work-{tag}"
+    work.mkdir(parents=True, exist_ok=True)
+    hosts = []
 
-    log("searching news")
-    notes, hosts = search_news()
-    (OUT / f"notes-{stamp}.txt").write_text(notes, encoding="utf-8")
+    if kind == "news":
+        log(f"[slot {slot}] {name}: searching news")
+        notes, hosts = search_news(queries)
+        (OUT / f"notes-{tag}.txt").write_text(notes, encoding="utf-8")
+        log(f"[slot {slot}] writing Tamil script")
+        s = write_script(notes, today, focus, slot, 5)
+        head2, head3, hashtags = "CURRENT AFFAIRS", "நடப்பு நிகழ்வுகள்", "#TNPSC #CurrentAffairs #Shorts"
+        pre, post = "Sources: " + ", ".join(hosts), "AI-assisted video. Verify facts with official sources."
+    else:
+        doy = dt.datetime.now(IST).timetuple().tm_yday
+        topic = APTITUDE_TOPICS[(doy * 2 + (0 if slot == 3 else 1)) % len(APTITUDE_TOPICS)]
+        log(f"[slot {slot}] aptitude topic: {topic}")
+        s = write_aptitude_script(topic, today)
+        head2, head3, hashtags = "APTITUDE TRICKS", "கணிதம் - குறுக்கு வழி", "#TNPSC #Aptitude #MathsTricks #Shorts"
+        pre, post = "Topic: " + topic, "AI-assisted video. Practise the method on your own."
+    (OUT / f"script-{tag}.json").write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    log("writing Tamil script")
-    s = write_script(notes, today)
-    (OUT / f"script-{stamp}.json").write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    log("making voiceover")
     voice = work / "voice.mp3"
-    segs = make_voice(s["voiceover"], voice)
+    make_voice(s["voiceover"], voice)
 
-    log("making images")
     imgs = []
     for i, scene in enumerate(s["scenes"][:5]):
         p = work / f"img{i}.png"
-        fetch_image(scene, p, seed=int(stamp) % 1000 + i)
+        fetch_image(scene, p, seed=(int(stamp) % 1000) * 10 + slot * 7 + i)
         imgs.append(p)
 
-    log("building video")
-    final = OUT / f"tnpsc-{stamp}.mp4"
+    final = OUT / f"tnpsc-{tag}.mp4"
     subs = work / "captions.ass"
-    write_ass(s["voiceover"], duration(voice), subs, date_text=dt.datetime.now(IST).strftime("%d %B %Y"))
+    write_ass(s["voiceover"], duration(voice), subs, date_text=today, head2=head2, head3=head3)
     secs = build_video(imgs, voice, final, work, subs=subs)
-    log(f"video ready ({secs:.0f}s): {final}")
+    log(f"[slot {slot}] video ready ({secs:.0f}s): {final}")
 
-    if env("UPLOAD", "true").lower() == "true":
-        desc = (s["description"] + "\n\nSources: " + ", ".join(hosts)
-                + "\nAI-assisted video. Verify facts with official sources.\n#TNPSC #CurrentAffairs #Shorts")
-        upload(final, s["title"] + " #Shorts", desc, [str(t) for t in s["tags"]])
+    if upload_it:
+        desc = s["description"] + f"\n\n{pre}\n{post}\n{hashtags}"
+        upload(final, f"{s['title']} #Shorts", desc, [str(t) for t in s["tags"]])
     else:
         log("UPLOAD=false, skipping YouTube upload")
+
+
+def pick_slots():
+    v = (os.environ.get("SLOT") or "").strip().lower()
+    if v == "all":
+        return list(SLOTS)
+    if v.isdigit() and int(v) in SLOTS:
+        return [int(v)]
+    # no slot given: choose by the IST clock (8, 10:30, 13, 15:30, 18)
+    h = dt.datetime.now(IST).hour + dt.datetime.now(IST).minute / 60
+    starts = {1: 8.0, 2: 10.5, 3: 13.0, 4: 15.5, 5: 18.0}
+    return [min(starts, key=lambda k: abs(starts[k] - h))]
+
+
+def main():
+    OUT.mkdir(exist_ok=True)
+    now = dt.datetime.now(IST)
+    today, stamp = now.strftime("%d %B %Y"), now.strftime("%Y%m%d")
+    upload_it = env("UPLOAD", "true").lower() == "true"
+    slots = pick_slots()
+    log(f"slots to build: {slots}")
+
+    done, failed = 0, []
+    for slot in slots:
+        try:
+            make_one(slot, today, stamp, upload_it)
+            done += 1
+            time.sleep(20)  # ease free-tier rate limits
+        except BaseException as e:  # with SLOT=all, one bad video does not cancel the rest
+            if isinstance(e, KeyboardInterrupt):
+                raise
+            failed.append(slot)
+            log(f"slot {slot} FAILED: {e!r}")
+    log(f"finished: {done}/{len(slots)} videos; failed: {failed or 'none'}")
+    if failed:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
