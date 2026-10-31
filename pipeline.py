@@ -137,6 +137,11 @@ def llm_json(prompt):
             time.sleep(30)
             r = call()
             continue
+        if r.status_code == 400:
+            log(f"LLM 400 (attempt {attempt + 1}); retrying without JSON mode")
+            time.sleep(3)
+            r = call(json_mode=False)
+            continue
         if not r.ok:
             sys.exit(f"LLM error {r.status_code}: {r.text[:500]}")
         txt = (r.json()["choices"][0]["message"].get("content") or "").strip()
@@ -172,13 +177,16 @@ scenes (list of exactly 5 English prompts, one per fact in the order they are sp
 cinematic image that visually relates to THAT fact: places, buildings, objects and symbols, for example
 Fort St George Chennai, a laptop with students, a glowing light bulb, a gold ring on silk, Tamil Nadu map
 with festival lamps. NO text or letters in the image, NO logos, NO faces, NO real people or politicians)."""
-    for attempt in range(3):
-        d = llm_json(prompt)
+    hint = ""
+    for attempt in range(5):
+        d = llm_json(prompt + hint)
         words = len(d.get("voiceover", "").split())
+        lo = 70 if attempt < 3 else 55
         if all(k in d for k in ("title", "description", "tags", "voiceover", "scenes")) \
-                and 70 <= words <= 150 and len(d["scenes"]) >= 4:
+                and lo <= words <= 150 and len(d["scenes"]) >= 4:
             return d
         log(f"script attempt {attempt + 1} invalid (words={words}); retrying")
+        hint = f"\n\nYour previous voiceover had only {words} words. Write at least 95 Tamil words."
     sys.exit("Could not get a valid script from the LLM.")
 
 
@@ -225,11 +233,13 @@ answer (the final numeric answer as a number),
 scenes (list of exactly 5 English prompts for vertical cinematic images that relate to the problem's story or to
 studying maths: for example a notebook and pencil on a desk, an old analog clock, coins and a calculator, a
 train on a bridge, a balance scale. NO text or letters in the image, NO logos, NO faces, NO real people)."""
-    for attempt in range(4):
-        d = llm_json(prompt)
+    hint = ""
+    for attempt in range(6):
+        d = llm_json(prompt + hint)
         words = len(d.get("voiceover", "").split())
         ok = all(k in d for k in ("title", "description", "tags", "voiceover", "scenes", "check_expr", "answer"))
-        if ok and 70 <= words <= 150 and len(d["scenes"]) >= 4:
+        lo = 70 if attempt < 3 else 55  # accept slightly shorter scripts on later attempts
+        if ok and lo <= words <= 150 and len(d["scenes"]) >= 4:
             try:
                 got, want = float(safe_eval(d["check_expr"])), float(d["answer"])
                 if abs(got - want) <= 1e-6 * max(1.0, abs(want)):
@@ -240,6 +250,8 @@ train on a bridge, a balance scale. NO text or letters in the image, NO logos, N
                 log(f"aptitude attempt {attempt + 1}: cannot verify maths ({e}); retrying")
                 continue
         log(f"aptitude attempt {attempt + 1} invalid (words={words}); retrying")
+        hint = (f"\n\nYour previous voiceover had only {words} words. Write MORE: at least 95 Tamil words, "
+                "with every step of the trick spoken in full sentences.")
     sys.exit("Could not get a verified aptitude script from the LLM.")
 
 
