@@ -204,7 +204,12 @@ voiceover (Tamil),
 scenes (list of exactly 5 English prompts, one per fact in the order they are spoken. Each is a vertical
 cinematic image that visually relates to THAT fact: places, buildings, objects and symbols, for example
 Fort St George Chennai, a laptop with students, a glowing light bulb, a gold ring on silk, Tamil Nadu map
-with festival lamps. NO text or letters in the image, NO logos, NO faces, NO real people or politicians)."""
+with festival lamps. NO text or letters in the image, NO logos, NO faces, NO real people or politicians).
+
+Language rules for the voiceover (it is read by a Tamil text-to-speech voice): write ONLY in Tamil script, with no
+English letters, no digits (write every number in Tamil words), no brackets, quotes, hyphens or symbols; write
+abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎஸ்சி, GST as ஜிஎஸ்டி); use short sentences of at most
+12 words, simple everyday words, a comma wherever a speaker would pause, and avoid very long compound words."""
     hint = ""
     for attempt in range(5):
         d = llm_json(prompt + avoid + hint)
@@ -260,7 +265,12 @@ check_expr (a plain Python arithmetic expression using only numbers and + - * / 
 answer (the final numeric answer as a number),
 scenes (list of exactly 5 English prompts for vertical cinematic images that relate to the problem's story or to
 studying maths: for example a notebook and pencil on a desk, an old analog clock, coins and a calculator, a
-train on a bridge, a balance scale. NO text or letters in the image, NO logos, NO faces, NO real people)."""
+train on a bridge, a balance scale. NO text or letters in the image, NO logos, NO faces, NO real people).
+
+Language rules for the voiceover (it is read by a Tamil text-to-speech voice): write ONLY in Tamil script, with no
+English letters, no digits (write every number in Tamil words), no brackets, quotes, hyphens or symbols; write
+abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎஸ்சி, GST as ஜிஎஸ்டி); use short sentences of at most
+12 words, simple everyday words, a comma wherever a speaker would pause, and avoid very long compound words."""
     hint = ""
     for attempt in range(6):
         d = llm_json(prompt + avoid + hint)
@@ -284,18 +294,45 @@ train on a bridge, a balance scale. NO text or letters in the image, NO logos, N
 
 
 # ---------------------------------------------------------------- 3. voice
+PRONOUNCE = {   # written form -> how it should be SPOKEN (captions keep the original). Extend in pronounce.json
+    "TNPSC": "டிஎன்பிஎஸ்சி", "GST": "ஜிஎஸ்டி", "RBI": "ஆர்பிஐ", "ISRO": "இஸ்ரோ", "UPSC": "யுபிஎஸ்சி",
+    "GDP": "ஜிடிபி", "NITI": "நிதி", "AI": "ஏஐ", "UPI": "யுபிஐ", "IPL": "ஐபிஎல்", "BCCI": "பிசிசிஐ",
+    "%": " சதவீதம்", "₹": "ரூபாய் ", "&": " மற்றும் ",
+}
+
+
+def tts_text(text):
+    """Cleans the script so the Tamil voice reads it smoothly (no spelled-out symbols, no odd pauses)."""
+    import re
+    table = dict(PRONOUNCE)
+    try:
+        table.update(json.loads(Path("pronounce.json").read_text(encoding="utf-8")))
+    except Exception:
+        pass
+    t = text.replace("\u200b", "").replace("\u200c", "").replace("\u200d", "")
+    for k in sorted(table, key=len, reverse=True):
+        t = t.replace(k, table[k])
+    t = re.sub(r"[\"'“”‘’()\[\]{}*_#`~|<>]", " ", t)
+    t = re.sub(r"\s*[-–—/]\s*", ", ", t)          # hyphens and slashes made the voice stumble
+    t = re.sub(r"\.(?=\S)", ". ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
+
+
 def make_voice(text, path):
-    """Makes the voiceover and returns timing segments (start_s, dur_s, text) for the captions."""
+    """Makes the voiceover and returns timing segments (start_s, dur_s, text)."""
     import edge_tts
 
     segs = []
+    spoken = tts_text(text)
+    rate = os.environ.get("TTS_RATE") or "-6%"   # a little slower = clearer Tamil
 
     async def go():
         voice = env("TTS_VOICE", "ta-IN-PallaviNeural")
         try:
-            comm = edge_tts.Communicate(text, voice, rate="+0%", boundary="WordBoundary")
+            comm = edge_tts.Communicate(spoken, voice, rate=rate, boundary="WordBoundary")
         except TypeError:  # older edge-tts versions
-            comm = edge_tts.Communicate(text, voice, rate="+0%")
+            comm = edge_tts.Communicate(spoken, voice, rate=rate)
         with open(path, "wb") as f:
             async for ch in comm.stream():
                 if ch["type"] == "audio":
@@ -305,6 +342,25 @@ def make_voice(text, path):
 
     asyncio.run(go())
     return segs
+
+
+def speech_spans(path):
+    """Finds when the voice is really speaking (between pauses) so captions follow the audio, not a guess."""
+    import re
+    total = duration(path)
+    p = subprocess.run(["ffmpeg", "-i", str(path), "-af", "silencedetect=noise=-32dB:d=0.12", "-f", "null", "-"],
+                       capture_output=True, text=True)
+    starts = [float(x) for x in re.findall(r"silence_start: (-?[\d.]+)", p.stderr)]
+    ends = [float(x) for x in re.findall(r"silence_end: ([\d.]+)", p.stderr)]
+    spans, cur = [], 0.0
+    for i, st in enumerate(starts):
+        st = max(st, 0.0)
+        if st - cur > 0.05:
+            spans.append((cur, st))
+        cur = ends[i] if i < len(ends) else total
+    if total - cur > 0.05:
+        spans.append((cur, total))
+    return spans or [(0.0, total)]
 
 
 # ---------------------------------------------------------------- 4. images
@@ -357,7 +413,7 @@ def fetch_image(prompt, path, seed):
 def make_clip(img, seconds, out, zoom_in):
     frames = int(seconds * 30) + 1
     z = "min(zoom+0.0007,1.25)" if zoom_in else "if(eq(on,1),1.25,max(zoom-0.0007,1.0))"
-    vf = (f"scale=1620:2880:force_original_aspect_ratio=increase,crop=1620:2880,"
+    vf = (f"crop=iw:ih*0.93:0:0,scale=1620:2880:force_original_aspect_ratio=increase,crop=1620:2880,"
           f"zoompan=z='{z}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={frames}:s={W}x{H}:fps=30,"
           f"eq=brightness=-0.12:saturation=1.05,format=yuv420p")  # slightly darker so text stands out
     run(["ffmpeg", "-y", "-i", str(img), "-vf", vf, "-t", f"{seconds:.2f}", "-r", "30",
@@ -380,15 +436,43 @@ def ass_time(t):
     return f"{cs // 360000}:{cs // 6000 % 60:02d}:{cs // 100 % 60:02d}.{cs % 100:02d}"
 
 
-def write_ass(text, speech_seconds, path, start=0.15, date_text="", head2="CURRENT AFFAIRS", head3="நடப்பு நிகழ்வுகள்"):
-    """Running Tamil text: each phrase appears and its words light up as they are spoken.
-    Timing is spread over the voice length by letter count (works with any TTS).
-    Also adds the 'TNPSC CURRENT AFFAIRS' title block with the date at the top for the whole video."""
+def rrect(w, h, r):
+    """ASS vector path of a rounded rectangle."""
+    return (f"m {r} 0 l {w - r} 0 b {w} 0 {w} 0 {w} {r} l {w} {h - r} b {w} {h} {w} {h} {w - r} {h} "
+            f"l {r} {h} b 0 {h} 0 {h} 0 {h - r} l 0 {r} b 0 0 0 0 {r} 0")
+
+
+def timeline(weights, spans, start=0.1):
+    """Maps each caption chunk to (t0, t1) on the real speech, skipping the pauses between sentences."""
+    spans = [(max(a, start), b) for a, b in spans if b > max(a, start)] or spans
+    speech = sum(b - a for a, b in spans)
+    total_w = max(sum(weights), 1)
+    out, acc = [], 0.0
+
+    def at(x):  # position x seconds into the speech-only timeline -> absolute time
+        for a, b in spans:
+            if x <= b - a:
+                return a + x
+            x -= b - a
+        return spans[-1][1]
+
+    for w in weights:
+        t0, t1 = at(acc / total_w * speech), at((acc + w) / total_w * speech)
+        out.append((t0, max(t1, t0 + 0.2)))
+        acc += w
+    return out
+
+
+def write_ass(text, speech_seconds, path, start=0.15, date_text="", head2="CURRENT AFFAIRS",
+              head3="நடப்பு நிகழ்வுகள்", spans=None, total_seconds=None):
+    """Header (TNPSC + title + date), running Tamil captions that follow the real speech, and a
+    LIKE / SUBSCRIBE call-to-action that pops up near the end."""
     font = os.environ.get("SUB_FONT") or "Noto Sans Tamil"
     latin = os.environ.get("SUB_LATIN_FONT") or "DejaVu Sans"
     chunks = tamil_chunks(text)
     weights = [sum(len(w) for w in c) for c in chunks]
-    scale = max(speech_seconds - start, 1.0) / max(sum(weights), 1)
+    spans = spans or [(start, speech_seconds)]
+    times = timeline(weights, spans, start)
     header = (
         "[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\nWrapStyle: 0\n\n"
         "[V4+ Styles]\n"
@@ -396,18 +480,20 @@ def write_ass(text, speech_seconds, path, start=0.15, date_text="", head2="CURRE
         "Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,"
         "MarginV,Encoding\n"
         f"Style: Run,{font},78,&H0000D7FF,&H00FFFFFF,&H00000000,&H90000000,-1,0,0,0,100,100,0,0,1,5,2,2,70,70,430,1\n"
-        f"Style: Head,{latin},60,&H00FFFFFF,&H00FFFFFF,&H00000000,&H90000000,-1,0,0,0,100,100,0,0,1,3,1,8,40,40,100,1\n\n"
+        f"Style: Head,{latin},60,&H00FFFFFF,&H00FFFFFF,&H00000000,&H90000000,-1,0,0,0,100,100,0,0,1,3,1,8,40,40,100,1\n"
+        f"Style: Btn,{latin},58,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1\n"
+        f"Style: BtnTa,{font},50,&H0000D7FF,&H00FFFFFF,&H00000000,&H90000000,-1,0,0,0,100,100,0,0,1,4,1,5,0,0,0,1\n\n"
         "[Events]\nFormat: Layer,Start,End,Style,MarginL,MarginR,MarginV,Effect,Text\n"
     )
-    total = speech_seconds + 1.2
+    total = total_seconds or (speech_seconds + 1.2)
     gold = r"\c&H3CC8FF&"
     white = r"\c&HFFFFFF&"
     title = (rf"{{\fs125{gold}}}TNPSC\N{{\fs62{white}}}{head2}\N"
              rf"{{\fn{font}\fs54{white}}}{head3}\N"
              rf"{{\fn{latin}\fs50{gold}}}{date_text}")
-    lines, t = [f"Dialogue: 0,{ass_time(0)},{ass_time(total)},Head,0,0,0,,{title}"], start
-    for c, wt in zip(chunks, weights):
-        dur = wt * scale
+    lines = [f"Dialogue: 0,{ass_time(0)},{ass_time(total)},Head,0,0,0,,{title}"]
+    for c, wt, (t0, t1) in zip(chunks, weights, times):
+        dur = t1 - t0
         ks, used = [], 0
         for w in c:
             k = int(round(dur * 100 * len(w) / max(wt, 1)))
@@ -415,9 +501,37 @@ def write_ass(text, speech_seconds, path, start=0.15, date_text="", head2="CURRE
             used += k
         ks[-1] += int(round(dur * 100)) - used
         body = "".join(f"{{\\kf{max(k, 1)}}}{w} " for k, w in zip(ks, c)).strip()
-        lines.append(f"Dialogue: 0,{ass_time(t)},{ass_time(t + dur + 0.05)},Run,0,0,0,,{{\\fad(120,60)}}{body}")
-        t += dur
+        lines.append(f"Dialogue: 0,{ass_time(t0)},{ass_time(t1 + 0.05)},Run,0,0,0,,{{\\fad(100,60)}}{body}")
+
+    # LIKE / SUBSCRIBE call-to-action for the last 6.5 seconds
+    c0, c1 = max(total - 6.5, 1.0), total
+    pop = r"\fscx55\fscy55\t(0,350,\fscx100\fscy100)"
+    pulse = r"\t(2200,2600,\fscx108\fscy108)\t(2600,3000,\fscx100\fscy100)\t(3600,4000,\fscx108\fscy108)\t(4000,4400,\fscx100\fscy100)"
+    y = 1000
+    for cx, w, col, label, extra in ((300, 330, r"\1c&HE5881E&", "LIKE", ""), (720, 470, r"\1c&H0000FF&", "SUBSCRIBE", pulse)):
+        lines.append(f"Dialogue: 1,{ass_time(c0)},{ass_time(c1)},Btn,0,0,0,,"
+                     f"{{\\an5\\pos({cx},{y})\\bord0\\shad0{col}\\fad(200,200){pop}{extra}\\p1}}{rrect(w, 120, 28)}{{\\p0}}")
+        lines.append(f"Dialogue: 2,{ass_time(c0)},{ass_time(c1)},Btn,0,0,0,,"
+                     f"{{\\an5\\pos({cx},{y})\\fad(200,200){pop}{extra}}}{label}")
+    lines.append(f"Dialogue: 2,{ass_time(c0 + 0.3)},{ass_time(c1)},BtnTa,0,0,0,,"
+                 f"{{\\an5\\pos(540,{y + 115})\\fad(250,200)}}லைக் செய்யுங்கள் • சப்ஸ்கிரைப் செய்யுங்கள்")
     Path(path).write_text(header + "\n".join(lines) + "\n", encoding="utf-8")
+
+
+def make_logo(src, dst, size=170):
+    """Turns assets/logo.png (your channel icon) into a round watermark."""
+    from PIL import Image, ImageDraw
+    im = Image.open(src).convert("RGBA")
+    side = min(im.size)
+    im = im.crop(((im.width - side) // 2, (im.height - side) // 2,
+                  (im.width + side) // 2, (im.height + side) // 2)).resize((size, size))
+    mask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, size - 1, size - 1), fill=255)
+    im.putalpha(mask)
+    im.save(dst)
+
+
+LOGO = Path("assets/logo.png")
 
 
 def build_video(images, voice, out, workdir, bgm=BGM, subs=None):
@@ -432,20 +546,33 @@ def build_video(images, voice, out, workdir, bgm=BGM, subs=None):
     lst.write_text("".join(f"file '{c.resolve()}'\n" for c in clips))
     joined = workdir / "joined.mp4"
     run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(joined)])
+
     cmd = ["ffmpeg", "-y", "-i", str(joined), "-i", str(voice)]
+    n = 2
     if Path(bgm).exists():
-        cmd += ["-stream_loop", "-1", "-i", str(bgm), "-filter_complex",
-                f"[1:a]apad=pad_dur=1[v];[2:a]volume=0.15,afade=t=in:d=1.5[b];"
-                f"[v][b]amix=inputs=2:duration=first:dropout_transition=0[m];"
-                f"[m]volume=1.8,afade=t=out:st={total - 1.5:.2f}:d=1.5[a]"]
+        cmd += ["-stream_loop", "-1", "-i", str(bgm)]
+        n += 1
+        afilter = (f"[1:a]apad=pad_dur=1[va];[2:a]volume=0.15,afade=t=in:d=1.5[b];"
+                   f"[va][b]amix=inputs=2:duration=first:dropout_transition=0[m];"
+                   f"[m]volume=1.8,afade=t=out:st={total - 1.5:.2f}:d=1.5[a]")
     else:
         log("WARNING: assets/bgm.mp3 not found, publishing without BGM")
-        cmd += ["-filter_complex", "[1:a]apad=pad_dur=1[a]"]
+        afilter = "[1:a]apad=pad_dur=1[a]"
+    base = "null"
     if subs:
-        # dark panel behind the title block, then the title and running Tamil text from the .ass file
-        cmd += ["-vf", f"drawbox=x=0:y=70:w=iw:h=370:color=black@0.55:t=fill,ass={Path(subs).resolve()}"]
-    cmd += ["-map", "0:v", "-map", "[a]", "-t", f"{total:.2f}", "-c:v", "libx264", "-pix_fmt", "yuv420p",
-            "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(out)]
+        # dark panel behind the title block, then title, running Tamil text and LIKE/SUBSCRIBE from the .ass file
+        base = f"drawbox=x=0:y=70:w=iw:h=370:color=black@0.55:t=fill,ass={Path(subs).resolve()}"
+    if LOGO.exists():
+        logo = workdir / "logo_round.png"
+        make_logo(LOGO, logo)
+        cmd += ["-loop", "1", "-framerate", "30", "-i", str(logo)]
+        vfilter = (f"[0:v]{base}[bv];[{n}:v]format=rgba,colorchannelmixer=aa=0.92[lg];"
+                   f"[bv][lg]overlay=40:95:shortest=1[v]")
+    else:
+        log("no assets/logo.png: publishing without the channel watermark")
+        vfilter = f"[0:v]{base}[v]"
+    cmd += ["-filter_complex", vfilter + ";" + afilter, "-map", "[v]", "-map", "[a]", "-t", f"{total:.2f}",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(out)]
     run(cmd)
     return total
 
@@ -515,7 +642,9 @@ def make_one(slot, today, stamp, upload_it, hist):
 
     final = OUT / f"tnpsc-{tag}.mp4"
     subs = work / "captions.ass"
-    write_ass(s["voiceover"], duration(voice), subs, date_text=today, head2=head2, head3=head3)
+    vdur = duration(voice)
+    write_ass(s["voiceover"], vdur, subs, date_text=today, head2=head2, head3=head3,
+              spans=speech_spans(voice), total_seconds=vdur + 1.0)
     secs = build_video(imgs, voice, final, work, subs=subs)
     log(f"[slot {slot}] video ready ({secs:.0f}s): {final}")
 
