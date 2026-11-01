@@ -412,7 +412,7 @@ def make_voice_edge(text, path):
     rate = os.environ.get("TTS_RATE") or "-6%"   # a little slower = clearer Tamil
 
     async def go():
-        voice = env("TTS_VOICE", "ta-IN-PallaviNeural")
+        voice = os.environ.get("TTS_VOICE") or ("ta-IN-PallaviNeural" if _is_female(_cur_voice()) else "ta-IN-ValluvarNeural")
         try:
             comm = edge_tts.Communicate(spoken, voice, rate=rate, boundary="WordBoundary")
         except TypeError:  # older edge-tts versions
@@ -432,12 +432,86 @@ def make_voice_edge(text, path):
 GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
 
+FEMALE_VOICES = {"kore", "zephyr", "leda", "aoede", "sulafat", "callirrhoe", "autonoe", "despina", "erinome",
+                 "laomedeia", "achernar", "gacrux", "pulcherrima", "vindemiatrix"}
+_VOICE = {"name": None}
+
+
+def _is_female(name):
+    return (name or "").strip().lower() in FEMALE_VOICES
+
+
+def _cur_voice():
+    return _VOICE["name"] or (os.environ.get("PUTER_VOICE") or "").strip() or "Charon"
+
+
+def pick_voice():
+    """One voice per video, chosen at random from PUTER_VOICES (default: Charon = man, Kore = woman).
+    Set PUTER_VOICE to force a single voice. The same voice is kept for every part of the video."""
+    forced = (os.environ.get("PUTER_VOICE") or "").strip()
+    if forced:
+        _VOICE["name"] = forced
+    else:
+        pool = [v.strip() for v in (os.environ.get("PUTER_VOICES") or "Charon,Kore").split(",") if v.strip()]
+        _VOICE["name"] = random.choice(pool or ["Charon"])
+    log(f"voice for this video: {_VOICE['name']}")
+    return _VOICE["name"]
+
+
 def tts_engine():
-    """'gemini' when a Gemini key is set (unless TTS_ENGINE=edge), otherwise the free edge-tts voice."""
+    """Puter when PUTER_AUTH_TOKEN is set (Gemini is NOT used unless you set TTS_ENGINE=gemini), otherwise the free
+    edge-tts voice. TTS_ENGINE=edge|gemini|puter forces one."""
     e = (os.environ.get("TTS_ENGINE") or "").strip().lower()
-    if e in ("edge", "gemini"):
+    if e in ("edge", "gemini", "puter"):
         return e
-    return "gemini" if os.environ.get("GEMINI_API_KEY") else "edge"
+    return "puter" if os.environ.get("PUTER_AUTH_TOKEN") else "edge"
+
+
+def _engine_chain(engine):
+    """The chosen engine first, then the others that can take over (always ending with free edge-tts)."""
+    chain = [engine]
+    if engine == "gemini" and os.environ.get("PUTER_AUTH_TOKEN"):
+        chain.append("puter")
+    if "edge" not in chain:
+        chain.append("edge")
+    return chain
+
+
+def make_voice_puter(text, path):
+    """Voice from Puter.js (Gemini TTS through a Puter account). Runs puter_tts.mjs with Node, so Node 24 and
+    `npm i @heyputer/puter.js` must be set up (daily.yml does it). Raises on failure.
+    Settings: PUTER_AUTH_TOKEN (secret), PUTER_VOICES (default Charon,Kore: picks one at random per video), PUTER_VOICE (forces one), PUTER_PROVIDER (default gemini)."""
+    here = Path(__file__).resolve().parent
+    script = here / "puter_tts.mjs"
+    if not script.exists():
+        raise RuntimeError("puter_tts.mjs is missing from the repo")
+    if not os.environ.get("PUTER_AUTH_TOKEN"):
+        raise RuntimeError("PUTER_AUTH_TOKEN is not set")
+    src = Path(str(path) + ".txt")
+    raw = Path(str(path) + ".raw")
+    src.write_text(tts_text(text), encoding="utf-8")
+    last = "no answer"
+    for n in range(2):
+        try:
+            p = subprocess.run(["node", str(script), str(src), str(raw)], cwd=str(here), capture_output=True,
+                               text=True, timeout=150, env={**os.environ, "PUTER_VOICE": _cur_voice()})
+        except subprocess.TimeoutExpired:
+            last = "Puter timed out"
+            continue
+        if p.returncode == 0 and raw.exists() and raw.stat().st_size > 1000:
+            break
+        last = (p.stderr or p.stdout or "no output")[-300:]
+        time.sleep(4)
+    else:
+        src.unlink(missing_ok=True)
+        raise RuntimeError("Puter TTS failed: " + last)
+    src.unlink(missing_ok=True)
+    c = subprocess.run(["ffmpeg", "-y", "-i", str(raw), "-c:a", "libmp3lame", "-b:a", "96k", str(path)],
+                       capture_output=True, text=True)
+    raw.unlink(missing_ok=True)
+    if c.returncode:
+        raise RuntimeError("ffmpeg could not read the Puter audio: " + c.stderr[-300:])
+    return []
 
 
 def _audio_to_mp3(raw, path, rate=24000):
@@ -532,37 +606,46 @@ def make_voice_gemini(text, path):
 
 def speak(text, path, engine):
     """One voice file with exactly the chosen engine (raises on failure)."""
-    return make_voice_gemini(text, path) if engine == "gemini" else make_voice_edge(text, path)
+    if engine == "gemini":
+        return make_voice_gemini(text, path)
+    if engine == "puter":
+        return make_voice_puter(text, path)
+    return make_voice_edge(text, path)
 
 
 def make_voice(text, path):
-    """One voiceover file: Gemini when a key is set, and the free edge-tts voice if Gemini fails."""
-    if tts_engine() == "gemini":
+    """One voiceover file: the chosen engine, then the next one in the chain (Gemini -> Puter -> edge-tts)."""
+    chain = _engine_chain(tts_engine())
+    pick_voice()   # a new random voice for every video
+    for i, engine in enumerate(chain):
         try:
-            return make_voice_gemini(text, path)
+            return speak(text, path, engine)
         except Exception as e:
-            log(f"Gemini voice failed, using edge-tts instead: {e}")
-    return make_voice_edge(text, path)
+            if i == len(chain) - 1:
+                raise
+            log(f"{engine} voice failed, trying {chain[i + 1]} instead: {e}")
 
 
 def make_voice_parts(parts, path, workdir, gap=0.3):
     """Speaks each part separately and joins them, so the screen can change exactly when a part starts.
-    Returns {part name: start second}. If Gemini fails, ALL parts are redone with edge-tts (one voice per video)."""
-    engine = tts_engine()
-    try:
-        return _voice_parts(parts, path, workdir, gap, engine)
-    except Exception as e:
-        if engine != "gemini":
-            raise
-        log(f"Gemini voice failed ({e}); redoing every part with edge-tts so the voice stays the same")
-        return _voice_parts(parts, path, workdir, gap, "edge")
+    Returns {part name: start second}. If an engine fails, ALL parts are redone with the next engine in the chain
+    (Gemini -> Puter -> edge-tts), so one video always has one voice."""
+    chain = _engine_chain(tts_engine())
+    pick_voice()   # a new random voice for every video
+    for i, engine in enumerate(chain):
+        try:
+            return _voice_parts(parts, path, workdir, gap, engine)
+        except Exception as e:
+            if i == len(chain) - 1:
+                raise
+            log(f"{engine} voice failed ({e}); redoing every part with {chain[i + 1]} so the voice stays the same")
 
 
 def _voice_parts(parts, path, workdir, gap, engine):
     files, starts, t = [], {}, 0.0
     for i, (name, text) in enumerate(parts):
         p = workdir / f"part_{name}.mp3"
-        if i and engine == "gemini":
+        if i and engine in ("gemini", "puter"):
             time.sleep(2)   # be gentle with the per-minute limit
         speak(text, p, engine)
         starts[name] = t
