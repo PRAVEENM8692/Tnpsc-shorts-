@@ -1,7 +1,7 @@
 """Free daily TNPSC current-affairs Tamil Short (runs on GitHub Actions).
 
-news search (Tavily) -> Tamil script (Groq/OpenAI-compatible LLM) -> Tamil voice (edge-tts)
--> images (Pollinations) -> zoom/pan video + BGM (ffmpeg) -> YouTube upload (Data API)
+news search (Tavily) -> Tamil script (Groq/OpenAI-compatible LLM) -> Tamil voice (Gemini TTS, edge-tts as fallback)
+-> images (Pollinations) or Manim animation (aptitude) -> video + BGM (ffmpeg) -> YouTube upload (Data API)
 """
 import asyncio
 import datetime as dt
@@ -267,6 +267,8 @@ scenes (list of exactly 5 English prompts for vertical cinematic images that rel
 studying maths: for example a notebook and pencil on a desk, an old analog clock, coins and a calculator, a
 train on a bridge, a balance scale. NO text or letters in the image, NO logos, NO faces, NO real people).
 
+{CASUAL_TAMIL}
+
 Language rules for the voiceover (it is read by a Tamil text-to-speech voice): write ONLY in Tamil script, with no
 English letters, no digits (write every number in Tamil words), no brackets, quotes, hyphens or symbols; write
 abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎஸ்சி, GST as ஜிஎஸ்டி); use short sentences of at most
@@ -291,6 +293,88 @@ abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎ�
         hint = (f"\n\nYour previous voiceover had only {words} words. Write MORE: at least 95 Tamil words, "
                 "with every step of the trick spoken in full sentences.")
     sys.exit("Could not get a verified aptitude script from the LLM.")
+
+
+CASUAL_TAMIL = ("Style: speak like a friendly elder brother or sister teacher chatting casually with students: "
+                "everyday SPOKEN Tamil (பேச்சுத் தமிழ்), NOT literary, formal or poetic Tamil (no புலவர் style, no bookish words). "
+                "Use natural spoken forms such as பண்ணுங்க, பாருங்க, வாங்க, இருக்கு, சொல்றேன், வரும், ரொம்ப ஈசி, சரியா?; "
+                "call the viewers நண்பர்களே or நீங்க; Tamil-letter English words such as ஷார்ட்கட், ஈசி, டிரிக் are welcome. "
+                "Avoid stiff words like கணக்கிடுக, விடையைக் காண்க, பின்வருமாறு.")
+
+SAY_KEYS = ("say_hook", "say_question", "say_step1", "say_step2", "say_step3", "say_answer", "say_tip", "say_outro")
+FALLBACK_SCENES = ["a notebook and pencil on a wooden study desk, warm light", "an old analog clock on a study table",
+                   "coins and a calculator on a desk", "a brass balance scale on a table",
+                   "a stack of books beside a glowing lamp"]
+
+
+def write_aptitude_manim_script(topic, today, avoid=""):
+    """Aptitude script for the animated (Manim) video: the voice is written in PARTS (hook, question, step 1-3,
+    answer, tip, outro) so the screen can change exactly when each part starts."""
+    prompt = f"""You write 45-second YouTube Shorts for TNPSC / Tamil Nadu competitive-exam aspirants. Date: {today}. Topic: {topic}.
+
+Teach ONE solved aptitude question using a SHORTCUT TRICK that saves time compared with the long method.
+Use small, easy numbers and make the question DIFFERENT each day (random story, names of Tamil Nadu places, new numbers; variation code {random.randint(1000, 9999)}). The maths MUST be correct.
+The video shows the question and the 3 steps on the screen while a voice explains them, so the spoken parts and the screen texts must use the SAME numbers.
+
+{CASUAL_TAMIL}
+
+Return JSON with these keys:
+title (Tamil, under 85 characters, mention the topic),
+description (Tamil, 3-5 lines: the question, the trick, the answer),
+tags (list of 8 strings, Tamil and English),
+check_expr (a plain Python arithmetic expression using only numbers and + - * / ** that evaluates to the final answer),
+answer (the final numeric answer as a number),
+topic_ta (the topic name in Tamil, 1 to 3 words),
+screen_question (the question as shown on the screen: Tamil with digits and symbols allowed, at most 60 characters),
+screen_steps (list of EXACTLY 3 short lines for the screen, the same 3 steps that are spoken, each at most 26 characters, digits and symbols allowed, for example "10% = 20"),
+screen_answer (the final answer for the screen, at most 14 characters, it must contain the number, for example "30 ரூபாய்"),
+screen_practice (a similar practice question for the viewer, Tamil, at most 60 characters),
+and the SPOKEN parts, each one to three short sentences:
+say_hook (a punchy hook, about 12 words),
+say_question (reads the question slowly),
+say_step1, say_step2, say_step3 (the three steps of the shortcut, with the numbers),
+say_answer (says the final answer),
+say_tip (a one-line memory tip),
+say_outro (the practice question for the viewer, then a line asking them to follow for daily TNPSC aptitude tricks).
+All the spoken parts together must be 90-115 Tamil words.
+
+Language rules for the spoken parts (they are read by a Tamil text-to-speech voice): write ONLY in Tamil script, with no
+English letters, no digits (write every number in Tamil words), no brackets, quotes, hyphens or symbols; write
+abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎஸ்சி); use short sentences of at most 12 words, a comma
+wherever a speaker would pause, and avoid very long compound words."""
+    need = ("title", "description", "tags", "check_expr", "answer", "screen_question", "screen_answer")
+    hint = ""
+    for attempt in range(6):
+        d = llm_json(prompt + avoid + hint)
+        parts = [(k[4:], str(d.get(k, "")).strip()) for k in SAY_KEYS]
+        words = sum(len(t.split()) for _, t in parts)
+        steps = d.get("screen_steps")
+        lo = 70 if attempt < 3 else 55
+        if not (all(k in d for k in need) and all(t for _, t in parts) and isinstance(steps, list)
+                and len(steps) >= 3 and lo <= words <= 150):
+            log(f"aptitude (animated) attempt {attempt + 1} invalid (words={words}); retrying")
+            hint = (f"\n\nYour previous spoken parts had {words} words in total, or a key was missing. Fill EVERY key and "
+                    "write at least 95 Tamil words in the spoken parts.")
+            continue
+        try:
+            got, want = float(safe_eval(d["check_expr"])), float(d["answer"])
+        except Exception as e:
+            log(f"aptitude (animated) attempt {attempt + 1}: cannot verify maths ({e}); retrying")
+            continue
+        if abs(got - want) > 1e-6 * max(1.0, abs(want)):
+            log(f"aptitude (animated) attempt {attempt + 1}: maths mismatch ({got} vs {want}); retrying")
+            continue
+        shown = str(d["screen_answer"]).replace(",", "")
+        want_txt = str(int(want)) if want == int(want) else str(want)
+        if attempt < 4 and want_txt not in shown:
+            log(f"aptitude (animated) attempt {attempt + 1}: screen answer does not show {want_txt}; retrying")
+            hint = f"\n\nscreen_answer must contain the number {want_txt}."
+            continue
+        d["parts"] = parts
+        d["voiceover"] = " ".join(t for _, t in parts)
+        d["screen_steps"] = [str(x) for x in steps[:3]]
+        return d
+    sys.exit("Could not get a verified animated aptitude script from the LLM.")
 
 
 # ---------------------------------------------------------------- 3. voice
@@ -319,8 +403,8 @@ def tts_text(text):
     return t
 
 
-def make_voice(text, path):
-    """Makes the voiceover and returns timing segments (start_s, dur_s, text)."""
+def make_voice_edge(text, path):
+    """Free edge-tts voice. Returns timing segments (start_s, dur_s, text)."""
     import edge_tts
 
     segs = []
@@ -342,6 +426,156 @@ def make_voice(text, path):
 
     asyncio.run(go())
     return segs
+
+
+# ---- Gemini TTS (Google AI Studio key). Used when GEMINI_API_KEY is set; edge-tts stays as the free fallback ----
+GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
+
+
+def tts_engine():
+    """'gemini' when a Gemini key is set (unless TTS_ENGINE=edge), otherwise the free edge-tts voice."""
+    e = (os.environ.get("TTS_ENGINE") or "").strip().lower()
+    if e in ("edge", "gemini"):
+        return e
+    return "gemini" if os.environ.get("GEMINI_API_KEY") else "edge"
+
+
+def _audio_to_mp3(raw, path, rate=24000):
+    """Gemini sends WAV (with a header) or raw 16-bit mono PCM; ffmpeg turns either one into an mp3."""
+    tmp = Path(str(path) + ".raw")
+    tmp.write_bytes(raw)
+    src = ["-i", str(tmp)] if raw[:4] == b"RIFF" else ["-f", "s16le", "-ar", str(rate), "-ac", "1", "-i", str(tmp)]
+    p = subprocess.run(["ffmpeg", "-y"] + src + ["-c:a", "libmp3lame", "-b:a", "96k", str(path)],
+                       capture_output=True, text=True)
+    tmp.unlink(missing_ok=True)
+    if p.returncode:
+        raise RuntimeError("ffmpeg could not read the Gemini audio: " + p.stderr[-300:])
+
+
+def make_voice_gemini(text, path):
+    """Voice from Gemini TTS. Raises when it cannot get audio, so the caller can fall back to edge-tts.
+    Settings: GEMINI_API_KEY, GEMINI_TTS_MODEL (default gemini-3.8-flash-tts), GEMINI_VOICE (default Kore),
+    GEMINI_STYLE (how it should sound)."""
+    import base64
+    import re
+    key = env("GEMINI_API_KEY")
+    model = os.environ.get("GEMINI_TTS_MODEL") or "gemini-3.8-flash-tts"
+    voice = os.environ.get("GEMINI_VOICE") or "Kore"
+    style = os.environ.get("GEMINI_STYLE") or ("friendly, casual and clear, like a young teacher chatting with "
+                                                "students, not too fast")
+    spoken = tts_text(text)
+    headers = {"x-goog-api-key": key, "Content-Type": "application/json"}
+
+    # 1) current "interactions" API: the style goes in speech_metadata, the text is read word for word
+    body_i = {
+        "model": model,
+        "input": [{"type": "user_input", "content": [{"type": "text", "text": spoken, "annotations": [
+            {"type": "speech_metadata", "style": style}]}]}],
+        "response_format": {"type": "audio"},
+        "generation_config": {"speech_config": [{"voice": voice}]},
+    }
+
+    def pick_i(js):
+        found = [c["data"] for st in js.get("steps", []) for c in (st.get("content") or [])
+                 if c.get("type") == "audio" and c.get("data")]
+        return (found[-1], "") if found else None
+
+    # 2) older generateContent API (no style control, so the Tamil text itself carries the casual tone)
+    body_g = {
+        "contents": [{"parts": [{"text": spoken}]}],
+        "generationConfig": {"responseModalities": ["AUDIO"],
+                             "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voice}}}},
+    }
+
+    def pick_g(js):
+        for cand in js.get("candidates", []):
+            for pt in (cand.get("content") or {}).get("parts", []):
+                inl = pt.get("inlineData") or pt.get("inline_data") or {}
+                if inl.get("data"):
+                    return inl["data"], inl.get("mimeType") or inl.get("mime_type") or ""
+        return None
+
+    tries = [("interactions", f"{GEMINI_BASE}/interactions", body_i, pick_i),
+             ("generateContent", f"{GEMINI_BASE}/models/{model}:generateContent", body_g, pick_g)]
+    last = "no answer"
+    for name, url, body, pick in tries:
+        for n in range(3):
+            try:
+                r = requests.post(url, headers=headers, json=body, timeout=180)
+            except requests.RequestException as e:
+                last = f"{name}: {e}"
+                time.sleep(5)
+                continue
+            if r.status_code == 429:
+                last = f"{name}: 429 quota/rate limit: {r.text[:200]}"
+                if "PerDay" in r.text or "per_day" in r.text:
+                    raise RuntimeError(last)   # today's free quota is used up; waiting will not help
+                time.sleep(25 * (n + 1))
+                continue
+            if r.status_code >= 500:
+                last = f"{name}: server error {r.status_code}"
+                time.sleep(8)
+                continue
+            if not r.ok:
+                last = f"{name}: {r.status_code} {r.text[:250]}"
+                break   # wrong request for this API: try the other one
+            got = pick(r.json())
+            if not got:
+                last = f"{name}: the answer had no audio"   # the model sometimes answers without audio: retry
+                time.sleep(3)
+                continue
+            m = re.search(r"rate=(\d+)", got[1] or "")
+            _audio_to_mp3(base64.b64decode(got[0]), path, int(m.group(1)) if m else 24000)
+            return []
+    raise RuntimeError("Gemini TTS failed: " + last)
+
+
+def speak(text, path, engine):
+    """One voice file with exactly the chosen engine (raises on failure)."""
+    return make_voice_gemini(text, path) if engine == "gemini" else make_voice_edge(text, path)
+
+
+def make_voice(text, path):
+    """One voiceover file: Gemini when a key is set, and the free edge-tts voice if Gemini fails."""
+    if tts_engine() == "gemini":
+        try:
+            return make_voice_gemini(text, path)
+        except Exception as e:
+            log(f"Gemini voice failed, using edge-tts instead: {e}")
+    return make_voice_edge(text, path)
+
+
+def make_voice_parts(parts, path, workdir, gap=0.3):
+    """Speaks each part separately and joins them, so the screen can change exactly when a part starts.
+    Returns {part name: start second}. If Gemini fails, ALL parts are redone with edge-tts (one voice per video)."""
+    engine = tts_engine()
+    try:
+        return _voice_parts(parts, path, workdir, gap, engine)
+    except Exception as e:
+        if engine != "gemini":
+            raise
+        log(f"Gemini voice failed ({e}); redoing every part with edge-tts so the voice stays the same")
+        return _voice_parts(parts, path, workdir, gap, "edge")
+
+
+def _voice_parts(parts, path, workdir, gap, engine):
+    files, starts, t = [], {}, 0.0
+    for i, (name, text) in enumerate(parts):
+        p = workdir / f"part_{name}.mp3"
+        if i and engine == "gemini":
+            time.sleep(2)   # be gentle with the per-minute limit
+        speak(text, p, engine)
+        starts[name] = t
+        t += duration(p) + gap
+        files.append(p)
+    cmd = ["ffmpeg", "-y"]
+    for p in files:
+        cmd += ["-i", str(p)]
+    chain = "".join(f"[{i}:a]apad=pad_dur={gap}[a{i}];" for i in range(len(files)))
+    chain += "".join(f"[a{i}]" for i in range(len(files))) + f"concat=n={len(files)}:v=0:a=1[a]"
+    cmd += ["-filter_complex", chain, "-map", "[a]", "-c:a", "libmp3lame", "-b:a", "96k", str(path)]
+    run(cmd)
+    return starts
 
 
 def speech_spans(path):
@@ -464,7 +698,7 @@ def timeline(weights, spans, start=0.1):
 
 
 def write_ass(text, speech_seconds, path, start=0.15, date_text="", head2="CURRENT AFFAIRS",
-              head3="நடப்பு நிகழ்வுகள்", spans=None, total_seconds=None):
+              head3="நடப்பு நிகழ்வுகள்", spans=None, total_seconds=None, cta_y=1000, cta_tamil=True, cap_margin=430):
     """Header (TNPSC + title + date), running Tamil captions that follow the real speech, and a
     LIKE / SUBSCRIBE call-to-action that pops up near the end."""
     font = os.environ.get("SUB_FONT") or "Noto Sans Tamil"
@@ -479,7 +713,7 @@ def write_ass(text, speech_seconds, path, start=0.15, date_text="", head2="CURRE
         "Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,"
         "Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,"
         "MarginV,Encoding\n"
-        f"Style: Run,{font},78,&H0000D7FF,&H00FFFFFF,&H00000000,&H90000000,-1,0,0,0,100,100,0,0,1,5,2,2,70,70,430,1\n"
+        f"Style: Run,{font},78,&H0000D7FF,&H00FFFFFF,&H00000000,&H90000000,-1,0,0,0,100,100,0,0,1,5,2,2,70,70,{cap_margin},1\n"
         f"Style: Head,{latin},60,&H00FFFFFF,&H00FFFFFF,&H00000000,&H90000000,-1,0,0,0,100,100,0,0,1,3,1,8,40,40,100,1\n"
         f"Style: Btn,{latin},58,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1\n"
         f"Style: BtnTa,{font},50,&H0000D7FF,&H00FFFFFF,&H00000000,&H90000000,-1,0,0,0,100,100,0,0,1,4,1,5,0,0,0,1\n\n"
@@ -507,14 +741,15 @@ def write_ass(text, speech_seconds, path, start=0.15, date_text="", head2="CURRE
     c0, c1 = max(total - 6.5, 1.0), total
     pop = r"\fscx55\fscy55\t(0,350,\fscx100\fscy100)"
     pulse = r"\t(2200,2600,\fscx108\fscy108)\t(2600,3000,\fscx100\fscy100)\t(3600,4000,\fscx108\fscy108)\t(4000,4400,\fscx100\fscy100)"
-    y = 1000
+    y = cta_y
     for cx, w, col, label, extra in ((300, 330, r"\1c&HE5881E&", "LIKE", ""), (720, 470, r"\1c&H0000FF&", "SUBSCRIBE", pulse)):
         lines.append(f"Dialogue: 1,{ass_time(c0)},{ass_time(c1)},Btn,0,0,0,,"
                      f"{{\\an5\\pos({cx},{y})\\bord0\\shad0{col}\\fad(200,200){pop}{extra}\\p1}}{rrect(w, 120, 28)}{{\\p0}}")
         lines.append(f"Dialogue: 2,{ass_time(c0)},{ass_time(c1)},Btn,0,0,0,,"
                      f"{{\\an5\\pos({cx},{y})\\fad(200,200){pop}{extra}}}{label}")
-    lines.append(f"Dialogue: 2,{ass_time(c0 + 0.3)},{ass_time(c1)},BtnTa,0,0,0,,"
-                 f"{{\\an5\\pos(540,{y + 115})\\fad(250,200)}}லைக் செய்யுங்கள் • சப்ஸ்கிரைப் செய்யுங்கள்")
+    if cta_tamil:
+        lines.append(f"Dialogue: 2,{ass_time(c0 + 0.3)},{ass_time(c1)},BtnTa,0,0,0,,"
+                     f"{{\\an5\\pos(540,{y + 115})\\fad(250,200)}}லைக் செய்யுங்கள் • சப்ஸ்கிரைப் செய்யுங்கள்")
     Path(path).write_text(header + "\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -534,18 +769,50 @@ def make_logo(src, dst, size=170):
 LOGO = Path("assets/logo.png")
 
 
-def build_video(images, voice, out, workdir, bgm=BGM, subs=None):
+def render_manim(s, starts, total, workdir, today):
+    """Renders the animated question / steps / answer scene (manim_aptitude.py) and returns the mp4 path."""
+    data = {
+        "topic": s.get("topic_ta", ""),
+        "question": s["screen_question"],
+        "steps": s["screen_steps"],
+        "answer": s["screen_answer"],
+        "practice": s.get("screen_practice", ""),
+        "cues": {
+            "question": max(starts["question"] - 0.1, 0.0),
+            "steps": [max(starts[f"step{i}"] - 0.1, 0.0) for i in (1, 2, 3)],
+            "answer": max(starts["answer"] - 0.1, 0.0),
+            "practice": max(starts["outro"] - 0.1, 0.0),
+        },
+    }
+    jpath = (workdir / "apt.json").resolve()
+    jpath.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    media = (workdir / "manim_media").resolve()
+    e = dict(os.environ, APT_JSON=str(jpath), APT_DURATION=f"{total:.2f}", APT_DATE=today, APT_HEADER="0")
+    scene_file = str(Path(__file__).with_name("manim_aptitude.py"))
+    cmd = [sys.executable, "-m", "manim", "-qm", "--fps", "30", "--media_dir", str(media), "-o", "apt.mp4",
+           scene_file, "AptitudeShort"]
+    p = subprocess.run(cmd, env=e, capture_output=True, text=True, timeout=900)
+    found = sorted(media.rglob("apt.mp4"))
+    if p.returncode or not found:
+        raise RuntimeError("manim failed: " + (p.stderr or p.stdout)[-800:])
+    return found[0]
+
+
+def build_video(images, voice, out, workdir, bgm=BGM, subs=None, base_video=None):
     total = duration(voice) + 1.0
-    per = total / len(images)
-    clips = []
-    for i, img in enumerate(images):
-        c = workdir / f"clip{i}.mp4"
-        make_clip(img, per + 0.1, c, zoom_in=(i % 2 == 0))
-        clips.append(c)
-    lst = workdir / "list.txt"
-    lst.write_text("".join(f"file '{c.resolve()}'\n" for c in clips))
-    joined = workdir / "joined.mp4"
-    run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(joined)])
+    if base_video:
+        joined = Path(base_video)   # a ready-made picture track (the Manim animation)
+    else:
+        per = total / len(images)
+        clips = []
+        for i, img in enumerate(images):
+            c = workdir / f"clip{i}.mp4"
+            make_clip(img, per + 0.1, c, zoom_in=(i % 2 == 0))
+            clips.append(c)
+        lst = workdir / "list.txt"
+        lst.write_text("".join(f"file '{c.resolve()}'\n" for c in clips))
+        joined = workdir / "joined.mp4"
+        run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(joined)])
 
     cmd = ["ffmpeg", "-y", "-i", str(joined), "-i", str(voice)]
     n = 2
@@ -613,6 +880,7 @@ def make_one(slot, today, stamp, upload_it, hist):
     work = OUT / f"work-{tag}"
     work.mkdir(parents=True, exist_ok=True)
     hosts = []
+    manim_mode = False
 
     if kind == "news":
         log(f"[slot {slot}] {name}: searching news")
@@ -626,26 +894,47 @@ def make_one(slot, today, stamp, upload_it, hist):
         doy = dt.datetime.now(IST).timetuple().tm_yday
         topic = APTITUDE_TOPICS[(doy * 2 + (0 if slot == 3 else 1)) % len(APTITUDE_TOPICS)]
         log(f"[slot {slot}] aptitude topic: {topic}")
-        s = write_aptitude_script(topic, today, avoid_text(hist, 12))
+        # which aptitude slots use the animated Manim video (default: slot 5 only; set repo variable MANIM_SLOTS=3,5 for both)
+        manim_slots = [x.strip() for x in (os.environ.get("MANIM_SLOTS") or "5").split(",")]
+        manim_mode = str(slot) in manim_slots
+        if manim_mode:
+            s = write_aptitude_manim_script(topic, today, avoid_text(hist, 12))
+        else:
+            s = write_aptitude_script(topic, today, avoid_text(hist, 12))
         head2, head3, hashtags = "APTITUDE TRICKS", "கணிதம் - குறுக்கு வழி", "#TNPSC #Aptitude #MathsTricks #Shorts"
         pre, post = "Topic: " + topic, "AI-assisted video. Practise the method on your own."
     (OUT / f"script-{tag}.json").write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
 
     voice = work / "voice.mp3"
-    make_voice(s["voiceover"], voice)
+    starts = None
+    if manim_mode:
+        starts = make_voice_parts(s["parts"], voice, work)   # each part spoken separately -> exact timing
+    else:
+        make_voice(s["voiceover"], voice)
+    vdur = duration(voice)
+
+    base = None
+    if manim_mode:
+        try:
+            log(f"[slot {slot}] rendering the Manim animation")
+            base = render_manim(s, starts, vdur + 1.0, work, today)
+        except Exception as e:
+            log(f"[slot {slot}] Manim failed, using AI images instead: {e}")
 
     imgs = []
-    for i, scene in enumerate(s["scenes"][:5]):
-        p = work / f"img{i}.png"
-        fetch_image(scene, p, seed=(int(stamp) % 1000) * 10 + slot * 7 + i)
-        imgs.append(p)
+    if base is None:
+        for i, scene in enumerate(list(s.get("scenes") or FALLBACK_SCENES)[:5]):
+            p = work / f"img{i}.png"
+            fetch_image(scene, p, seed=(int(stamp) % 1000) * 10 + slot * 7 + i)
+            imgs.append(p)
 
     final = OUT / f"tnpsc-{tag}.mp4"
     subs = work / "captions.ass"
-    vdur = duration(voice)
+    # with the animation, the LIKE / SUBSCRIBE buttons go below the captions so they do not cover the answer
     write_ass(s["voiceover"], vdur, subs, date_text=today, head2=head2, head3=head3,
-              spans=speech_spans(voice), total_seconds=vdur + 1.0)
-    secs = build_video(imgs, voice, final, work, subs=subs)
+              spans=speech_spans(voice), total_seconds=vdur + 1.0,
+              cta_y=1570 if base else 1000, cta_tamil=base is None, cap_margin=300 if base else 430)
+    secs = build_video(imgs, voice, final, work, subs=subs, base_video=base)
     log(f"[slot {slot}] video ready ({secs:.0f}s): {final}")
 
     if upload_it:
