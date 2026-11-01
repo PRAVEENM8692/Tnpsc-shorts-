@@ -223,6 +223,71 @@ abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎ�
     sys.exit("Could not get a valid script from the LLM.")
 
 
+NEWS_SAY = ("say_hook", "say_f1", "say_f2", "say_f3", "say_f4", "say_f5", "say_tip", "say_outro")
+
+
+def write_news_cards_script(notes, today, focus="", part=1, total=1, avoid=""):
+    """Current-affairs script for the news-card video: the voice is written in PARTS (hook, fact 1-5, memory tip,
+    outro) so each card appears exactly when its part starts. Raises (or exits) if the LLM cannot produce it."""
+    prompt = f"""You write 45-second YouTube Shorts for TNPSC aspirants in simple spoken TAMIL. Date: {today}.
+Use ONLY facts that appear in these news notes. Do not add facts, numbers or dates from memory:
+{notes}
+
+This is video {part} of {total} today, so cover ONLY this theme: {focus}. Pick the 5 most exam-relevant facts for that theme.
+The video shows ONE CARD per fact while a voice explains it, so every card text must say the SAME fact as its spoken part.
+
+{CASUAL_TAMIL}
+
+Return JSON with these keys:
+title (Tamil, under 85 characters),
+description (Tamil, 3-5 line recap of the facts),
+tags (list of 8 strings, Tamil and English),
+headline (Tamil, the hook as one screen headline, at most 60 characters),
+cards (list of EXACTLY 5 objects, one per fact in spoken order, each with:
+   title (Tamil, the fact's subject, at most 45 characters),
+   detail (Tamil, one clear sentence with the key who / what / where, at most 110 characters, digits allowed),
+   big (the single most important number, date or amount from the notes, at most 12 characters, for example "2026" or "5.5%", or an empty string if there is none)),
+remember (Tamil, ONE catchy memory trick for the 5 facts, at most 60 characters),
+quiz (Tamil, a quick question for the viewers about one of the facts, at most 60 characters),
+scenes (list of exactly 5 English prompts, one per fact, each a vertical cinematic image that relates to that fact: places, buildings, objects and symbols. NO text or letters in the image, NO logos, NO faces, NO real people or politicians),
+and the SPOKEN parts, each one to three short sentences:
+say_hook (a punchy hook, about 12 words),
+say_f1, say_f2, say_f3, say_f4, say_f5 (the five facts, one short sentence or two each),
+say_tip (says the memory trick),
+say_outro (asks the quiz question, then asks viewers to follow for daily current affairs).
+All the spoken parts together must be 90-115 Tamil words.
+
+Language rules for the spoken parts (they are read by a Tamil text-to-speech voice): write ONLY in Tamil script, with no
+English letters, no digits (write every number in Tamil words), no brackets, quotes, hyphens or symbols; write
+abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎஸ்சி, GST as ஜிஎஸ்டி); use short sentences of at most
+12 words, a comma wherever a speaker would pause, and avoid very long compound words."""
+    hint = ""
+    for attempt in range(5):
+        d = llm_json(prompt + avoid + hint)
+        parts = [(k[4:], str(d.get(k, "")).strip()) for k in NEWS_SAY]
+        words = sum(len(t.split()) for _, t in parts)
+        cards = d.get("cards")
+        lo = 70 if attempt < 3 else 55
+        ok = (all(k in d for k in ("title", "description", "tags", "headline", "remember", "quiz"))
+              and all(t for _, t in parts) and isinstance(cards, list) and len(cards) >= 5
+              and all(isinstance(c, dict) and str(c.get("title", "")).strip() and str(c.get("detail", "")).strip()
+                      for c in cards[:5]) and lo <= words <= 150)
+        if not ok:
+            log(f"news cards script attempt {attempt + 1} invalid (words={words}); retrying")
+            hint = (f"\n\nYour previous answer was invalid: the spoken parts had {words} words in total, or a key / card was "
+                    "missing. Fill EVERY key, give exactly 5 cards and write at least 95 Tamil words in the spoken parts.")
+            continue
+        d["cards"] = [{"title": str(c["title"]).strip()[:60], "detail": str(c["detail"]).strip()[:150],
+                       "big": str(c.get("big") or "").strip()[:14]} for c in cards[:5]]
+        d["headline"] = str(d["headline"]).strip()[:80]
+        d["remember"] = str(d["remember"]).strip()[:90]
+        d["quiz"] = str(d["quiz"]).strip()[:90]
+        d["parts"] = parts
+        d["voiceover"] = " ".join(t for _, t in parts)
+        return d
+    sys.exit("Could not get a valid news-card script from the LLM.")
+
+
 def safe_eval(expr):
     import ast
     import operator as op
@@ -964,13 +1029,24 @@ def make_one(slot, today, stamp, upload_it, hist):
     work.mkdir(parents=True, exist_ok=True)
     hosts, urls = [], []   # urls only gets filled by news slots; aptitude slots have none
     manim_mode = False
+    cards_mode = False
 
     if kind == "news":
         log(f"[slot {slot}] {name}: searching news")
         notes, hosts, urls = search_news(queries, hist.get("urls", []))
         (OUT / f"notes-{tag}.txt").write_text(notes, encoding="utf-8")
         log(f"[slot {slot}] writing Tamil script")
-        s = write_script(notes, today, focus, slot, 5, avoid_text(hist))
+        # news slots use the HTML news-card video (set repo variable CARDS_SLOTS=none to switch it off, default 1,2,4)
+        card_slots = [x.strip() for x in (os.environ.get("CARDS_SLOTS") or "1,2,4").split(",")]
+        s = None
+        if str(slot) in card_slots:
+            try:
+                s = write_news_cards_script(notes, today, focus, slot, 5, avoid_text(hist))
+                cards_mode = True
+            except (Exception, SystemExit) as e:
+                log(f"[slot {slot}] news-card script failed, using the normal script: {e}")
+        if s is None:
+            s = write_script(notes, today, focus, slot, 5, avoid_text(hist))
         head2, head3, hashtags = "CURRENT AFFAIRS", "நடப்பு நிகழ்வுகள்", "#TNPSC #CurrentAffairs #Shorts"
         pre, post = "Sources: " + ", ".join(hosts), "AI-assisted video. Verify facts with official sources."
     else:
@@ -990,7 +1066,7 @@ def make_one(slot, today, stamp, upload_it, hist):
 
     voice = work / "voice.mp3"
     starts = None
-    if manim_mode:
+    if manim_mode or cards_mode:
         starts = make_voice_parts(s["parts"], voice, work)   # each part spoken separately -> exact timing
     else:
         make_voice(s["voiceover"], voice)
@@ -1005,7 +1081,20 @@ def make_one(slot, today, stamp, upload_it, hist):
             log(f"[slot {slot}] Manim failed, using AI images instead: {e}")
 
     imgs = []
-    if base is None:
+    if cards_mode:
+        try:
+            log(f"[slot {slot}] fetching background pictures and drawing the news cards")
+            for i, scene in enumerate(list(s.get("scenes") or FALLBACK_SCENES)[:5]):
+                ip = work / f"img{i}.png"
+                fetch_image(scene, ip, seed=(int(stamp) % 1000) * 10 + slot * 7 + i)
+                imgs.append(ip)
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            import cards_news
+            base = cards_news.render_cards_video(s, starts, vdur + 1.0, work, today, imgs)
+        except Exception as e:
+            log(f"[slot {slot}] news cards failed, using the normal picture video instead: {e}")
+            base = None
+    if base is None and not imgs:
         for i, scene in enumerate(list(s.get("scenes") or FALLBACK_SCENES)[:5]):
             p = work / f"img{i}.png"
             fetch_image(scene, p, seed=(int(stamp) % 1000) * 10 + slot * 7 + i)
@@ -1016,7 +1105,7 @@ def make_one(slot, today, stamp, upload_it, hist):
     # with the animation, the LIKE / SUBSCRIBE buttons go below the captions so they do not cover the answer
     write_ass(s["voiceover"], vdur, subs, date_text=today, head2=head2, head3=head3,
               spans=speech_spans(voice), total_seconds=vdur + 1.0,
-              cta_y=1570 if base else 1000, cta_tamil=base is None, cap_margin=300 if base else 430)
+              cta_y=1570 if base else 1000, cta_tamil=base is None, cap_margin=390 if base else 430)
     secs = build_video(imgs, voice, final, work, subs=subs, base_video=base)
     log(f"[slot {slot}] video ready ({secs:.0f}s): {final}")
 
