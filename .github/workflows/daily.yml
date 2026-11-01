@@ -48,6 +48,12 @@ jobs:
         run: |
           sudo apt-get install -y libcairo2-dev libpango1.0-dev pkg-config python3-dev
           pip install manim
+      - name: Install the news-card renderer (only for the current-affairs videos)
+        if: steps.plan.outputs.slot != '' && steps.plan.outputs.slot != '3' && steps.plan.outputs.slot != '5'
+        continue-on-error: true   # if this fails, the video uses plain AI pictures instead of stopping
+        run: |
+          pip install playwright
+          python -m playwright install chromium || true
       - uses: actions/setup-node@v4
         if: steps.plan.outputs.slot != ''
         continue-on-error: true
@@ -82,6 +88,8 @@ jobs:
           SLOT: ${{ steps.plan.outputs.slot }}
           YT_PRIVACY: ${{ vars.YT_PRIVACY }}
           MANIM_SLOTS: ${{ vars.MANIM_SLOTS }}
+          CARDS_SLOTS: ${{ vars.CARDS_SLOTS }}
+          PUTER_VOICES: ${{ vars.PUTER_VOICES }}
       - name: Remember what was covered (avoids repeats)
         if: always() && steps.plan.outputs.slot != '' && (github.event_name == 'schedule' || github.event.inputs.upload == 'true')
         run: |
