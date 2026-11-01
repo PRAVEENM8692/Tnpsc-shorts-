@@ -6,6 +6,7 @@ news search (Tavily) -> Tamil script (Groq/OpenAI-compatible LLM) -> Tamil voice
 import asyncio
 import datetime as dt
 import json
+import random
 import os
 import subprocess
 import sys
@@ -33,6 +34,33 @@ def log(msg):
     print(f"[{dt.datetime.now(IST):%H:%M:%S}] {msg}", flush=True)
 
 
+# ---------------------------------------------------------------- 0. memory of past videos
+HISTORY = Path("history.json")
+
+
+def load_history():
+    try:
+        return json.loads(HISTORY.read_text(encoding="utf-8"))
+    except Exception:
+        return {"urls": [], "titles": []}
+
+
+def save_history(h):
+    h["urls"] = h["urls"][-400:]
+    h["titles"] = h["titles"][-80:]
+    h["done"] = dict(sorted(h.get("done", {}).items())[-3:])      # which slots were published, last 3 days
+    h["tries"] = dict(sorted(h.get("tries", {}).items())[-15:])   # failed attempts per slot
+    HISTORY.write_text(json.dumps(h, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def avoid_text(h, n=25):
+    t = h.get("titles", [])[-n:]
+    if not t:
+        return ""
+    return ("\n\nThese topics were ALREADY covered in recent videos. Do NOT repeat them or their facts, "
+            "pick different ones:\n" + "\n".join(f"- {x}" for x in t))
+
+
 # ---------------------------------------------------------------- 1. news search
 # 5 videos a day: 3 current affairs + 2 aptitude (see .github/workflows/daily.yml for the clock times)
 SLOTS = {
@@ -58,14 +86,14 @@ APTITUDE_TOPICS = [
 
 
 
-def search_news(queries):
+def search_news(queries, used_urls=()):
     key = env("TAVILY_API_KEY")
-    seen, items = set(), []
+    seen, items = set(used_urls), []
     for q in queries:
         r = requests.post(
             "https://api.tavily.com/search",
             headers={"Authorization": f"Bearer {key}"},
-            json={"query": q, "topic": "news", "days": 2, "max_results": 6},
+            json={"query": q, "topic": "news", "days": 3, "max_results": 6},
             timeout=60,
         )
         r.raise_for_status()
@@ -74,15 +102,15 @@ def search_news(queries):
                 continue
             seen.add(x["url"])
             host = urllib.parse.urlparse(x["url"]).netloc.replace("www.", "")
-            items.append({"title": x.get("title", ""), "host": host, "text": (x.get("content") or "")[:450]})
+            items.append({"title": x.get("title", ""), "host": host, "url": x["url"], "text": (x.get("content") or "")[:450]})
     if len(items) < 2:
         sys.exit("Too little news found; stopping instead of inventing facts.")
     notes = "\n".join(f"- {i['title']} ({i['host']}): {i['text']}" for i in items)
-    hosts = []
+    hosts, urls = [], []
     for i in items:
         if i["host"] not in hosts:
             hosts.append(i["host"])
-    return notes, hosts[:6]
+    return notes, hosts[:6], [i["url"] for i in items]
 
 
 # ---------------------------------------------------------------- 2. Tamil script
@@ -157,7 +185,7 @@ def llm_json(prompt):
     sys.exit("LLM kept returning invalid JSON.")
 
 
-def write_script(notes, today, focus="", part=1, total=1):
+def write_script(notes, today, focus="", part=1, total=1, avoid=""):
     prompt = f"""You write 45-second YouTube Shorts for TNPSC aspirants in simple spoken TAMIL.
 Date: {today}.
 Use ONLY facts that appear in these news notes. Do not add facts from memory:
@@ -179,7 +207,7 @@ Fort St George Chennai, a laptop with students, a glowing light bulb, a gold rin
 with festival lamps. NO text or letters in the image, NO logos, NO faces, NO real people or politicians)."""
     hint = ""
     for attempt in range(5):
-        d = llm_json(prompt + hint)
+        d = llm_json(prompt + avoid + hint)
         words = len(d.get("voiceover", "").split())
         lo = 70 if attempt < 3 else 55
         if all(k in d for k in ("title", "description", "tags", "voiceover", "scenes")) \
@@ -212,12 +240,12 @@ def safe_eval(expr):
     return ev(ast.parse(str(expr), mode="eval"))
 
 
-def write_aptitude_script(topic, today):
+def write_aptitude_script(topic, today, avoid=""):
     prompt = f"""You write 45-second YouTube Shorts for TNPSC / Tamil Nadu competitive-exam aspirants, in simple
 spoken TAMIL. Date: {today}. Topic: {topic}.
 
 Teach ONE solved aptitude question using a SHORTCUT TRICK that saves time compared with the long method.
-Use small, easy numbers. Structure of the voiceover: a punchy hook, the question stated slowly, the shortcut
+Use small, easy numbers, and make the question DIFFERENT each day (random story, names of Tamil Nadu places, new numbers; variation code {random.randint(1000, 9999)}). Structure of the voiceover: a punchy hook, the question stated slowly, the shortcut
 in 3-4 very short steps with the numbers, the final answer, a one-line memory tip, then a similar practice
 question for the viewer and a line asking them to follow for daily TNPSC aptitude tricks.
 The voiceover must be 90-115 Tamil words, written exactly as spoken (no emojis, no bullets, no markdown).
@@ -235,7 +263,7 @@ studying maths: for example a notebook and pencil on a desk, an old analog clock
 train on a bridge, a balance scale. NO text or letters in the image, NO logos, NO faces, NO real people)."""
     hint = ""
     for attempt in range(6):
-        d = llm_json(prompt + hint)
+        d = llm_json(prompt + avoid + hint)
         words = len(d.get("voiceover", "").split())
         ok = all(k in d for k in ("title", "description", "tags", "voiceover", "scenes", "check_expr", "answer"))
         lo = 70 if attempt < 3 else 55  # accept slightly shorter scripts on later attempts
@@ -452,7 +480,7 @@ def upload(video, title, description, tags):
 
 
 # ---------------------------------------------------------------- main
-def make_one(slot, today, stamp, upload_it):
+def make_one(slot, today, stamp, upload_it, hist):
     kind, name, queries, focus = SLOTS[slot]
     tag = f"{stamp}-s{slot}"
     work = OUT / f"work-{tag}"
@@ -461,17 +489,17 @@ def make_one(slot, today, stamp, upload_it):
 
     if kind == "news":
         log(f"[slot {slot}] {name}: searching news")
-        notes, hosts = search_news(queries)
+        notes, hosts, urls = search_news(queries, hist.get("urls", []))
         (OUT / f"notes-{tag}.txt").write_text(notes, encoding="utf-8")
         log(f"[slot {slot}] writing Tamil script")
-        s = write_script(notes, today, focus, slot, 5)
+        s = write_script(notes, today, focus, slot, 5, avoid_text(hist))
         head2, head3, hashtags = "CURRENT AFFAIRS", "நடப்பு நிகழ்வுகள்", "#TNPSC #CurrentAffairs #Shorts"
         pre, post = "Sources: " + ", ".join(hosts), "AI-assisted video. Verify facts with official sources."
     else:
         doy = dt.datetime.now(IST).timetuple().tm_yday
         topic = APTITUDE_TOPICS[(doy * 2 + (0 if slot == 3 else 1)) % len(APTITUDE_TOPICS)]
         log(f"[slot {slot}] aptitude topic: {topic}")
-        s = write_aptitude_script(topic, today)
+        s = write_aptitude_script(topic, today, avoid_text(hist, 12))
         head2, head3, hashtags = "APTITUDE TRICKS", "கணிதம் - குறுக்கு வழி", "#TNPSC #Aptitude #MathsTricks #Shorts"
         pre, post = "Topic: " + topic, "AI-assisted video. Practise the method on your own."
     (OUT / f"script-{tag}.json").write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -497,6 +525,12 @@ def make_one(slot, today, stamp, upload_it):
     else:
         log("UPLOAD=false, skipping YouTube upload")
 
+    if upload_it:
+        hist.setdefault("done", {}).setdefault(stamp, []).append(slot)
+    hist.setdefault("urls", []).extend(urls)
+    hist.setdefault("titles", []).append(f"{name}: {s['title']}")
+    save_history(hist)
+
 
 def pick_slots():
     v = (os.environ.get("SLOT") or "").strip().lower()
@@ -516,12 +550,13 @@ def main():
     today, stamp = now.strftime("%d %B %Y"), now.strftime("%Y%m%d")
     upload_it = env("UPLOAD", "true").lower() == "true"
     slots = pick_slots()
+    hist = load_history()
     log(f"slots to build: {slots}")
 
     done, failed = 0, []
     for slot in slots:
         try:
-            make_one(slot, today, stamp, upload_it)
+            make_one(slot, today, stamp, upload_it, hist)
             done += 1
             time.sleep(20)  # ease free-tier rate limits
         except BaseException as e:  # with SLOT=all, one bad video does not cancel the rest
@@ -529,6 +564,10 @@ def main():
                 raise
             failed.append(slot)
             log(f"slot {slot} FAILED: {e!r}")
+            if upload_it:
+                k = f"{stamp}-{slot}"
+                hist.setdefault("tries", {})[k] = hist.get("tries", {}).get(k, 0) + 1
+                save_history(hist)
     log(f"finished: {done}/{len(slots)} videos; failed: {failed or 'none'}")
     if failed:
         sys.exit(1)
