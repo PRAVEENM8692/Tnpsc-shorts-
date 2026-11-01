@@ -48,6 +48,17 @@ jobs:
         run: |
           sudo apt-get install -y libcairo2-dev libpango1.0-dev pkg-config python3-dev
           pip install manim
+      - uses: actions/setup-node@v4
+        if: steps.plan.outputs.slot != ''
+        continue-on-error: true
+        with:
+          node-version: 24
+      - name: Install Puter.js (backup voice when Gemini's free limit is over)
+        if: steps.plan.outputs.slot != ''
+        continue-on-error: true   # if this fails, the free edge-tts voice is used instead
+        run: |
+          echo '{"type":"module"}' > package.json
+          npm i @heyputer/puter.js
       - name: Build and publish
         if: steps.plan.outputs.slot != ''
         run: python pipeline.py
@@ -63,6 +74,8 @@ jobs:
           GEMINI_VOICE: ${{ vars.GEMINI_VOICE }}
           GEMINI_STYLE: ${{ vars.GEMINI_STYLE }}
           TTS_ENGINE: ${{ vars.TTS_ENGINE }}
+          PUTER_AUTH_TOKEN: ${{ secrets.PUTER_AUTH_TOKEN }}
+          PUTER_VOICE: ${{ vars.PUTER_VOICE }}
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
