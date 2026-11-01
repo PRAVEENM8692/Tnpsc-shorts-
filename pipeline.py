@@ -879,7 +879,7 @@ def make_one(slot, today, stamp, upload_it, hist):
     tag = f"{stamp}-s{slot}"
     work = OUT / f"work-{tag}"
     work.mkdir(parents=True, exist_ok=True)
-    hosts = []
+    hosts, urls = [], []   # urls only gets filled by news slots; aptitude slots have none
     manim_mode = False
 
     if kind == "news":
