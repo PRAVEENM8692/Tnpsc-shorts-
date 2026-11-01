@@ -1,0 +1,23 @@
+name: manim-test
+on: workflow_dispatch
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg libcairo2-dev libpango1.0-dev pkg-config python3-dev fonts-noto-core
+          pip install manim
+      - name: Sample data
+        run: |
+          cat > apt.json <<'EOF'
+          {"topic":"சதவீதம்","question":"200-ன் 15% எவ்வளவு?","steps":["10% = 20","5% = 10 (10%-ன் பாதி)","15% = 20 + 10"],"answer":"30"}
+          EOF
+      - name: Render
+        run: APT_JSON=apt.json APT_DURATION=15 APT_DATE="01 Nov 2026" manim -qm --fps 30 -o test.mp4 manim_aptitude.py AptitudeShort
+      - uses: actions/upload-artifact@v4
+        with:
+          name: manim-test
+          path: media/videos/**/test.mp4
