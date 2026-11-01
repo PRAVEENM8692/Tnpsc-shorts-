@@ -2,11 +2,9 @@ name: daily-tnpsc-short
 
 on:
   schedule:
-    - cron: "30 2 * * *"    # 08:00 IST  slot 1  current affairs (Tamil Nadu)
-    - cron: "0 5 * * *"     # 10:30 IST  slot 2  current affairs (India & economy)
-    - cron: "30 7 * * *"    # 13:00 IST  slot 3  aptitude shortcut
-    - cron: "0 10 * * *"    # 15:30 IST  slot 4  current affairs (science, sports, world)
-    - cron: "30 12 * * *"   # 18:00 IST  slot 5  aptitude shortcut
+    # Wakes up every 30 minutes from 07:37 to 22:07 IST. plan.py picks the video that is due,
+    # so a late or skipped GitHub run is caught up automatically.
+    - cron: "7,37 2-16 * * *"
   workflow_dispatch:
     inputs:
       upload:
@@ -16,27 +14,36 @@ on:
         description: "Which video: 1-5, or all"
         default: "1"
 
+permissions:
+  contents: write
+
+concurrency:
+  group: shorts
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Decide which video is due
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_SLOT: ${{ github.event.inputs.slot }}
+        run: python3 plan.py
       - uses: actions/setup-python@v5
+        if: steps.plan.outputs.slot != ''
         with:
           python-version: "3.12"
       - name: Install ffmpeg
+        if: steps.plan.outputs.slot != ''
         run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-core fonts-dejavu-core && fc-list | grep -i "noto sans tamil" | head -2
       - run: pip install -r requirements.txt
-      - name: Pick the video slot from the schedule
-        id: slot
-        run: |
-          case "${{ github.event.schedule }}" in
-            "30 2 * * *") S=1;; "0 5 * * *") S=2;; "30 7 * * *") S=3;; "0 10 * * *") S=4;; "30 12 * * *") S=5;;
-            *) S="${{ github.event.inputs.slot }}";;
-          esac
-          echo "slot=${S:-1}" >> "$GITHUB_OUTPUT"
+        if: steps.plan.outputs.slot != ''
       - name: Build and publish
+        if: steps.plan.outputs.slot != ''
         run: python pipeline.py
         env:
           UPLOAD: ${{ github.event.inputs.upload || 'true' }}
@@ -48,10 +55,17 @@ jobs:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
-          SLOT: ${{ steps.slot.outputs.slot }}
+          SLOT: ${{ steps.plan.outputs.slot }}
           YT_PRIVACY: ${{ vars.YT_PRIVACY }}
+      - name: Remember what was covered (avoids repeats)
+        if: always() && steps.plan.outputs.slot != '' && (github.event_name == 'schedule' || github.event.inputs.upload == 'true')
+        run: |
+          git config user.name "shorts-bot"
+          git config user.email "shorts-bot@users.noreply.github.com"
+          git add history.json || true
+          git diff --cached --quiet || (git commit -m "Update history" && git pull --rebase -q && git push)
       - name: Keep the output for review
-        if: always()
+        if: always() && steps.plan.outputs.slot != ''
         uses: actions/upload-artifact@v4
         with:
           name: short-${{ github.run_id }}
