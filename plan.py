@@ -21,8 +21,9 @@ except Exception:
 done = set(hist.get("done", {}).get(today, []))
 tries = hist.get("tries", {})
 
-if os.environ.get("EVENT") == "workflow_dispatch":
-    slot = (os.environ.get("INPUT_SLOT") or "1").strip()
+manual = (os.environ.get("INPUT_SLOT") or "").strip().lower()
+if os.environ.get("EVENT") == "workflow_dispatch" and manual not in ("", "auto"):
+    slot = manual   # a person (or you) chose a specific slot, or "all"
 else:
     due = [k for k, st in START.items()
            if st <= h < LAST_HOUR and k not in done and tries.get(f"{today}-{k}", 0) < 3]
