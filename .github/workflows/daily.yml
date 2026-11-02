@@ -42,12 +42,9 @@ jobs:
           python-version: "3.12"
           cache: pip   # reuse downloaded Python packages between runs
           cache-dependency-path: requirements.txt
-      - name: Install the Tamil fonts (ffmpeg is already on the runner)
+      - name: Install ffmpeg and Tamil fonts
         if: steps.plan.outputs.slot != ''
-        run: |
-          command -v ffmpeg >/dev/null || (sudo apt-get update && sudo apt-get install -y ffmpeg)
-          sudo apt-get install -y --no-install-recommends fonts-noto-core fonts-dejavu-core || (sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-noto-core fonts-dejavu-core)
-          fc-list | grep -i "noto sans tamil" | head -2
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg fonts-noto-core fonts-dejavu-core && fc-list | grep -i "noto sans tamil" | head -2
       - run: pip install -r requirements.txt
         if: steps.plan.outputs.slot != ''
       - name: Install Manim (only for the animated aptitude videos)
