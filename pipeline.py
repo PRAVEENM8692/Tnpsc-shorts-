@@ -1,6 +1,6 @@
 """Free daily TNPSC current-affairs Tamil Short (runs on GitHub Actions).
 
-news search (Tavily) -> Tamil script (Groq/OpenAI-compatible LLM) -> Tamil voice (Gemini TTS, edge-tts as fallback)
+news search (Tavily) -> English facts -> Tamil script (Groq/OpenAI-compatible LLM) -> Tamil check (tamil_quality.py) -> Tamil voice (Gemini TTS, edge-tts as fallback)
 -> images (Pollinations) or Manim animation (aptitude) -> video + BGM (ffmpeg) -> YouTube upload (Data API)
 """
 import asyncio
@@ -16,6 +16,8 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import requests
+
+import tamil_quality as tq
 
 IST = ZoneInfo("Asia/Kolkata")
 OUT = Path("out")
@@ -134,18 +136,21 @@ def pick_model(base, headers):
     sys.exit("No usable chat model found on the LLM provider.")
 
 
-def llm_json(prompt):
+def llm_json(prompt, model=None, temperature=0.5, effort="low"):
+    """model: use this model for this one call (for example LLM_MODEL_TA for translation review).
+    temperature: lower = more careful (translation / review use 0.2). effort: 'low' or 'medium' (reasoning models)."""
     base = env("LLM_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
     headers = {"Authorization": f"Bearer {env('LLM_API_KEY')}"}
     user_model = os.environ.get("LLM_MODEL") or ""
     if not _MODEL["name"]:
         _MODEL["name"] = user_model or "llama-3.3-70b-versatile"
+    use = {"name": model or _MODEL["name"]}
 
     def call(json_mode=True):
-        payload = {"model": _MODEL["name"], "messages": [{"role": "user", "content": prompt}],
-                   "temperature": 0.5, "max_tokens": 6000}
-        if "gpt-oss" in _MODEL["name"]:
-            payload["reasoning_effort"] = "low"  # reasoning models can use up the budget and return nothing
+        payload = {"model": use["name"], "messages": [{"role": "user", "content": prompt}],
+                   "temperature": temperature, "max_tokens": 6000 if effort == "low" else 9000}
+        if "gpt-oss" in use["name"]:
+            payload["reasoning_effort"] = effort  # reasoning models can use up the budget and return nothing
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
         return requests.post(base + "/chat/completions", headers=headers, json=payload, timeout=180)
@@ -153,8 +158,9 @@ def llm_json(prompt):
     r = call()
     if r.status_code in (400, 404):
         log(f"LLM error {r.status_code}: {r.text[:300]}")
-        if not user_model:  # you did not choose a model, so pick a current one automatically
+        if not user_model and not model:  # you did not choose a model, so pick a current one automatically
             _MODEL["name"] = pick_model(base, headers)
+            use["name"] = _MODEL["name"]
             log(f"using model: {_MODEL['name']}")
             r = call()
         if r.status_code == 400:
@@ -191,6 +197,8 @@ Date: {today}.
 Use ONLY facts that appear in these news notes. Do not add facts from memory:
 {notes}
 
+{tq.translation_rules(notes)}
+
 This is video {part} of {total} today, so cover ONLY this theme: {focus}. Pick the 5 most exam-relevant facts for that theme. Make them EASY TO REMEMBER: a punchy hook
 line, one short sentence per fact, ONE memory trick (a catchy word, acronym or rhyme in Tamil), then a quick
 question for viewers and a line asking them to follow for daily current affairs.
@@ -207,7 +215,7 @@ Fort St George Chennai, a laptop with students, a glowing light bulb, a gold rin
 with festival lamps. NO text or letters in the image, NO logos, NO faces, NO real people or politicians).
 
 Language rules for the voiceover (it is read by a Tamil text-to-speech voice): write ONLY in Tamil script, with no
-English letters, no digits (write every number in Tamil words), no brackets, quotes, hyphens or symbols; write
+English letters, write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; write
 abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎஸ்சி, GST as ஜிஎஸ்டி); use short sentences of at most
 12 words, simple everyday words, a comma wherever a speaker would pause, and avoid very long compound words."""
     hint = ""
@@ -232,6 +240,8 @@ def write_news_cards_script(notes, today, focus="", part=1, total=1, avoid=""):
     prompt = f"""You write 45-second YouTube Shorts for TNPSC aspirants in simple spoken TAMIL. Date: {today}.
 Use ONLY facts that appear in these news notes. Do not add facts, numbers or dates from memory:
 {notes}
+
+{tq.translation_rules(notes)}
 
 This is video {part} of {total} today, so cover ONLY this theme: {focus}. Pick the 5 most exam-relevant facts for that theme.
 The video shows ONE CARD per fact while a voice explains it, so every card text must say the SAME fact as its spoken part.
@@ -258,7 +268,7 @@ say_outro (asks the quiz question, then asks viewers to follow for daily current
 All the spoken parts together must be 90-115 Tamil words.
 
 Language rules for the spoken parts (they are read by a Tamil text-to-speech voice): write ONLY in Tamil script, with no
-English letters, no digits (write every number in Tamil words), no brackets, quotes, hyphens or symbols; write
+English letters, write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; write
 abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎஸ்சி, GST as ஜிஎஸ்டி); use short sentences of at most
 12 words, a comma wherever a speaker would pause, and avoid very long compound words."""
     hint = ""
@@ -332,10 +342,10 @@ scenes (list of exactly 5 English prompts for vertical cinematic images that rel
 studying maths: for example a notebook and pencil on a desk, an old analog clock, coins and a calculator, a
 train on a bridge, a balance scale. NO text or letters in the image, NO logos, NO faces, NO real people).
 
-{CASUAL_TAMIL}
+{CASUAL_APT}
 
 Language rules for the voiceover (it is read by a Tamil text-to-speech voice): write ONLY in Tamil script, with no
-English letters, no digits (write every number in Tamil words), no brackets, quotes, hyphens or symbols; write
+English letters, write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; write
 abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎஸ்சி, GST as ஜிஎஸ்டி); use short sentences of at most
 12 words, simple everyday words, a comma wherever a speaker would pause, and avoid very long compound words."""
     hint = ""
@@ -365,6 +375,7 @@ CASUAL_TAMIL = ("Style: speak like a friendly elder brother or sister teacher ch
                 "Use natural spoken forms such as பண்ணுங்க, பாருங்க, வாங்க, இருக்கு, சொல்றேன், வரும், ரொம்ப ஈசி, சரியா?; "
                 "call the viewers நண்பர்களே or நீங்க; Tamil-letter English words such as ஷார்ட்கட், ஈசி, டிரிக் are welcome. "
                 "Avoid stiff words like கணக்கிடுக, விடையைக் காண்க, பின்வருமாறு.")
+CASUAL_APT = CASUAL_TAMIL + "\n" + tq.APT_RULES
 
 SAY_KEYS = ("say_hook", "say_question", "say_step1", "say_step2", "say_step3", "say_answer", "say_tip", "say_outro")
 FALLBACK_SCENES = ["a notebook and pencil on a wooden study desk, warm light", "an old analog clock on a study table",
@@ -381,7 +392,7 @@ Teach ONE solved aptitude question using a SHORTCUT TRICK that saves time compar
 Use small, easy numbers and make the question DIFFERENT each day (random story, names of Tamil Nadu places, new numbers; variation code {random.randint(1000, 9999)}). The maths MUST be correct.
 The video shows the question and the 3 steps on the screen while a voice explains them, so the spoken parts and the screen texts must use the SAME numbers.
 
-{CASUAL_TAMIL}
+{CASUAL_APT}
 
 Return JSON with these keys:
 title (Tamil, under 85 characters, mention the topic),
@@ -404,7 +415,7 @@ say_outro (the practice question for the viewer, then a line asking them to foll
 All the spoken parts together must be 90-115 Tamil words.
 
 Language rules for the spoken parts (they are read by a Tamil text-to-speech voice): write ONLY in Tamil script, with no
-English letters, no digits (write every number in Tamil words), no brackets, quotes, hyphens or symbols; write
+English letters, write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; write
 abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎஸ்சி); use short sentences of at most 12 words, a comma
 wherever a speaker would pause, and avoid very long compound words."""
     need = ("title", "description", "tags", "check_expr", "answer", "screen_question", "screen_answer")
@@ -459,6 +470,7 @@ def tts_text(text):
     except Exception:
         pass
     t = text.replace("\u200b", "").replace("\u200c", "").replace("\u200d", "")
+    t = tq.digits_to_tamil(t)   # 2026 -> இரண்டாயிரத்து இருபத்து ஆறு (done by code, LLMs get this wrong)
     for k in sorted(table, key=len, reverse=True):
         t = t.replace(k, table[k])
     t = re.sub(r"[\"'“”‘’()\[\]{}*_#`~|<>]", " ", t)
@@ -1035,6 +1047,10 @@ def make_one(slot, today, stamp, upload_it, hist):
         log(f"[slot {slot}] {name}: searching news")
         notes, hosts, urls = search_news(queries, hist.get("urls", []))
         (OUT / f"notes-{tag}.txt").write_text(notes, encoding="utf-8")
+        # step 1 of the Tamil quality layer: any-language news -> clean English facts, THEN write Tamil from them
+        log(f"[slot {slot}] cleaning the news into English facts")
+        notes = tq.normalize_notes(notes, llm_json, log)
+        (OUT / f"facts-{tag}.txt").write_text(notes, encoding="utf-8")
         log(f"[slot {slot}] writing Tamil script")
         # news slots use the HTML news-card video (set repo variable CARDS_SLOTS=none to switch it off, default 1,2,4)
         card_slots = [x.strip() for x in (os.environ.get("CARDS_SLOTS") or "1,2,4").split(",")]
@@ -1062,6 +1078,11 @@ def make_one(slot, today, stamp, upload_it, hist):
             s = write_aptitude_script(topic, today, avoid_text(hist, 12))
         head2, head3, hashtags = "APTITUDE TRICKS", "கணிதம் - குறுக்கு வழி", "#TNPSC #Aptitude #MathsTricks #Shorts"
         pre, post = "Topic: " + topic, "AI-assisted video. Practise the method on your own."
+    # step 3 of the Tamil quality layer: remove foreign letters, review the Tamil against the English facts, hard check
+    (OUT / f"script-{tag}-draft.json").write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
+    tq_kind = ("cards" if cards_mode else "script") if kind == "news" else ("manim" if manim_mode else "apt")
+    log(f"[slot {slot}] checking the Tamil")
+    s = tq.finalize(s, tq_kind, notes if kind == "news" else "", llm_json, log)
     (OUT / f"script-{tag}.json").write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
 
     voice = work / "voice.mp3"
