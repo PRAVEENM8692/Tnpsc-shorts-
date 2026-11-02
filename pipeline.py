@@ -928,7 +928,8 @@ def timeline(weights, spans, start=0.1):
 
 
 def write_ass(text, speech_seconds, path, start=0.15, date_text="", head2="CURRENT AFFAIRS",
-              head3="நடப்பு நிகழ்வுகள்", spans=None, total_seconds=None, cta_y=1000, cta_tamil=True, cap_margin=430):
+              head3="நடப்பு நிகழ்வுகள்", spans=None, total_seconds=None, cta_y=1000, cta_tamil=True, cap_margin=430,
+              captions=True):
     """Header (TNPSC + title + date), running Tamil captions that follow the real speech, and a
     LIKE / SUBSCRIBE call-to-action that pops up near the end."""
     font = os.environ.get("SUB_FONT") or "Noto Sans Tamil"
@@ -956,7 +957,7 @@ def write_ass(text, speech_seconds, path, start=0.15, date_text="", head2="CURRE
              rf"{{\fn{font}\fs54{white}}}{head3}\N"
              rf"{{\fn{latin}\fs50{gold}}}{date_text}")
     lines = [f"Dialogue: 0,{ass_time(0)},{ass_time(total)},Head,0,0,0,,{title}"]
-    for c, wt, (t0, t1) in zip(chunks, weights, times):
+    for c, wt, (t0, t1) in (zip(chunks, weights, times) if captions else []):   # captions=False: no running subtitles
         dur = t1 - t0
         ks, used = [], 0
         for w in c:
@@ -1203,7 +1204,8 @@ def make_one(slot, today, stamp, upload_it, hist):
     # with the animation, the LIKE / SUBSCRIBE buttons go below the captions so they do not cover the answer
     write_ass(s["voiceover"], vdur, subs, date_text=today, head2=head2, head3=head3,
               spans=speech_spans(voice), total_seconds=vdur + 1.0,
-              cta_y=1570 if base else 1000, cta_tamil=base is None, cap_margin=390 if base else 430)
+              cta_y=1570 if base else 1000, cta_tamil=base is None, cap_margin=390 if base else 430,
+              captions=base is None)   # cards / animation already show the text: no running subtitles
     secs = build_video(imgs, voice, final, work, subs=subs, base_video=base)
     log(f"[slot {slot}] video ready ({secs:.0f}s): {final}")
 
