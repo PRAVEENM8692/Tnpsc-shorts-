@@ -55,12 +55,12 @@ jobs:
           pip install playwright
           python -m playwright install chromium || true
       - uses: actions/setup-node@v4
-        if: steps.plan.outputs.slot != ''
+        if: steps.plan.outputs.slot != '' && vars.TTS_ENGINE == 'puter'
         continue-on-error: true
         with:
           node-version: 24
-      - name: Install Puter.js (backup voice when Gemini's free limit is over)
-        if: steps.plan.outputs.slot != ''
+      - name: Install Puter.js (only when the repo variable TTS_ENGINE is puter)
+        if: steps.plan.outputs.slot != '' && vars.TTS_ENGINE == 'puter'
         continue-on-error: true   # if this fails, the free edge-tts voice is used instead
         run: |
           echo '{"type":"module"}' > package.json

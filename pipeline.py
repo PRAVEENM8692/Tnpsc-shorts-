@@ -1,6 +1,6 @@
 """Free daily TNPSC current-affairs Tamil Short (runs on GitHub Actions).
 
-news search (Tavily) -> English facts -> Tamil script (Groq/OpenAI-compatible LLM) -> Tamil check (tamil_quality.py) -> Tamil voice (Gemini TTS, edge-tts as fallback)
+news search (Tavily) -> English facts -> Tamil script (Groq/OpenAI-compatible LLM) -> Tamil check (tamil_quality.py) -> Tamil voice (free edge-tts; Puter/Gemini only if TTS_ENGINE is set)
 -> images (Pollinations) or Manim animation (aptitude) -> video + BGM (ffmpeg) -> YouTube upload (Data API)
 """
 import asyncio
@@ -547,12 +547,11 @@ def pick_voice():
 
 
 def tts_engine():
-    """Puter when PUTER_AUTH_TOKEN is set (Gemini is NOT used unless you set TTS_ENGINE=gemini), otherwise the free
-    edge-tts voice. TTS_ENGINE=edge|gemini|puter forces one."""
+    """FREE voice only: edge-tts (Microsoft Edge neural Tamil voices, no key, no payment). Puter and Gemini use paid or
+    limited accounts, so they stay OFF even if their keys exist. To switch one on later, set the repo variable
+    TTS_ENGINE=puter (or gemini); edge-tts always stays as the last fallback."""
     e = (os.environ.get("TTS_ENGINE") or "").strip().lower()
-    if e in ("edge", "gemini", "puter"):
-        return e
-    return "puter" if os.environ.get("PUTER_AUTH_TOKEN") else "edge"
+    return e if e in ("puter", "gemini") else "edge"
 
 
 def _engine_chain(engine):
