@@ -71,13 +71,15 @@ GLOSSARY = [
     (["Tamil Nadu Public Service Commission"], "தமிழ்நாடு அரசுப் பணியாளர் தேர்வாணையம்"),
 ]
 
-RULES = """Translation rules (VERY IMPORTANT, the facts come from English news):
-1. First understand each fact in English, then say it in natural spoken Tamil. Never translate word for word.
+RULES = """Translation rules (VERY IMPORTANT, the facts come from news in different languages):
+0. A fact that is ALREADY in clear Tamil must NOT be translated again: reuse its Tamil wording, names and spellings, and only shorten it and make it sound like relaxed spoken Tamil. Only facts in English (or another language) are translated into Tamil.
+1. First understand each English fact, then say it in natural spoken Tamil. Never translate word for word.
 2. Keep every name, number, date, amount and place EXACTLY as in the notes. Never guess or change them. If a detail is unclear in the notes, leave that fact out.
 3. Write person names, scheme names and organisation names the way they SOUND, in Tamil letters, as Tamil newspapers do. Do not invent a new Tamil meaning for an English scheme name.
 4. Every sentence must be complete and grammatical Tamil (subject, object and verb agree). Re-read it once before answering.
 5. Write Tamil in Tamil script. English words: an everyday English word that Tamil speakers normally use (bank, online, mobile, budget, school) is written in Tamil letters. A name, scheme name, abbreviation (TNPSC, GST, DMK) or technical term with no good Tamil form stays in ENGLISH letters exactly as in the notes. Never invent a Tamil translation for those. Never write Chinese, Hindi, Telugu, Malayalam, Arabic, Russian or any other script.
-6. Write numbers, years, amounts and percentages as DIGITS (for example 2026, 5.5, 500 கோடி, 12%). The program converts them into spoken Tamil words, so do NOT spell numbers in Tamil words."""
+6. Write numbers, years, amounts and percentages as DIGITS (for example 2026, 5.5, 500 கோடி, 12%). The program converts them into spoken Tamil words, so do NOT spell numbers in Tamil words.
+7. Style: everyday SPOKEN Tamil (பேச்சுத் தமிழ்) like a friendly teacher talking to students. NOT literary, formal or poetic Tamil: no bookish or புலமை words, no long Sanskritised compounds. Short, simple sentences."""
 
 
 APT_RULES = ("Tamil rules: complete, grammatical, natural spoken Tamil sentences (re-read each one once). The numbers in the "
@@ -96,7 +98,7 @@ def translation_rules(notes=""):
                 break
     out = RULES
     if hits:
-        out += "\n7. Use exactly these Tamil spellings when the term appears:\n" + "\n".join(hits[:45])
+        out += "\n8. Use exactly these Tamil spellings when the term appears:\n" + "\n".join(hits[:45])
     return out
 
 
@@ -105,9 +107,9 @@ def normalize_notes(notes, llm, log=print):
     """Raw search notes (any language, maybe cut off) -> a clean list of English facts. Falls back to the
     original notes if anything goes wrong, so the pipeline never stops because of this step."""
     prompt = f"""You are a news desk editor. Below are raw search notes for a TNPSC current-affairs channel. Some may be in Tamil, Hindi or another language, some are cut off in the middle.
-Turn them into a clean list of distinct facts in plain ENGLISH.
-Rules: use only what the notes say. Keep every name, number, date, amount and place exactly. Translate non-English notes into English first. Merge duplicates. Drop opinions, gossip, and any item where it is not clear who did what. If a note is cut off so the fact is unclear, skip it. Mention the date or place only if the notes say it. At most 14 facts.
-Return JSON: {{"facts": [{{"fact": "one clear English sentence", "source": "website name"}}]}}
+Turn them into a clean list of distinct facts.
+Rules: use only what the notes say. Keep every name, number, date, amount and place exactly. A note that is ALREADY in clear Tamil stays in Tamil: write its fact in the same Tamil, do NOT translate it into English. A note in English is written as one plain English sentence. A note in Hindi or any other language is translated into plain English. Merge duplicates. Drop opinions, gossip, and any item where it is not clear who did what. If a note is cut off so the fact is unclear, skip it. Mention the date or place only if the notes say it. At most 14 facts.
+Return JSON: {{"facts": [{{"fact": "one clear sentence (Tamil if the note was Tamil, otherwise English)", "source": "website name"}}]}}
 
 NOTES:
 {notes}"""
@@ -121,7 +123,7 @@ NOTES:
         for f in facts[:14]:
             src = str(f.get("source", "")).strip()
             lines.append(f"- {str(f['fact']).strip()}" + (f" ({src})" if src else ""))
-        log(f"news clean-up: {len(facts)} English facts")
+        log(f"news clean-up: {len(facts)} facts")
         return "\n".join(lines)
     except (Exception, SystemExit) as e:
         log(f"news clean-up skipped: {e}")
