@@ -1,6 +1,6 @@
 """Free daily TNPSC current-affairs Tamil Short (runs on GitHub Actions).
 
-news search (Tavily) -> English facts -> Tamil script (Groq/OpenAI-compatible LLM) -> Tamil check (tamil_quality.py) -> Tamil voice (free edge-tts; Gemini TTS only if TTS_ENGINE=gemini)
+news search (Tavily) -> English facts -> Tamil script (Groq/OpenAI-compatible LLM) -> Tamil check (tamil_quality.py) -> Tamil voice (Gemini TTS by default when GEMINI_API_KEY is set, free edge-tts as the fallback)
 -> images (Pollinations) or Manim animation (aptitude) -> video + BGM (ffmpeg) -> YouTube upload (Data API)
 """
 import asyncio
@@ -575,10 +575,13 @@ def pick_voice():
 
 
 def tts_engine():
-    """FREE voice only: edge-tts (Microsoft Edge neural Tamil voices, no key, no payment). Gemini TTS stays OFF unless
-    TTS_ENGINE=gemini (workflow input `voice` or repo variable); edge-tts always stays as the fallback."""
+    """Gemini TTS is the DEFAULT voice when the GEMINI_API_KEY secret exists; the free edge-tts (Microsoft Edge neural
+    Tamil voices, no key) takes over automatically if Gemini fails or its free limit is used up, and is used for
+    every video when there is no key. To force the free voice only, set TTS_ENGINE=edge."""
     e = (os.environ.get("TTS_ENGINE") or "").strip().lower()
-    return "gemini" if e == "gemini" else "edge"
+    if e == "edge":
+        return "edge"
+    return "gemini" if (os.environ.get("GEMINI_API_KEY") or "").strip() else "edge"
 
 
 def _engine_chain(engine):

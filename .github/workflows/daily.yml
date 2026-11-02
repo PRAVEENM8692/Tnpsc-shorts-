@@ -14,8 +14,8 @@ on:
         description: "Which video: 1-5, or all"
         default: "1"
       voice:
-        description: "Voice for this run: edge (free, default) or gemini (one-time test, needs GEMINI_API_KEY)"
-        default: "edge"
+        description: "Voice for this run: gemini (default, needs GEMINI_API_KEY; falls back to free edge-tts) or edge (free only)"
+        default: "gemini"
 
 permissions:
   contents: write
