@@ -214,9 +214,8 @@ cinematic image that visually relates to THAT fact: places, buildings, objects a
 Fort St George Chennai, a laptop with students, a glowing light bulb, a gold ring on silk, Tamil Nadu map
 with festival lamps. NO text or letters in the image, NO logos, NO faces, NO real people or politicians).
 
-Language rules for the voiceover (it is read by a Tamil text-to-speech voice): write ONLY in Tamil script, with no
-English letters, write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; write
-abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎஸ்சி, GST as ஜிஎஸ்டி); use short sentences of at most
+Language rules for the voiceover (it is read by a Tamil text-to-speech voice): write in Tamil script; everyday English words that Tamil speakers normally use (bank, online, mobile, budget, school) are written in Tamil letters; a name, scheme name, abbreviation or technical term with no good Tamil form stays in English letters exactly as in the news (never invent a Tamil translation for it, the program makes the voice say it correctly); write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; keep
+abbreviations (TNPSC, GST, RBI) in English capital letters; use short sentences of at most
 12 words, simple everyday words, a comma wherever a speaker would pause, and avoid very long compound words."""
     hint = ""
     for attempt in range(5):
@@ -267,9 +266,8 @@ say_tip (says the memory trick),
 say_outro (asks the quiz question, then asks viewers to follow for daily current affairs).
 All the spoken parts together must be 90-115 Tamil words.
 
-Language rules for the spoken parts (they are read by a Tamil text-to-speech voice): write ONLY in Tamil script, with no
-English letters, write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; write
-abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎஸ்சி, GST as ஜிஎஸ்டி); use short sentences of at most
+Language rules for the spoken parts (they are read by a Tamil text-to-speech voice): write in Tamil script; everyday English words that Tamil speakers normally use (bank, online, mobile, budget, school) are written in Tamil letters; a name, scheme name, abbreviation or technical term with no good Tamil form stays in English letters exactly as in the news (never invent a Tamil translation for it, the program makes the voice say it correctly); write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; keep
+abbreviations (TNPSC, GST, RBI) in English capital letters; use short sentences of at most
 12 words, a comma wherever a speaker would pause, and avoid very long compound words."""
     hint = ""
     for attempt in range(5):
@@ -344,9 +342,8 @@ train on a bridge, a balance scale. NO text or letters in the image, NO logos, N
 
 {CASUAL_APT}
 
-Language rules for the voiceover (it is read by a Tamil text-to-speech voice): write ONLY in Tamil script, with no
-English letters, write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; write
-abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎஸ்சி, GST as ஜிஎஸ்டி); use short sentences of at most
+Language rules for the voiceover (it is read by a Tamil text-to-speech voice): write in Tamil script; everyday English words that Tamil speakers normally use (bank, online, mobile, budget, school) are written in Tamil letters; a name, scheme name, abbreviation or technical term with no good Tamil form stays in English letters exactly as in the news (never invent a Tamil translation for it, the program makes the voice say it correctly); write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; keep
+abbreviations (TNPSC, GST, RBI) in English capital letters; use short sentences of at most
 12 words, simple everyday words, a comma wherever a speaker would pause, and avoid very long compound words."""
     hint = ""
     for attempt in range(6):
@@ -414,9 +411,8 @@ say_tip (a one-line memory tip),
 say_outro (the practice question for the viewer, then a line asking them to follow for daily TNPSC aptitude tricks).
 All the spoken parts together must be 90-115 Tamil words.
 
-Language rules for the spoken parts (they are read by a Tamil text-to-speech voice): write ONLY in Tamil script, with no
-English letters, write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; write
-abbreviations as they sound in Tamil letters (TNPSC as டிஎன்பிஎஸ்சி); use short sentences of at most 12 words, a comma
+Language rules for the spoken parts (they are read by a Tamil text-to-speech voice): write in Tamil script; everyday English words that Tamil speakers normally use (bank, online, mobile, budget, school) are written in Tamil letters; a name, scheme name, abbreviation or technical term with no good Tamil form stays in English letters exactly as in the news (never invent a Tamil translation for it, the program makes the voice say it correctly); write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; keep
+abbreviations (TNPSC, GST, RBI) in English capital letters; use short sentences of at most 12 words, a comma
 wherever a speaker would pause, and avoid very long compound words."""
     need = ("title", "description", "tags", "check_expr", "answer", "screen_question", "screen_answer")
     hint = ""
@@ -482,6 +478,7 @@ def tts_text(text):
             t = re.sub(r"(?<![A-Za-z])" + re.escape(k) + r"(?![A-Za-z])", lambda m, v=table[k]: v, t)
         else:
             t = t.replace(k, table[k])
+    t = tq.common_english_to_tamil(t)             # bank, online, budget ... in Tamil letters; names stay English
     t = tq.spell_acronyms(t)                      # unknown CAPITAL abbreviations are read letter by letter in Tamil
     t = re.sub(r"[\"'“”‘’()\[\]{}*_#`~|<>]", " ", t)
     t = re.sub(r"\s*[-–—/]\s*", ", ", t)          # hyphens and slashes made the voice stumble

@@ -76,13 +76,13 @@ RULES = """Translation rules (VERY IMPORTANT, the facts come from English news):
 2. Keep every name, number, date, amount and place EXACTLY as in the notes. Never guess or change them. If a detail is unclear in the notes, leave that fact out.
 3. Write person names, scheme names and organisation names the way they SOUND, in Tamil letters, as Tamil newspapers do. Do not invent a new Tamil meaning for an English scheme name.
 4. Every sentence must be complete and grammatical Tamil (subject, object and verb agree). Re-read it once before answering.
-5. Use ONLY Tamil letters, digits and the symbols % and ₹. Never write Chinese, Hindi, Telugu, Malayalam, Arabic, Russian or any other script.
+5. Write Tamil in Tamil script. English words: an everyday English word that Tamil speakers normally use (bank, online, mobile, budget, school) is written in Tamil letters. A name, scheme name, abbreviation (TNPSC, GST, DMK) or technical term with no good Tamil form stays in ENGLISH letters exactly as in the notes. Never invent a Tamil translation for those. Never write Chinese, Hindi, Telugu, Malayalam, Arabic, Russian or any other script.
 6. Write numbers, years, amounts and percentages as DIGITS (for example 2026, 5.5, 500 கோடி, 12%). The program converts them into spoken Tamil words, so do NOT spell numbers in Tamil words."""
 
 
 APT_RULES = ("Tamil rules: complete, grammatical, natural spoken Tamil sentences (re-read each one once). The numbers in the "
-             "spoken parts and in the screen texts must be exactly the same. Use ONLY Tamil letters, digits, % and ₹, never "
-             "Chinese, Hindi, Telugu, Arabic, Russian or other scripts. Write numbers as DIGITS (the program turns them into "
+             "spoken parts and in the screen texts must be exactly the same. Write Tamil in Tamil script; everyday English words in Tamil letters; "
+             "an abbreviation or term with no good Tamil form stays in English letters. Never use Chinese, Hindi, Telugu, Arabic, Russian or other scripts. Write numbers as DIGITS (the program turns them into "
              "spoken Tamil words).")
 
 def translation_rules(notes=""):
@@ -228,7 +228,7 @@ def hard_problems(s, kind):
         t = f["text"]
         if _FOREIGN.search(t):
             bad.append(f"{key}: foreign letters")
-        if f["spoken"] and tamil_ratio(t) < 0.6:
+        if f["spoken"] and tamil_ratio(t) < 0.5:
             bad.append(f"{key}: not Tamil enough")
     return bad
 
@@ -240,10 +240,9 @@ def soft_notes(s, kind):
         for w in STIFF:
             if w in f["text"]:
                 notes.append(f"{key}: bookish word {w}")
-        if f["spoken"] and _LATIN_WORD.search(f["text"]):
-            notes.append(f"{key}: English letters left in spoken text")
-        elif not f["spoken"] and _LATIN_WORD.search(f["text"]):
-            notes.append(f"{key}: English words left on screen text")
+        kept = _LATIN_WORD.findall(f["text"])
+        if kept:
+            notes.append(f"{key}: English kept as is: {', '.join(kept[:6])}")
     return notes
 
 
@@ -270,7 +269,8 @@ Fix these problems:
 - any name, place, number, date or amount that differs from the English facts (the English facts win)
 - a fact that is NOT in the English facts: rewrite that sentence using only facts that are given
 - bookish / literary Tamil in the spoken parts (say_* and voiceover): make it simple, friendly spoken Tamil (பேச்சுத் தமிழ்) like a teacher chatting with students
-- non-Tamil letters (only Tamil letters, digits, % and ₹ are allowed); an English word in a spoken text must be written in Tamil letters exactly as people pronounce it (ஸ்டார்ட்அப், ஆன்லைன்)
+- letters of other scripts (Chinese, Hindi, Telugu ...): not allowed
+- English words: an everyday English word that Tamil speakers normally use (online, bank, mobile, budget) must be in Tamil letters (ஆன்லைன், பேங்க்). If a name, scheme name, abbreviation or technical term has no good established Tamil form, KEEP the English exactly as in the English facts; never invent a Tamil translation for it, and put back the English if the writer translated it wrongly
 - words that a voice would read badly: very long compound words, rare literary words (use a common everyday word instead)
 
 Maximum length of each text in characters (the screen is that small): {json.dumps({k: f["cap"] for k, f in F.items()})}
@@ -303,8 +303,8 @@ TEXTS TO CHECK:
         if _nums(old) and _nums(new) != _nums(old):
             rejected.append(f"{key} (numbers changed)")
             continue
-        if len(_LATIN_WORD.findall(new)) > len(_LATIN_WORD.findall(old)) or tamil_ratio(new) < min(0.6, tamil_ratio(old)):
-            rejected.append(f"{key} (less Tamil than before)")
+        if tamil_ratio(new) < min(0.4, tamil_ratio(old)):
+            rejected.append(f"{key} (almost no Tamil left)")
             continue
         f["set"](new)
         changed += 1
@@ -325,17 +325,6 @@ def finalize(s, kind, notes, llm, log=print):
     except (Exception, SystemExit) as e:   # a failed review must never stop the video
         log(f"Tamil review skipped: {e}")
     sanitize_script(s, kind)
-    left = [k for k, f in _fields(s, kind).items() if _LATIN_WORD.search(f["text"])]
-    if left:   # second pass only for the texts that still have English words
-        log(f"English words still in: {', '.join(left)}; asking for a Tamil rewrite of just those")
-        try:
-            review_script(s, kind, notes, llm, log, only=set(left), extra=(
-                "These texts still contain English words or abbreviations. Rewrite EACH of them fully in Tamil: write every English "
-                "word or abbreviation in Tamil letters as it is pronounced, or use the usual Tamil word (for example டிஎன்பிஎஸ்சி, "
-                "அகவிலைப்படி for Dearness Allowance, பின்தேதியிட்டு for retroactive). Keep it inside the maximum length."))
-        except (Exception, SystemExit) as e:
-            log(f"second Tamil pass skipped: {e}")
-        sanitize_script(s, kind)
     for n in soft_notes(s, kind):
         log(f"  check: {n}")
     bad = hard_problems(s, kind)
@@ -477,12 +466,12 @@ def voice_prep(s, kind, llm, log=print):
 
 Rewrite each text below for the voice:
 1. Do NOT change the meaning, the facts, the names or the order. Do not add or remove information. Keep digits as digits, exactly the same numbers (a program reads digits aloud).
-2. English or other-language words and abbreviations: write them in Tamil letters the way Tamil speakers say them in conversation (for example ஸ்டார்ட்அப், ஆன்லைன், ஐபிஎல், எஸ்டிஜி). Use no English letters.
+2. English words: an everyday English word that Tamil speakers normally say (online, bank, mobile, budget, startup, school) -> write it in Tamil letters the way it is pronounced in Tamil conversation (ஆன்லைன், பேங்க், ஸ்டார்ட்அப்). A name, brand, abbreviation or technical term -> leave it in English letters exactly as it is; do not translate or respell it (the program makes the voice read it correctly).
 3. People, places, schemes and organisations: use the usual Tamil newspaper spelling. For sounds that Tamil letters do not have, use Grantha letters where it helps the voice (ஜ, ஷ, ஸ, ஹ, ஃப, க்ஷ), for example ஹைதராபாத், ஃபைனல்.
 4. Split any sentence longer than about 12 words into shorter sentences. Put a comma where a speaker would pause. End every sentence with a full stop or a question mark.
 5. A very long compound word or a rare literary word that a voice may misread: replace it with a common everyday word of the same meaning.
 6. Keep the casual spoken tone (பேச்சுத் தமிழ்). Do not make it formal and do not add greetings.
-Use only Tamil letters, digits, commas, full stops and question marks.
+Use only Tamil letters, digits, commas, full stops and question marks, plus English letters only for the names and terms you were told to leave.
 
 Return JSON: {{"voice": {{"<same key>": "<text for the voice>", ...}}}} with exactly the same keys.
 
@@ -504,7 +493,8 @@ TEXTS:
         if ok:
             new = re.sub(r"\s+", " ", sanitize(new)).strip()
             ok = (new != "" and _nums(new) == _nums(old)
-                  and not _FOREIGN.search(new) and tamil_ratio(new) >= 0.9
+                  and not _FOREIGN.search(new) and tamil_ratio(new) >= min(0.6, tamil_ratio(old))
+                  and len(_LATIN_WORD.findall(new)) <= len(_LATIN_WORD.findall(old))
                   and 0.75 * len(old) <= len(new) <= 1.6 * len(old) + 10
                   and difflib.SequenceMatcher(None, "".join(_TAMIL_ANY.findall(old)),
                                               "".join(_TAMIL_ANY.findall(new)), autojunk=False).ratio() >= 0.6)
@@ -519,6 +509,37 @@ TEXTS:
     else:
         s["voice_text"] = final["voiceover"]
     return s
+
+
+# ----------------------------------------------------------------------------- voice: everyday English words
+COMMON_ENGLISH = {
+    "online": "ஆன்லைன்", "offline": "ஆஃப்லைன்", "bank": "பேங்க்", "mobile": "மொபைல்", "phone": "போன்",
+    "budget": "பட்ஜெட்", "school": "ஸ்கூல்", "college": "காலேஜ்", "police": "போலீஸ்", "bus": "பஸ்",
+    "train": "டிரெயின்", "metro": "மெட்ரோ", "digital": "டிஜிட்டல்", "internet": "இன்டர்நெட்", "startup": "ஸ்டார்ட்அப்",
+    "software": "சாஃப்ட்வேர்", "app": "ஆப்", "ticket": "டிக்கெட்", "card": "கார்டு", "loan": "லோன்", "tax": "டாக்ஸ்",
+    "court": "கோர்ட்", "hospital": "ஹாஸ்பிடல்", "doctor": "டாக்டர்", "engineer": "இன்ஜினியர்", "project": "புராஜெக்ட்",
+    "plan": "பிளான்", "list": "லிஸ்ட்", "result": "ரிசல்ட்", "exam": "எக்ஸாம்", "video": "வீடியோ",
+    "shortcut": "ஷார்ட்கட்", "trick": "டிரிக்", "easy": "ஈசி", "update": "அப்டேட்", "report": "ரிப்போர்ட்",
+    "office": "ஆபீஸ்", "cash": "கேஷ்", "rate": "ரேட்", "fund": "ஃபண்ட்", "market": "மார்க்கெட்", "share": "ஷேர்",
+    "profit": "பிராஃபிட்", "airport": "ஏர்போர்ட்", "station": "ஸ்டேஷன்", "highway": "ஹைவே", "petrol": "பெட்ரோல்",
+    "diesel": "டீசல்", "electric": "எலெக்ட்ரிக்", "vehicle": "வெஹிகிள்", "solar": "சோலார்", "power": "பவர்",
+    "award": "அவார்டு", "medal": "மெடல்", "final": "ஃபைனல்", "match": "மேட்ச்", "team": "டீம்", "cricket": "கிரிக்கெட்",
+    "hockey": "ஹாக்கி", "football": "ஃபுட்பால்", "summit": "சமிட்", "launch": "லாஞ்ச்", "satellite": "சாட்டிலைட்",
+}
+_ENGLISH_WORD = re.compile(r"(?<![A-Za-z])[A-Za-z]{2,}(?![A-Za-z])")
+
+
+def common_english_to_tamil(text):
+    """Everyday English words that Tamil speakers use (bank, online, budget ...) -> Tamil letters, so the voice says
+    them fluently. A plural -s becomes கள். Other English words (names, brands, terms) are left exactly as they are."""
+    def one(m):
+        w = m.group(0).lower()
+        if w in COMMON_ENGLISH:
+            return COMMON_ENGLISH[w]
+        if w.endswith("s") and w[:-1] in COMMON_ENGLISH:
+            return COMMON_ENGLISH[w[:-1]] + "கள்"
+        return m.group(0)
+    return _ENGLISH_WORD.sub(one, text)
 
 
 # ----------------------------------------------------------------------------- voice: unknown acronyms
@@ -579,6 +600,16 @@ def _selftest():
     sx["cards"][0]["title"] = "Dearness Allowance"
     out = finalize(sx, "cards", "- DA hike", lambda *a, **k: {"fields": {}}, lambda *a: None)   # reviewer cannot fix it: video continues
     assert out["cards"][0]["title"] == "Dearness Allowance"
+    assert common_english_to_tamil("online bank, Banks and Reliance Jio, budget") == "ஆன்லைன் பேங்க், பேங்க்கள் and Reliance Jio, பட்ஜெட்", common_english_to_tamil("online bank, Banks and Reliance Jio, budget")
+    # an untranslatable English name stays English; a voice rewrite that keeps names but converts everyday words is accepted
+    sv = {"parts": [("hook", "Reliance Jio ஆன்லைன் தகவல் இது, 5 புதிய அறிவிப்பு")], "voiceover": "x"}
+    ok = {"voice": {"hook": "Reliance Jio, ஆன்லைன் தகவல் இது, 5 புதிய அறிவிப்பு."}}
+    assert dict(voice_prep(sv, "cards", lambda *a, **k: ok, lambda *a: None)["voice_parts"])["hook"].startswith("Reliance Jio")
+    sk = {"title": "டிஎன்பிஎஸ்சி தகவல்", "description": "விளக்கம் இது", "headline": "DMK GST அறிவிப்பு",
+          "remember": "ஒரு டிரிக்", "quiz": "சொல்லுங்க", "cards": [{"title": "Reliance Jio திட்டம்", "detail": "விவரம் இது", "big": ""}],
+          "parts": [("hook", "நண்பர்களே Reliance Jio பற்றி இன்னைக்கு பாருங்க")], "voiceover": "நண்பர்களே Reliance Jio பற்றி இன்னைக்கு பாருங்க"}
+    out = finalize(sk, "cards", "- Reliance Jio plan", lambda *a, **k: {"fields": {}}, lambda *a: None)
+    assert out["cards"][0]["title"] == "Reliance Jio திட்டம்" and out["headline"] == "DMK GST அறிவிப்பு"   # English kept, video continues
     print("tamil_quality self test: all OK")
 
 
