@@ -228,8 +228,7 @@ def hard_problems(s, kind):
         t = f["text"]
         if _FOREIGN.search(t):
             bad.append(f"{key}: foreign letters")
-        need = 0.6 if f["spoken"] else 0.4
-        if key not in ("screen_answer", "screen_step1", "screen_step2", "screen_step3") and tamil_ratio(t) < need:
+        if f["spoken"] and tamil_ratio(t) < 0.6:
             bad.append(f"{key}: not Tamil enough")
     return bad
 
@@ -243,13 +242,17 @@ def soft_notes(s, kind):
                 notes.append(f"{key}: bookish word {w}")
         if f["spoken"] and _LATIN_WORD.search(f["text"]):
             notes.append(f"{key}: English letters left in spoken text")
+        elif not f["spoken"] and _LATIN_WORD.search(f["text"]):
+            notes.append(f"{key}: English words left on screen text")
     return notes
 
 
 # ----------------------------------------------------------------------------- step 3: review with a second LLM pass
-def review_script(s, kind, notes, llm, log=print):
+def review_script(s, kind, notes, llm, log=print, only=None, extra=""):
     """Second LLM pass: compare the Tamil with the English facts and fix mistakes. Accepts a fix only when it is safe."""
     F = _fields(s, kind)
+    if only:
+        F = {k: v for k, v in F.items() if k in only}
     if not F:
         return
     if kind in ("apt", "manim"):
@@ -270,6 +273,8 @@ Fix these problems:
 - non-Tamil letters (only Tamil letters, digits, % and ₹ are allowed); an English word in a spoken text must be written in Tamil letters exactly as people pronounce it (ஸ்டார்ட்அப், ஆன்லைன்)
 - words that a voice would read badly: very long compound words, rare literary words (use a common everyday word instead)
 
+Maximum length of each text in characters (the screen is that small): {json.dumps({k: f["cap"] for k, f in F.items()})}
+{extra}
 Rules: keep every number and digit exactly as it is. Keep each text about the same length (never longer than the original by more than 15%). Do not merge, split, add or remove keys. If a text is already correct, return it unchanged.
 Return JSON: {{"fields": {{"<same key>": "<corrected Tamil text>", ...}}, "problems": ["short English note for each real problem you fixed"]}}
 
@@ -291,7 +296,8 @@ TEXTS TO CHECK:
         if f["cap"] and len(new) > f["cap"]:
             rejected.append(f"{key} (too long for the screen)")
             continue
-        if len(new) > len(old) * 1.25 + 8 or len(new) < len(old) * 0.5:
+        english_before = tamil_ratio(old) < 0.5     # an English text turned into Tamil may be a different length
+        if not english_before and (len(new) > len(old) * 1.25 + 8 or len(new) < len(old) * 0.5):
             rejected.append(f"{key} (length changed too much)")
             continue
         if _nums(old) and _nums(new) != _nums(old):
@@ -319,6 +325,17 @@ def finalize(s, kind, notes, llm, log=print):
     except (Exception, SystemExit) as e:   # a failed review must never stop the video
         log(f"Tamil review skipped: {e}")
     sanitize_script(s, kind)
+    left = [k for k, f in _fields(s, kind).items() if _LATIN_WORD.search(f["text"])]
+    if left:   # second pass only for the texts that still have English words
+        log(f"English words still in: {', '.join(left)}; asking for a Tamil rewrite of just those")
+        try:
+            review_script(s, kind, notes, llm, log, only=set(left), extra=(
+                "These texts still contain English words or abbreviations. Rewrite EACH of them fully in Tamil: write every English "
+                "word or abbreviation in Tamil letters as it is pronounced, or use the usual Tamil word (for example டிஎன்பிஎஸ்சி, "
+                "அகவிலைப்படி for Dearness Allowance, பின்தேதியிட்டு for retroactive). Keep it inside the maximum length."))
+        except (Exception, SystemExit) as e:
+            log(f"second Tamil pass skipped: {e}")
+        sanitize_script(s, kind)
     for n in soft_notes(s, kind):
         log(f"  check: {n}")
     bad = hard_problems(s, kind)
@@ -551,6 +568,17 @@ def _selftest():
     out = voice_prep(sp, "cards", lambda *a, **k: good, lambda *a: None)
     assert dict(out["voice_parts"])["hook"].endswith("செய்திகள்.")
     assert dict(out["voice_parts"])["f1"] == "ஆர்பிஐ 5.5 சதவீதம் வட்டி வச்சிருக்கு"   # numbers changed -> refused, original kept
+    # English card title -> Tamil of a different length is accepted by the review; an English display text no longer stops the video
+    sx = {"title": "டிஎன்பிஎஸ்சி தகவல்", "description": "விளக்கம் இது", "headline": "முக்கியம்",
+          "remember": "ஒரு டிரிக்", "quiz": "சொல்லுங்க",
+          "cards": [{"title": "Dearness Allowance", "detail": "அகவிலைப்படி உயர்வு", "big": ""}],
+          "parts": [("hook", "நண்பர்களே இன்னைக்கு செய்தி")], "voiceover": "நண்பர்களே இன்னைக்கு செய்தி"}
+    fixed = {"fields": {"card1_title": "அகவிலைப்படி உயர்வு அறிவிப்பு"}, "problems": []}
+    out = finalize(sx, "cards", "- DA hike", lambda *a, **k: fixed, lambda *a: None)
+    assert out["cards"][0]["title"] == "அகவிலைப்படி உயர்வு அறிவிப்பு", out["cards"][0]["title"]
+    sx["cards"][0]["title"] = "Dearness Allowance"
+    out = finalize(sx, "cards", "- DA hike", lambda *a, **k: {"fields": {}}, lambda *a: None)   # reviewer cannot fix it: video continues
+    assert out["cards"][0]["title"] == "Dearness Allowance"
     print("tamil_quality self test: all OK")
 
 

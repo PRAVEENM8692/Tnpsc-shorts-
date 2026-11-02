@@ -143,7 +143,7 @@ def llm_json(prompt, model=None, temperature=0.5, effort="low"):
     headers = {"Authorization": f"Bearer {env('LLM_API_KEY')}"}
     user_model = os.environ.get("LLM_MODEL") or ""
     if not _MODEL["name"]:
-        _MODEL["name"] = user_model or "llama-3.3-70b-versatile"
+        _MODEL["name"] = user_model or "openai/gpt-oss-120b"   # llama-3.3-70b was retired (404); a 404 still auto-picks a current model
     use = {"name": model or _MODEL["name"]}
 
     def call(json_mode=True):
