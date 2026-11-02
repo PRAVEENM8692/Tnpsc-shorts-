@@ -554,7 +554,7 @@ GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
 FEMALE_VOICES = {"kore", "zephyr", "leda", "aoede", "sulafat", "callirrhoe", "autonoe", "despina", "erinome",
                  "laomedeia", "achernar", "gacrux", "pulcherrima", "vindemiatrix"}
-_VOICE = {"name": None}
+_VOICE = {"name": None, "kind": "news"}
 
 
 def _is_female(name):
@@ -565,12 +565,22 @@ def _cur_voice():
     return _VOICE["name"] or "Charon"
 
 
+# Gemini voices that suit each kind of video (man and woman mixed). The voice is chosen at random from the matching list,
+# so news sounds clear and serious while aptitude lessons sound friendly and upbeat. The free edge-tts fallback follows
+# the same man/woman choice. Set the repo variable VOICES (comma separated names) to override the list.
+VOICE_POOLS = {
+    "news": ["Charon", "Orus", "Rasalgethi", "Sadaltager", "Iapetus", "Kore", "Erinome"],      # informative / firm / clear
+    "aptitude": ["Puck", "Achird", "Zubenelgenubi", "Sadachbia", "Laomedeia", "Aoede", "Zephyr", "Leda"],  # friendly / upbeat / lively
+}
+
+
 def pick_voice():
-    """One voice per video, chosen at random from VOICES (default: Charon = man, Kore = woman; the free edge-tts
-    voice follows the same man/woman choice). The same voice is kept for every part of the video."""
-    pool = [v.strip() for v in (os.environ.get("VOICES") or "Charon,Kore").split(",") if v.strip()]
-    _VOICE["name"] = random.choice(pool or ["Charon"])
-    log(f"voice for this video: {_VOICE['name']}")
+    """One voice per video, chosen at random from the list that suits the content (see VOICE_POOLS).
+    The same voice is kept for every part of the video."""
+    custom = [v.strip() for v in (os.environ.get("VOICES") or "").split(",") if v.strip()]
+    pool = custom or VOICE_POOLS.get(_VOICE.get("kind") or "news") or VOICE_POOLS["news"]
+    _VOICE["name"] = random.choice(pool)
+    log(f"voice for this {_VOICE.get('kind') or 'news'} video: {_VOICE['name']}")
     return _VOICE["name"]
 
 
@@ -1157,6 +1167,7 @@ def make_one(slot, today, stamp, upload_it, hist):
 
     voice = work / "voice.mp3"
     starts = None
+    _VOICE["kind"] = "news" if kind == "news" else "aptitude"   # the voice is picked to suit the content
     if manim_mode or cards_mode:
         starts = make_voice_parts(s.get("voice_parts") or s["parts"], voice, work)   # each part spoken separately -> exact timing
     else:
