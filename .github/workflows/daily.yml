@@ -13,6 +13,9 @@ on:
       slot:
         description: "Which video: 1-5, or all"
         default: "1"
+      voice:
+        description: "Voice for this run: edge (free, default) or gemini (one-time test, needs GEMINI_API_KEY)"
+        default: "edge"
 
 permissions:
   contents: write
@@ -80,7 +83,7 @@ jobs:
           GEMINI_TTS_MODEL: ${{ vars.GEMINI_TTS_MODEL }}
           GEMINI_VOICE: ${{ vars.GEMINI_VOICE }}
           GEMINI_STYLE: ${{ vars.GEMINI_STYLE }}
-          TTS_ENGINE: ${{ vars.TTS_ENGINE }}
+          TTS_ENGINE: ${{ github.event.inputs.voice || vars.TTS_ENGINE }}
           PUTER_AUTH_TOKEN: ${{ secrets.PUTER_AUTH_TOKEN }}
           PUTER_VOICE: ${{ vars.PUTER_VOICE }}
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}

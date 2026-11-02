@@ -557,8 +557,6 @@ def tts_engine():
 def _engine_chain(engine):
     """The chosen engine first, then the others that can take over (always ending with free edge-tts)."""
     chain = [engine]
-    if engine == "gemini" and os.environ.get("PUTER_AUTH_TOKEN"):
-        chain.append("puter")
     if "edge" not in chain:
         chain.append("edge")
     return chain
@@ -621,7 +619,7 @@ def make_voice_gemini(text, path):
     import re
     key = env("GEMINI_API_KEY")
     model = os.environ.get("GEMINI_TTS_MODEL") or "gemini-3.8-flash-tts"
-    voice = os.environ.get("GEMINI_VOICE") or "Kore"
+    voice = (os.environ.get("GEMINI_VOICE") or "").strip() or _cur_voice()   # Charon (man) or Kore (woman), random per video
     style = os.environ.get("GEMINI_STYLE") or ("friendly, casual and clear, like a young teacher chatting with "
                                                 "students, not too fast")
     spoken = tts_text(text)
