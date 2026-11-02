@@ -1152,6 +1152,10 @@ def make_one(slot, today, stamp, upload_it, hist):
                 log(f"[slot {slot}] news-card script failed, using the normal script: {e}")
         if s is None:
             s = write_script(notes, today, focus, slot, 5, avoid_text(hist))
+        if cards_mode:
+            rewrite = lambda: write_news_cards_script(notes, today, focus, slot, 5, avoid_text(hist))
+        else:
+            rewrite = lambda: write_script(notes, today, focus, slot, 5, avoid_text(hist))
         head2, head3, hashtags = "CURRENT AFFAIRS", "நடப்பு நிகழ்வுகள்", "#TNPSC #CurrentAffairs #Shorts"
         pre, post = "Sources: " + ", ".join(hosts), "AI-assisted video. Verify facts with official sources."
     else:
@@ -1163,16 +1167,22 @@ def make_one(slot, today, stamp, upload_it, hist):
         manim_mode = str(slot) in manim_slots
         avoid_apt = avoid_text(hist, 12) + apt_brief(topic)
         if manim_mode:
-            s = write_aptitude_manim_script(topic, today, avoid_apt)
+            rewrite = lambda: write_aptitude_manim_script(topic, today, avoid_apt)
         else:
-            s = write_aptitude_script(topic, today, avoid_apt)
+            rewrite = lambda: write_aptitude_script(topic, today, avoid_apt)
+        s = rewrite()
         head2, head3, hashtags = "APTITUDE TRICKS", "கணிதம் - குறுக்கு வழி", "#TNPSC #Aptitude #MathsTricks #Shorts"
         pre, post = "Topic: " + topic, "AI-assisted video. Practise the method on your own."
     # step 3 of the Tamil quality layer: remove foreign letters, review the Tamil against the English facts, hard check
     (OUT / f"script-{tag}-draft.json").write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
     tq_kind = ("cards" if cards_mode else "script") if kind == "news" else ("manim" if manim_mode else "apt")
     log(f"[slot {slot}] checking the Tamil")
-    s = tq.finalize(s, tq_kind, notes if kind == "news" else "", llm_json, log)
+    try:
+        s = tq.finalize(s, tq_kind, notes if kind == "news" else "", llm_json, log)
+    except SystemExit as e:   # the Tamil was unusable: write the whole script once more before giving up
+        log(f"[slot {slot}] {e}; writing the script again")
+        s = rewrite()
+        s = tq.finalize(s, tq_kind, notes if kind == "news" else "", llm_json, log)
     log(f"[slot {slot}] preparing the text for the voice")
     s = tq.voice_prep(s, tq_kind, llm_json, log)   # AI rewrite for pronunciation; captions keep the original text
     (OUT / f"script-{tag}.json").write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
