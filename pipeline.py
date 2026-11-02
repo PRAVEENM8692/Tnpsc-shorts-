@@ -617,7 +617,9 @@ def make_voice_gemini(text, path):
     GEMINI_STYLE (how it should sound)."""
     import base64
     import re
-    key = env("GEMINI_API_KEY")
+    key = os.environ.get("GEMINI_API_KEY")
+    if not key:   # raise (not exit) so the run falls back to the free edge-tts voice instead of stopping
+        raise RuntimeError("GEMINI_API_KEY secret is not set in GitHub (Settings > Secrets and variables > Actions)")
     model = os.environ.get("GEMINI_TTS_MODEL") or "gemini-3.8-flash-tts"
     voice = (os.environ.get("GEMINI_VOICE") or "").strip() or _cur_voice()   # Charon (man) or Kore (woman), random per video
     style = os.environ.get("GEMINI_STYLE") or ("friendly, casual and clear, like a young teacher chatting with "
