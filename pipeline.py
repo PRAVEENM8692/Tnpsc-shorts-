@@ -92,20 +92,25 @@ APTITUDE_TOPICS = [
 def search_news(queries, used_urls=()):
     key = env("TAVILY_API_KEY")
     seen, items = set(used_urls), []
-    for q in queries:
-        r = requests.post(
-            "https://api.tavily.com/search",
-            headers={"Authorization": f"Bearer {key}"},
-            json={"query": q, "topic": "news", "days": 3, "max_results": 6},
-            timeout=60,
-        )
-        r.raise_for_status()
-        for x in r.json().get("results", []):
-            if x["url"] in seen:
-                continue
-            seen.add(x["url"])
-            host = urllib.parse.urlparse(x["url"]).netloc.replace("www.", "")
-            items.append({"title": x.get("title", ""), "host": host, "url": x["url"], "text": (x.get("content") or "")[:450]})
+    # normally the last 3 days; if too few NEW stories are left (many videos already made), look back a week
+    for days, count in ((3, 6), (7, 10)):
+        for q in queries:
+            r = requests.post(
+                "https://api.tavily.com/search",
+                headers={"Authorization": f"Bearer {key}"},
+                json={"query": q, "topic": "news", "days": days, "max_results": count},
+                timeout=60,
+            )
+            r.raise_for_status()
+            for x in r.json().get("results", []):
+                if x["url"] in seen:
+                    continue
+                seen.add(x["url"])
+                host = urllib.parse.urlparse(x["url"]).netloc.replace("www.", "")
+                items.append({"title": x.get("title", ""), "host": host, "url": x["url"], "text": (x.get("content") or "")[:450]})
+        if len(items) >= 4:
+            break
+        log(f"only {len(items)} new stories found for the last {days} days; widening the search")
     if len(items) < 2:
         sys.exit("Too little news found; stopping instead of inventing facts.")
     notes = "\n".join(f"- {i['title']} ({i['host']}): {i['text']}" for i in items)
@@ -1225,9 +1230,10 @@ def make_one(slot, today, stamp, upload_it, hist):
 
     if upload_it:
         hist.setdefault("done", {}).setdefault(stamp, []).append(slot)
-    hist.setdefault("urls", []).extend(urls)
-    hist.setdefault("titles", []).append(f"{name}: {s['title']}")
-    save_history(hist)
+    if upload_it:   # a test run (UPLOAD=false) must not use up the news for the real videos
+        hist.setdefault("urls", []).extend(urls)
+        hist.setdefault("titles", []).append(f"{name}: {s['title']}")
+        save_history(hist)
 
 
 def pick_slots():
