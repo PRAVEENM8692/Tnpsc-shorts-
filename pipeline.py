@@ -318,6 +318,38 @@ def safe_eval(expr):
     return ev(ast.parse(str(expr), mode="eval"))
 
 
+def apt_brief(topic):
+    """Optional research step for the aptitude videos: Gemini (free tier) searches the web with Google Search and
+    returns a short reference brief (typical TNPSC-style question, the standard shortcut trick, worked example) that
+    the script writer then uses as source material. Needs the GEMINI_API_KEY secret; if it is missing, the free limit
+    is used up or anything fails, it returns "" and the videos are made exactly as before."""
+    key = (os.environ.get("GEMINI_API_KEY") or "").strip()
+    if not key or (os.environ.get("APT_RESEARCH") or "1").strip() == "0":
+        return ""
+    model = (os.environ.get("GEMINI_TEXT_MODEL") or "gemini-2.5-flash").strip()
+    q = (f"Search the web for TNPSC / Tamil Nadu competitive exam aptitude and mental ability questions on the topic "
+         f"'{topic}'. Give a short reference brief in English (under 220 words): (1) one realistic exam-style question "
+         f"with small numbers, (2) the standard SHORTCUT trick that saves time versus the long method, in 3 steps, "
+         f"(3) the worked answer with the arithmetic, (4) one common mistake students make. Be exact; do not invent facts.")
+    try:
+        r = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+                          headers={"x-goog-api-key": key, "Content-Type": "application/json"},
+                          json={"contents": [{"parts": [{"text": q}]}], "tools": [{"google_search": {}}]}, timeout=120)
+        if r.status_code != 200:
+            log(f"aptitude research skipped (Gemini HTTP {r.status_code}): {r.text[:160]}")
+            return ""
+        parts = r.json()["candidates"][0]["content"]["parts"]
+        text = " ".join(p.get("text", "") for p in parts).strip()
+    except Exception as e:
+        log(f"aptitude research skipped ({e})")
+        return ""
+    if len(text) < 80:
+        return ""
+    log(f"aptitude research brief from Gemini search ({len(text)} chars)")
+    return ("\n\nREFERENCE BRIEF found by web search (use it as the source for the question type and the shortcut; "
+            "make your own fresh numbers and story, and re-check every calculation yourself):\n" + text[:2200] + "\n")
+
+
 def write_aptitude_script(topic, today, avoid=""):
     prompt = f"""You write 45-second YouTube Shorts for TNPSC / Tamil Nadu competitive-exam aspirants, in simple
 spoken TAMIL. Date: {today}. Topic: {topic}.
@@ -1148,10 +1180,11 @@ def make_one(slot, today, stamp, upload_it, hist):
         # which aptitude slots use the animated Manim video (default: slot 5 only; set repo variable MANIM_SLOTS=3,5 for both)
         manim_slots = [x.strip() for x in (os.environ.get("MANIM_SLOTS") or "5").split(",")]
         manim_mode = str(slot) in manim_slots
+        avoid_apt = avoid_text(hist, 12) + apt_brief(topic)
         if manim_mode:
-            s = write_aptitude_manim_script(topic, today, avoid_text(hist, 12))
+            s = write_aptitude_manim_script(topic, today, avoid_apt)
         else:
-            s = write_aptitude_script(topic, today, avoid_text(hist, 12))
+            s = write_aptitude_script(topic, today, avoid_apt)
         head2, head3, hashtags = "APTITUDE TRICKS", "கணிதம் - குறுக்கு வழி", "#TNPSC #Aptitude #MathsTricks #Shorts"
         pre, post = "Topic: " + topic, "AI-assisted video. Practise the method on your own."
     # step 3 of the Tamil quality layer: remove foreign letters, review the Tamil against the English facts, hard check

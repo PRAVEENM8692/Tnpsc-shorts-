@@ -83,6 +83,8 @@ jobs:
           GEMINI_TTS_MODEL: ${{ vars.GEMINI_TTS_MODEL }}
           GEMINI_VOICE: ${{ vars.GEMINI_VOICE }}
           GEMINI_STYLE: ${{ vars.GEMINI_STYLE }}
+          GEMINI_TEXT_MODEL: ${{ vars.GEMINI_TEXT_MODEL }}
+          APT_RESEARCH: ${{ vars.APT_RESEARCH }}
           TTS_ENGINE: ${{ github.event.inputs.voice || vars.TTS_ENGINE }}
           PUTER_AUTH_TOKEN: ${{ secrets.PUTER_AUTH_TOKEN }}
           PUTER_VOICE: ${{ vars.PUTER_VOICE }}
