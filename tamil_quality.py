@@ -267,7 +267,8 @@ Fix these problems:
 - any name, place, number, date or amount that differs from the English facts (the English facts win)
 - a fact that is NOT in the English facts: rewrite that sentence using only facts that are given
 - bookish / literary Tamil in the spoken parts (say_* and voiceover): make it simple, friendly spoken Tamil (பேச்சுத் தமிழ்) like a teacher chatting with students
-- non-Tamil letters (only Tamil letters, digits, % and ₹ are allowed)
+- non-Tamil letters (only Tamil letters, digits, % and ₹ are allowed); an English word in a spoken text must be written in Tamil letters exactly as people pronounce it (ஸ்டார்ட்அப், ஆன்லைன்)
+- words that a voice would read badly: very long compound words, rare literary words (use a common everyday word instead)
 
 Rules: keep every number and digit exactly as it is. Keep each text about the same length (never longer than the original by more than 15%). Do not merge, split, add or remove keys. If a text is already correct, return it unchanged.
 Return JSON: {{"fields": {{"<same key>": "<corrected Tamil text>", ...}}, "problems": ["short English note for each real problem you fixed"]}}
@@ -422,6 +423,20 @@ def digits_to_tamil(text):
     return re.sub(r"[ \t]{2,}", " ", t).strip()
 
 
+# ----------------------------------------------------------------------------- voice: unknown acronyms
+_LETTER_NAMES = {"A": "ஏ", "B": "பி", "C": "சி", "D": "டி", "E": "இ", "F": "எஃப்", "G": "ஜி", "H": "ஏச்", "I": "ஐ",
+                 "J": "ஜே", "K": "கே", "L": "எல்", "M": "எம்", "N": "என்", "O": "ஓ", "P": "பி", "Q": "கியூ",
+                 "R": "ஆர்", "S": "எஸ்", "T": "டி", "U": "யு", "V": "வி", "W": "டபிள்யூ", "X": "எக்ஸ்",
+                 "Y": "வை", "Z": "செட்"}
+_ACRONYM = re.compile(r"(?<![A-Za-z])[A-Z]{2,6}(?![A-Za-z])")
+
+
+def spell_acronyms(text):
+    """Any CAPITAL-letter abbreviation that is still in the voice text (for example SDG, NCERT) is written the way
+    Tamil speakers say it letter by letter (எஸ்டிஜி), so the voice does not guess or read it as English."""
+    return _ACRONYM.sub(lambda m: "".join(_LETTER_NAMES[c] for c in m.group(0)), text)
+
+
 # ----------------------------------------------------------------------------- self test
 def _selftest():
     cases = {
@@ -443,6 +458,7 @@ def _selftest():
     assert sanitize("வணக்கம் 你好 நண்பர்களே नमस्ते") == "வணக்கம் நண்பர்களே"
     assert sanitize("சரி சரி சரி சரி போங்க") == "சரி சரி போங்க"
     assert tamil_ratio("ஜிஎஸ்டி வரி GST") > 0.6
+    assert spell_acronyms("SDG இலக்கு, NCERT புத்தகம், train") == "எஸ்டிஜி இலக்கு, என்சிஇஆர்டி புத்தகம், train"
     g = translation_rules("Chennai and Trichy and RBI repo rate")
     assert "சென்னை" in g and "திருச்சிராப்பள்ளி" in g and "ரிசர்வ் வங்கி" in g and "ரெப்போ" in g
     print("tamil_quality self test: all OK")

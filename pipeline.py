@@ -457,6 +457,12 @@ wherever a speaker would pause, and avoid very long compound words."""
 PRONOUNCE = {   # written form -> how it should be SPOKEN (captions keep the original). Extend in pronounce.json
     "TNPSC": "டிஎன்பிஎஸ்சி", "GST": "ஜிஎஸ்டி", "RBI": "ஆர்பிஐ", "ISRO": "இஸ்ரோ", "UPSC": "யுபிஎஸ்சி",
     "GDP": "ஜிடிபி", "NITI": "நிதி", "AI": "ஏஐ", "UPI": "யுபிஐ", "IPL": "ஐபிஎல்", "BCCI": "பிசிசிஐ",
+    "PM": "பிரதமர்", "CM": "முதலமைச்சர்", "MLA": "எம்எல்ஏ", "MP": "எம்பி", "IAS": "ஐஏஎஸ்", "IPS": "ஐபிஎஸ்",
+    "NEET": "நீட்", "JEE": "ஜேஇஇ", "UGC": "யுஜிசி", "ICC": "ஐசிசி", "FIFA": "ஃபிஃபா", "WHO": "உலக சுகாதார அமைப்பு",
+    "UN": "ஐநா சபை", "UNESCO": "யுனெஸ்கோ", "NASA": "நாசா", "WTO": "டபிள்யூடிஓ", "IMF": "ஐஎம்எஃப்", "SEBI": "செபி",
+    "NABARD": "நபார்டு", "EPFO": "இபிஎஃப்ஓ", "ATM": "ஏடிஎம்", "PAN": "பான்", "IIT": "ஐஐடி", "AIIMS": "எய்ம்ஸ்",
+    "CBI": "சிபிஐ", "NIA": "என்ஐஏ", "DRDO": "டிஆர்டிஓ", "COVID": "கோவிட்", "FY": "நிதியாண்டு",
+    "km": "கிலோமீட்டர்", "kg": "கிலோகிராம்", "cm": "சென்டிமீட்டர்", "MW": "மெகாவாட்", "GW": "ஜிகாவாட்",
     "%": " சதவீதம்", "₹": "ரூபாய் ", "&": " மற்றும் ",
 }
 
@@ -472,11 +478,19 @@ def tts_text(text):
     t = text.replace("\u200b", "").replace("\u200c", "").replace("\u200d", "")
     t = tq.digits_to_tamil(t)   # 2026 -> இரண்டாயிரத்து இருபத்து ஆறு (done by code, LLMs get this wrong)
     for k in sorted(table, key=len, reverse=True):
-        t = t.replace(k, table[k])
+        if re.fullmatch(r"[A-Za-z0-9. ]+", k):   # English abbreviations: whole words only (AI must not change TRAIN)
+            t = re.sub(r"(?<![A-Za-z])" + re.escape(k) + r"(?![A-Za-z])", lambda m, v=table[k]: v, t)
+        else:
+            t = t.replace(k, table[k])
+    t = tq.spell_acronyms(t)                      # unknown CAPITAL abbreviations are read letter by letter in Tamil
     t = re.sub(r"[\"'“”‘’()\[\]{}*_#`~|<>]", " ", t)
     t = re.sub(r"\s*[-–—/]\s*", ", ", t)          # hyphens and slashes made the voice stumble
+    t = re.sub(r"\s*[;:…]+\s*", ", ", t)          # these confuse the voice; a comma gives a natural pause
+    t = re.sub(r"\s*!+", ".", t)
     t = re.sub(r"\.(?=\S)", ". ", t)
     t = re.sub(r"\s+", " ", t).strip()
+    if t and t[-1] not in ".?":                    # every text ends with a full stop so the voice lands the last word
+        t += "."
     return t
 
 
@@ -958,6 +972,11 @@ def render_manim(s, starts, total, workdir, today):
     return found[0]
 
 
+# Voice clean-up for clearer speech: cut low rumble, even out loud and soft words, same loudness for every voice
+VOICE_CLEAN = ("highpass=f=70,acompressor=threshold=0.1:ratio=3:attack=5:release=80:makeup=2,"
+               "loudnorm=I=-16:TP=-1.5:LRA=9,aresample=44100")
+
+
 def build_video(images, voice, out, workdir, bgm=BGM, subs=None, base_video=None):
     total = duration(voice) + 1.0
     if base_video:
@@ -979,12 +998,12 @@ def build_video(images, voice, out, workdir, bgm=BGM, subs=None, base_video=None
     if Path(bgm).exists():
         cmd += ["-stream_loop", "-1", "-i", str(bgm)]
         n += 1
-        afilter = (f"[1:a]apad=pad_dur=1[va];[2:a]volume=0.15,afade=t=in:d=1.5[b];"
+        afilter = (f"[1:a]{VOICE_CLEAN},apad=pad_dur=1[va];[2:a]volume=0.10,afade=t=in:d=1.5[b];"
                    f"[va][b]amix=inputs=2:duration=first:dropout_transition=0[m];"
                    f"[m]volume=1.8,afade=t=out:st={total - 1.5:.2f}:d=1.5[a]")
     else:
         log("WARNING: assets/bgm.mp3 not found, publishing without BGM")
-        afilter = "[1:a]apad=pad_dur=1[a]"
+        afilter = f"[1:a]{VOICE_CLEAN},apad=pad_dur=1[a]"
     base = "null"
     if subs:
         # dark panel behind the title block, then title, running Tamil text and LIKE/SUBSCRIBE from the .ass file
