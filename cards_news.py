@@ -1,7 +1,7 @@
 """News-card video for the current-affairs Shorts (HTML/CSS cards drawn by a browser, joined by ffmpeg).
 
 Why a browser: it wraps and shrinks Tamil text to fit its box (see fit() below), so words never overlap or run
-off the card. Each part of the voiceover (hook, fact 1-5, memory tip, outro) gets one card; the card slides in
+off the card. Each part of the voiceover (hook, fact 1-5, outro) gets one card; the card slides in
 exactly when that part of the voice starts. The channel header and the LIKE/SUBSCRIBE buttons are added
 afterwards by pipeline.py (same as the Manim aptitude video). There are NO running subtitles: instead the text of
 each card is dim at first and a soft golden light sweeps down over it while that part is spoken, so the lit text
@@ -88,7 +88,7 @@ def _dots(i, n=5):
 
 
 def _card(kind, d, today):
-    """HTML of the card for one segment. kind: hook | fact | tip | outro."""
+    """HTML of the card for one segment. kind: hook | fact | outro."""
     if kind == "hook":
         return (f'<div class="card"><div class="row"><div class="chip">{_e(d.get("chip") or "நடப்பு நிகழ்வுகள்")}</div>'
                 f'<div class="chip" style="background:#3DDC84">{_e(today)}</div></div>'
@@ -104,10 +104,6 @@ def _card(kind, d, today):
                 f'<div class="dots">{_dots(i)}</div></div>'
                 f'<div class="t" data-fit="74,38" style="height:{t_h}px">{_e(d["title"])}</div>{big_html}'
                 f'<div class="d" data-fit="52,30">{_e(d["detail"])}</div></div>')
-    if kind == "tip":
-        return (f'<div class="card gold"><div class="row"><div class="chip">நினைவில் வை</div></div>'
-                f'<div class="center"><div class="t" data-fit="84,40" style="height:520px;display:flex;align-items:center;'
-                f'text-align:center;justify-content:center">{_e(d["remember"])}</div></div></div>')
     return (f'<div class="card"><div class="row"><div class="chip">உங்க பதில் என்ன?</div></div>'
             f'<div class="center"><div class="t" data-fit="80,40" style="height:400px;display:flex;align-items:center;'
             f'text-align:center;justify-content:center">{_e(d["question"])}</div>'
@@ -121,7 +117,6 @@ def segments_from_script(s):
     for i, c in enumerate(cards[:5], 1):
         segs.append((f"f{i}", "fact", {"n": i, "title": c.get("title", ""), "detail": c.get("detail", ""),
                                        "big": c.get("big", "")}))
-    segs.append(("tip", "tip", {"remember": s["remember"]}))
     segs.append(("outro", "outro", {"question": s["quiz"]}))
     return segs
 

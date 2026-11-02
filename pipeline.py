@@ -236,12 +236,11 @@ abbreviations (TNPSC, GST, RBI) in English capital letters; use short sentences 
     sys.exit("Could not get a valid script from the LLM.")
 
 
-NEWS_SAY = ("say_hook", "say_f1", "say_f2", "say_f3", "say_f4", "say_f5", "say_tip", "say_outro")
+NEWS_SAY = ("say_hook", "say_f1", "say_f2", "say_f3", "say_f4", "say_f5", "say_outro")
 
 
 def write_news_cards_script(notes, today, focus="", part=1, total=1, avoid=""):
-    """Current-affairs script for the news-card video: the voice is written in PARTS (hook, fact 1-5, memory tip,
-    outro) so each card appears exactly when its part starts. Raises (or exits) if the LLM cannot produce it."""
+    """Current-affairs script for the news-card video: the voice is written in PARTS (hook, fact 1-5, outro) so each card appears exactly when its part starts. Raises (or exits) if the LLM cannot produce it."""
     prompt = f"""You write 45-second YouTube Shorts for TNPSC aspirants in simple spoken TAMIL. Date: {today}.
 Use ONLY facts that appear in these news notes. Do not add facts, numbers or dates from memory:
 {notes}
@@ -262,13 +261,11 @@ cards (list of EXACTLY 5 objects, one per fact in spoken order, each with:
    title (Tamil, the fact's subject, at most 45 characters),
    detail (Tamil, one clear sentence with the key who / what / where, at most 110 characters, digits allowed),
    big (the single most important number, date or amount from the notes, at most 12 characters, for example "2026" or "5.5%", or an empty string if there is none)),
-remember (Tamil, ONE catchy memory trick for the 5 facts, at most 60 characters),
 quiz (Tamil, a quick question for the viewers about one of the facts, at most 60 characters),
 scenes (list of exactly 5 English prompts, one per fact, each a vertical cinematic image that relates to that fact: places, buildings, objects and symbols. NO text or letters in the image, NO logos, NO faces, NO real people or politicians),
 and the SPOKEN parts, each one to three short sentences:
 say_hook (a punchy hook, about 12 words),
 say_f1, say_f2, say_f3, say_f4, say_f5 (the five facts, one short sentence or two each),
-say_tip (says the memory trick),
 say_outro (asks the quiz question, then asks viewers to follow for daily current affairs).
 All the spoken parts together must be 90-115 Tamil words.
 
@@ -282,7 +279,7 @@ abbreviations (TNPSC, GST, RBI) in English capital letters; use short sentences 
         words = sum(len(t.split()) for _, t in parts)
         cards = d.get("cards")
         lo = 70 if attempt < 3 else 55
-        ok = (all(k in d for k in ("title", "description", "tags", "headline", "remember", "quiz"))
+        ok = (all(k in d for k in ("title", "description", "tags", "headline", "quiz"))
               and all(t for _, t in parts) and isinstance(cards, list) and len(cards) >= 5
               and all(isinstance(c, dict) and str(c.get("title", "")).strip() and str(c.get("detail", "")).strip()
                       for c in cards[:5]) and lo <= words <= 150)
@@ -294,7 +291,6 @@ abbreviations (TNPSC, GST, RBI) in English capital letters; use short sentences 
         d["cards"] = [{"title": str(c["title"]).strip()[:60], "detail": str(c["detail"]).strip()[:150],
                        "big": str(c.get("big") or "").strip()[:14]} for c in cards[:5]]
         d["headline"] = str(d["headline"]).strip()[:80]
-        d["remember"] = str(d["remember"]).strip()[:90]
         d["quiz"] = str(d["quiz"]).strip()[:90]
         d["parts"] = parts
         d["voiceover"] = " ".join(t for _, t in parts)

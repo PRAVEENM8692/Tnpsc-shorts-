@@ -189,7 +189,6 @@ def _fields(s, kind):
         top("voiceover", 1500, True)
     if kind == "cards":
         top("headline", 80)
-        top("remember", 90)
         top("quiz", 90)
         for i, c in enumerate(s.get("cards") or []):
             add(f"card{i + 1}_title", c.get("title"), 60, False, lambda v, c=c: c.__setitem__("title", v))
@@ -593,7 +592,7 @@ def _selftest():
     assert dict(out["voice_parts"])["f1"] == "ஆர்பிஐ 5.5 சதவீதம் வட்டி வச்சிருக்கு"   # numbers changed -> refused, original kept
     # English card title -> Tamil of a different length is accepted by the review; an English display text no longer stops the video
     sx = {"title": "டிஎன்பிஎஸ்சி தகவல்", "description": "விளக்கம் இது", "headline": "முக்கியம்",
-          "remember": "ஒரு டிரிக்", "quiz": "சொல்லுங்க",
+          "quiz": "சொல்லுங்க",
           "cards": [{"title": "Dearness Allowance", "detail": "அகவிலைப்படி உயர்வு", "big": ""}],
           "parts": [("hook", "நண்பர்களே இன்னைக்கு செய்தி")], "voiceover": "நண்பர்களே இன்னைக்கு செய்தி"}
     fixed = {"fields": {"card1_title": "அகவிலைப்படி உயர்வு அறிவிப்பு"}, "problems": []}
@@ -608,7 +607,7 @@ def _selftest():
     ok = {"voice": {"hook": "Reliance Jio, ஆன்லைன் தகவல் இது, 5 புதிய அறிவிப்பு."}}
     assert dict(voice_prep(sv, "cards", lambda *a, **k: ok, lambda *a: None)["voice_parts"])["hook"].startswith("Reliance Jio")
     sk = {"title": "டிஎன்பிஎஸ்சி தகவல்", "description": "விளக்கம் இது", "headline": "DMK GST அறிவிப்பு",
-          "remember": "ஒரு டிரிக்", "quiz": "சொல்லுங்க", "cards": [{"title": "Reliance Jio திட்டம்", "detail": "விவரம் இது", "big": ""}],
+          "quiz": "சொல்லுங்க", "cards": [{"title": "Reliance Jio திட்டம்", "detail": "விவரம் இது", "big": ""}],
           "parts": [("hook", "நண்பர்களே Reliance Jio பற்றி இன்னைக்கு பாருங்க")], "voiceover": "நண்பர்களே Reliance Jio பற்றி இன்னைக்கு பாருங்க"}
     out = finalize(sk, "cards", "- Reliance Jio plan", lambda *a, **k: {"fields": {}}, lambda *a: None)
     assert out["cards"][0]["title"] == "Reliance Jio திட்டம்" and out["headline"] == "DMK GST அறிவிப்பு"   # English kept, video continues
