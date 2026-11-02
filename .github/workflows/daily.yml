@@ -57,17 +57,6 @@ jobs:
         run: |
           pip install playwright
           python -m playwright install chromium || true
-      - uses: actions/setup-node@v4
-        if: steps.plan.outputs.slot != '' && vars.TTS_ENGINE == 'puter'
-        continue-on-error: true
-        with:
-          node-version: 24
-      - name: Install Puter.js (only when the repo variable TTS_ENGINE is puter)
-        if: steps.plan.outputs.slot != '' && vars.TTS_ENGINE == 'puter'
-        continue-on-error: true   # if this fails, the free edge-tts voice is used instead
-        run: |
-          echo '{"type":"module"}' > package.json
-          npm i @heyputer/puter.js
       - name: Build and publish
         if: steps.plan.outputs.slot != ''
         run: python pipeline.py
@@ -86,8 +75,6 @@ jobs:
           GEMINI_TEXT_MODEL: ${{ vars.GEMINI_TEXT_MODEL }}
           APT_RESEARCH: ${{ vars.APT_RESEARCH }}
           TTS_ENGINE: ${{ github.event.inputs.voice || vars.TTS_ENGINE }}
-          PUTER_AUTH_TOKEN: ${{ secrets.PUTER_AUTH_TOKEN }}
-          PUTER_VOICE: ${{ vars.PUTER_VOICE }}
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
@@ -95,7 +82,7 @@ jobs:
           YT_PRIVACY: ${{ vars.YT_PRIVACY }}
           MANIM_SLOTS: ${{ vars.MANIM_SLOTS }}
           CARDS_SLOTS: ${{ vars.CARDS_SLOTS }}
-          PUTER_VOICES: ${{ vars.PUTER_VOICES }}
+          VOICES: ${{ vars.VOICES }}
           VOICE_VERIFY: ${{ vars.VOICE_VERIFY }}
           VOICE_MIN: ${{ vars.VOICE_MIN }}
           WHISPER_MODEL: ${{ vars.WHISPER_MODEL }}

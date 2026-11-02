@@ -1,6 +1,6 @@
 """Free daily TNPSC current-affairs Tamil Short (runs on GitHub Actions).
 
-news search (Tavily) -> English facts -> Tamil script (Groq/OpenAI-compatible LLM) -> Tamil check (tamil_quality.py) -> Tamil voice (free edge-tts; Puter/Gemini only if TTS_ENGINE is set)
+news search (Tavily) -> English facts -> Tamil script (Groq/OpenAI-compatible LLM) -> Tamil check (tamil_quality.py) -> Tamil voice (free edge-tts; Gemini TTS only if TTS_ENGINE=gemini)
 -> images (Pollinations) or Manim animation (aptitude) -> video + BGM (ffmpeg) -> YouTube upload (Data API)
 """
 import asyncio
@@ -562,28 +562,23 @@ def _is_female(name):
 
 
 def _cur_voice():
-    return _VOICE["name"] or (os.environ.get("PUTER_VOICE") or "").strip() or "Charon"
+    return _VOICE["name"] or "Charon"
 
 
 def pick_voice():
-    """One voice per video, chosen at random from PUTER_VOICES (default: Charon = man, Kore = woman).
-    Set PUTER_VOICE to force a single voice. The same voice is kept for every part of the video."""
-    forced = (os.environ.get("PUTER_VOICE") or "").strip()
-    if forced:
-        _VOICE["name"] = forced
-    else:
-        pool = [v.strip() for v in (os.environ.get("PUTER_VOICES") or "Charon,Kore").split(",") if v.strip()]
-        _VOICE["name"] = random.choice(pool or ["Charon"])
+    """One voice per video, chosen at random from VOICES (default: Charon = man, Kore = woman; the free edge-tts
+    voice follows the same man/woman choice). The same voice is kept for every part of the video."""
+    pool = [v.strip() for v in (os.environ.get("VOICES") or "Charon,Kore").split(",") if v.strip()]
+    _VOICE["name"] = random.choice(pool or ["Charon"])
     log(f"voice for this video: {_VOICE['name']}")
     return _VOICE["name"]
 
 
 def tts_engine():
-    """FREE voice only: edge-tts (Microsoft Edge neural Tamil voices, no key, no payment). Puter and Gemini use paid or
-    limited accounts, so they stay OFF even if their keys exist. To switch one on later, set the repo variable
-    TTS_ENGINE=puter (or gemini); edge-tts always stays as the last fallback."""
+    """FREE voice only: edge-tts (Microsoft Edge neural Tamil voices, no key, no payment). Gemini TTS stays OFF unless
+    TTS_ENGINE=gemini (workflow input `voice` or repo variable); edge-tts always stays as the fallback."""
     e = (os.environ.get("TTS_ENGINE") or "").strip().lower()
-    return e if e in ("puter", "gemini") else "edge"
+    return "gemini" if e == "gemini" else "edge"
 
 
 def _engine_chain(engine):
@@ -592,43 +587,6 @@ def _engine_chain(engine):
     if "edge" not in chain:
         chain.append("edge")
     return chain
-
-
-def make_voice_puter(text, path):
-    """Voice from Puter.js (Gemini TTS through a Puter account). Runs puter_tts.mjs with Node, so Node 24 and
-    `npm i @heyputer/puter.js` must be set up (daily.yml does it). Raises on failure.
-    Settings: PUTER_AUTH_TOKEN (secret), PUTER_VOICES (default Charon,Kore: picks one at random per video), PUTER_VOICE (forces one), PUTER_PROVIDER (default gemini)."""
-    here = Path(__file__).resolve().parent
-    script = here / "puter_tts.mjs"
-    if not script.exists():
-        raise RuntimeError("puter_tts.mjs is missing from the repo")
-    if not os.environ.get("PUTER_AUTH_TOKEN"):
-        raise RuntimeError("PUTER_AUTH_TOKEN is not set")
-    src = Path(str(path) + ".txt")
-    raw = Path(str(path) + ".raw")
-    src.write_text(tts_text(text), encoding="utf-8")
-    last = "no answer"
-    for n in range(2):
-        try:
-            p = subprocess.run(["node", str(script), str(src), str(raw)], cwd=str(here), capture_output=True,
-                               text=True, timeout=150, env={**os.environ, "PUTER_VOICE": _cur_voice()})
-        except subprocess.TimeoutExpired:
-            last = "Puter timed out"
-            continue
-        if p.returncode == 0 and raw.exists() and raw.stat().st_size > 1000:
-            break
-        last = (p.stderr or p.stdout or "no output")[-300:]
-        time.sleep(4)
-    else:
-        src.unlink(missing_ok=True)
-        raise RuntimeError("Puter TTS failed: " + last)
-    src.unlink(missing_ok=True)
-    c = subprocess.run(["ffmpeg", "-y", "-i", str(raw), "-c:a", "libmp3lame", "-b:a", "96k", str(path)],
-                       capture_output=True, text=True)
-    raw.unlink(missing_ok=True)
-    if c.returncode:
-        raise RuntimeError("ffmpeg could not read the Puter audio: " + c.stderr[-300:])
-    return []
 
 
 def _audio_to_mp3(raw, path, rate=24000):
@@ -727,8 +685,6 @@ def speak(text, path, engine):
     """One voice file with exactly the chosen engine (raises on failure)."""
     if engine == "gemini":
         return make_voice_gemini(text, path)
-    if engine == "puter":
-        return make_voice_puter(text, path)
     return make_voice_edge(text, path)
 
 
@@ -793,7 +749,7 @@ def speak_checked(text, path, engine):
 
 
 def make_voice(text, path):
-    """One voiceover file: the chosen engine, then the next one in the chain (Gemini -> Puter -> edge-tts)."""
+    """One voiceover file: the chosen engine, then the next one in the chain (Gemini -> edge-tts)."""
     chain = _engine_chain(tts_engine())
     pick_voice()   # a new random voice for every video
     for i, engine in enumerate(chain):
@@ -808,7 +764,7 @@ def make_voice(text, path):
 def make_voice_parts(parts, path, workdir, gap=0.3):
     """Speaks each part separately and joins them, so the screen can change exactly when a part starts.
     Returns {part name: start second}. If an engine fails, ALL parts are redone with the next engine in the chain
-    (Gemini -> Puter -> edge-tts), so one video always has one voice."""
+    (Gemini -> edge-tts), so one video always has one voice."""
     chain = _engine_chain(tts_engine())
     pick_voice()   # a new random voice for every video
     for i, engine in enumerate(chain):
@@ -824,7 +780,7 @@ def _voice_parts(parts, path, workdir, gap, engine):
     files, starts, t = [], {}, 0.0
     for i, (name, text) in enumerate(parts):
         p = workdir / f"part_{name}.mp3"
-        if i and engine in ("gemini", "puter"):
+        if i and engine == "gemini":
             time.sleep(2)   # be gentle with the per-minute limit
         speak_checked(text, p, engine)
         starts[name] = t
