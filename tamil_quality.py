@@ -423,6 +423,87 @@ def digits_to_tamil(text):
     return re.sub(r"[ \t]{2,}", " ", t).strip()
 
 
+# ----------------------------------------------------------------------------- voice script (AI prepares the text for the voice)
+def speech_similarity(intended, heard):
+    """0..1 : how much of the intended Tamil sound text a speech recogniser heard back. Only Tamil letters count
+    (spaces, punctuation, digits written as words are all normalised), so small spelling noise is forgiven."""
+    import difflib
+
+    def norm(t):
+        t = digits_to_tamil(str(t))
+        return "".join(_TAMIL_ANY.findall(t))
+    a, b = norm(intended), norm(heard)
+    if not a or not b:
+        return 0.0
+    return difflib.SequenceMatcher(None, a, b, autojunk=False).ratio()
+
+
+_TAMIL_ANY = re.compile("[\u0B80-\u0BFF]")
+
+
+def voice_prep(s, kind, llm, log=print):
+    """A separate AI pass that rewrites the SPOKEN parts so a text-to-speech voice reads them correctly:
+    English words and abbreviations in Tamil letters as people say them, proper nouns in the usual Tamil spelling,
+    long sentences split, commas where a speaker pauses, rare or very long words replaced by everyday ones.
+    The captions and the cards keep the original text; only the voice uses this version (s['voice_parts'] or
+    s['voice_text']). A rewrite is accepted only if numbers are identical, the text is still the same message
+    (letter similarity) and no foreign letters appear. Otherwise the original text is spoken. Never stops the video."""
+    if kind in ("cards", "manim"):
+        items = {name: text for name, text in (s.get("parts") or [])}
+    else:
+        items = {"voiceover": s.get("voiceover", "")}
+    items = {k: v for k, v in items.items() if isinstance(v, str) and v.strip()}
+    if not items:
+        return s
+    import difflib
+    prompt = f"""You prepare Tamil text for a Tamil text-to-speech voice (an AI voice that reads the text exactly as written). The goal: the voice must pronounce EVERY word correctly and sound like a friendly teacher talking.
+
+Rewrite each text below for the voice:
+1. Do NOT change the meaning, the facts, the names or the order. Do not add or remove information. Keep digits as digits, exactly the same numbers (a program reads digits aloud).
+2. English or other-language words and abbreviations: write them in Tamil letters the way Tamil speakers say them in conversation (for example ஸ்டார்ட்அப், ஆன்லைன், ஐபிஎல், எஸ்டிஜி). Use no English letters.
+3. People, places, schemes and organisations: use the usual Tamil newspaper spelling. For sounds that Tamil letters do not have, use Grantha letters where it helps the voice (ஜ, ஷ, ஸ, ஹ, ஃப, க்ஷ), for example ஹைதராபாத், ஃபைனல்.
+4. Split any sentence longer than about 12 words into shorter sentences. Put a comma where a speaker would pause. End every sentence with a full stop or a question mark.
+5. A very long compound word or a rare literary word that a voice may misread: replace it with a common everyday word of the same meaning.
+6. Keep the casual spoken tone (பேச்சுத் தமிழ்). Do not make it formal and do not add greetings.
+Use only Tamil letters, digits, commas, full stops and question marks.
+
+Return JSON: {{"voice": {{"<same key>": "<text for the voice>", ...}}}} with exactly the same keys.
+
+TEXTS:
+{json.dumps(items, ensure_ascii=False, indent=1)}"""
+    try:
+        d = llm(prompt, model=_model(), temperature=0.2, effort="medium")
+    except (Exception, SystemExit) as e:
+        log(f"voice script step skipped: {e}")
+        return s
+    got = d.get("voice") if isinstance(d, dict) else None
+    if not isinstance(got, dict):
+        log("voice script step gave no usable answer; the original text is spoken")
+        return s
+    final, changed = {}, 0
+    for k, old in items.items():
+        new = got.get(k)
+        ok = isinstance(new, str) and new.strip()
+        if ok:
+            new = re.sub(r"\s+", " ", sanitize(new)).strip()
+            ok = (new != "" and _nums(new) == _nums(old)
+                  and not _FOREIGN.search(new) and tamil_ratio(new) >= 0.9
+                  and 0.75 * len(old) <= len(new) <= 1.6 * len(old) + 10
+                  and difflib.SequenceMatcher(None, "".join(_TAMIL_ANY.findall(old)),
+                                              "".join(_TAMIL_ANY.findall(new)), autojunk=False).ratio() >= 0.6)
+        if ok:
+            final[k] = new
+            changed += new != old
+        else:
+            final[k] = old
+    log(f"voice script: {changed} of {len(items)} text(s) rewritten for the voice")
+    if kind in ("cards", "manim"):
+        s["voice_parts"] = [(name, final.get(name, text)) for name, text in s["parts"]]
+    else:
+        s["voice_text"] = final["voiceover"]
+    return s
+
+
 # ----------------------------------------------------------------------------- voice: unknown acronyms
 _LETTER_NAMES = {"A": "ஏ", "B": "பி", "C": "சி", "D": "டி", "E": "இ", "F": "எஃப்", "G": "ஜி", "H": "ஏச்", "I": "ஐ",
                  "J": "ஜே", "K": "கே", "L": "எல்", "M": "எம்", "N": "என்", "O": "ஓ", "P": "பி", "Q": "கியூ",
@@ -461,6 +542,15 @@ def _selftest():
     assert spell_acronyms("SDG இலக்கு, NCERT புத்தகம், train") == "எஸ்டிஜி இலக்கு, என்சிஇஆர்டி புத்தகம், train"
     g = translation_rules("Chennai and Trichy and RBI repo rate")
     assert "சென்னை" in g and "திருச்சிராப்பள்ளி" in g and "ரிசர்வ் வங்கி" in g and "ரெப்போ" in g
+    assert speech_similarity("இன்று 5 செய்திகள்", "இன்று ஐந்து செய்திகள்.") > 0.95
+    assert speech_similarity("இன்று ஐந்து செய்திகள்", "zzz") == 0.0
+    assert 0.3 < speech_similarity("சென்னை மெட்ரோ இரண்டாம் கட்டம்", "மெட்ரோ கட்டம் வந்தது") < 0.9
+    sp = {"parts": [("hook", "நண்பர்களே இது ஸ்டார்ட்அப் பற்றிய 5 செய்திகள்"), ("f1", "ஆர்பிஐ 5.5 சதவீதம் வட்டி வச்சிருக்கு")],
+          "voiceover": "x"}
+    good = {"voice": {"hook": "நண்பர்களே, இது ஸ்டார்ட்அப் பற்றிய 5 செய்திகள்.", "f1": "ஆர்பிஐ, 6 சதவீதம் வட்டி வச்சிருக்கு."}}
+    out = voice_prep(sp, "cards", lambda *a, **k: good, lambda *a: None)
+    assert dict(out["voice_parts"])["hook"].endswith("செய்திகள்.")
+    assert dict(out["voice_parts"])["f1"] == "ஆர்பிஐ 5.5 சதவீதம் வட்டி வச்சிருக்கு"   # numbers changed -> refused, original kept
     print("tamil_quality self test: all OK")
 
 

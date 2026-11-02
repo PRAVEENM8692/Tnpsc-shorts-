@@ -704,13 +704,73 @@ def speak(text, path, engine):
     return make_voice_edge(text, path)
 
 
+_HEAR = {"off": False}
+
+
+def hear_score(text, path):
+    """Listen-back check: the finished audio is transcribed by Whisper (Groq, same LLM_API_KEY) and compared with the text
+    it was supposed to say. Returns 0..1, or None when the check is unavailable. It never raises.
+    Switches: VOICE_VERIFY=0 turns it off, WHISPER_MODEL (default whisper-large-v3)."""
+    if _HEAR["off"] or (os.environ.get("VOICE_VERIFY") or "1").strip() == "0":
+        return None
+    key = os.environ.get("LLM_API_KEY")
+    base = (os.environ.get("LLM_BASE_URL") or "https://api.groq.com/openai/v1").rstrip("/")
+    if not key:
+        return None
+    try:
+        with open(path, "rb") as f:
+            r = requests.post(base + "/audio/transcriptions", headers={"Authorization": f"Bearer {key}"},
+                              data={"model": os.environ.get("WHISPER_MODEL") or "whisper-large-v3", "language": "ta",
+                                    "response_format": "json", "temperature": "0"},
+                              files={"file": (Path(path).name, f, "audio/mpeg")}, timeout=120)
+        if not r.ok:
+            log(f"voice check unavailable ({r.status_code}): {r.text[:160]}")
+            _HEAR["off"] = True   # do not waste time on every part when the service says no
+            return None
+        score = tq.speech_similarity(tts_text(text), r.json().get("text") or "")
+        log(f"voice check: heard back {score:.2f} of the text")
+        return score
+    except Exception as e:
+        log(f"voice check skipped: {e}")
+        return None
+
+
+def speak_checked(text, path, engine):
+    """speak() plus the listen-back check: if the audio clearly does not match the text (score below VOICE_MIN,
+    default 0.45), the same text is spoken once more and the better take is kept. edge-tts is deterministic, so no retry."""
+    res = speak(text, path, engine)
+    if engine == "edge":
+        return res
+    score = hear_score(text, path)
+    try:
+        need = float(os.environ.get("VOICE_MIN") or 0.45)
+    except ValueError:
+        need = 0.45
+    if score is None or score >= need:
+        return res
+    log(f"voice check: low score {score:.2f} (below {need}); speaking this text once more")
+    alt = Path(str(path) + ".b.mp3")
+    try:
+        speak(text, alt, engine)
+        score2 = hear_score(text, alt)
+        if score2 is not None and score2 > score:
+            alt.replace(path)
+            log(f"voice check: the second take is better ({score2:.2f}), kept")
+        else:
+            alt.unlink(missing_ok=True)
+    except Exception as e:
+        log(f"second take failed, keeping the first: {e}")
+        alt.unlink(missing_ok=True)
+    return res
+
+
 def make_voice(text, path):
     """One voiceover file: the chosen engine, then the next one in the chain (Gemini -> Puter -> edge-tts)."""
     chain = _engine_chain(tts_engine())
     pick_voice()   # a new random voice for every video
     for i, engine in enumerate(chain):
         try:
-            return speak(text, path, engine)
+            return speak_checked(text, path, engine)
         except Exception as e:
             if i == len(chain) - 1:
                 raise
@@ -738,7 +798,7 @@ def _voice_parts(parts, path, workdir, gap, engine):
         p = workdir / f"part_{name}.mp3"
         if i and engine in ("gemini", "puter"):
             time.sleep(2)   # be gentle with the per-minute limit
-        speak(text, p, engine)
+        speak_checked(text, p, engine)
         starts[name] = t
         t += duration(p) + gap
         files.append(p)
@@ -1102,14 +1162,16 @@ def make_one(slot, today, stamp, upload_it, hist):
     tq_kind = ("cards" if cards_mode else "script") if kind == "news" else ("manim" if manim_mode else "apt")
     log(f"[slot {slot}] checking the Tamil")
     s = tq.finalize(s, tq_kind, notes if kind == "news" else "", llm_json, log)
+    log(f"[slot {slot}] preparing the text for the voice")
+    s = tq.voice_prep(s, tq_kind, llm_json, log)   # AI rewrite for pronunciation; captions keep the original text
     (OUT / f"script-{tag}.json").write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
 
     voice = work / "voice.mp3"
     starts = None
     if manim_mode or cards_mode:
-        starts = make_voice_parts(s["parts"], voice, work)   # each part spoken separately -> exact timing
+        starts = make_voice_parts(s.get("voice_parts") or s["parts"], voice, work)   # each part spoken separately -> exact timing
     else:
-        make_voice(s["voiceover"], voice)
+        make_voice(s.get("voice_text") or s["voiceover"], voice)
     vdur = duration(voice)
 
     base = None

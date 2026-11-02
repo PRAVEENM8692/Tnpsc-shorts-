@@ -91,6 +91,9 @@ jobs:
           MANIM_SLOTS: ${{ vars.MANIM_SLOTS }}
           CARDS_SLOTS: ${{ vars.CARDS_SLOTS }}
           PUTER_VOICES: ${{ vars.PUTER_VOICES }}
+          VOICE_VERIFY: ${{ vars.VOICE_VERIFY }}
+          VOICE_MIN: ${{ vars.VOICE_MIN }}
+          WHISPER_MODEL: ${{ vars.WHISPER_MODEL }}
       - name: Remember what was covered (avoids repeats)
         if: always() && steps.plan.outputs.slot != '' && (github.event_name == 'schedule' || github.event.inputs.upload == 'true')
         run: |
