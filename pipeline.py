@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -874,6 +875,16 @@ def fetch_image(prompt, path, seed):
     fallback_image(path, ["0x14213d", "0x1b4332", "0x3d2c5a"][seed % 3])
 
 
+def fetch_images(scenes, work, stamp, slot):
+    """The (up to 5) background pictures, two at a time: faster than one by one, and still gentle with the free service."""
+    scenes = list(scenes or FALLBACK_SCENES)[:5]
+    paths = [work / f"img{i}.png" for i in range(len(scenes))]
+    seeds = [(int(stamp) % 1000) * 10 + slot * 7 + i for i in range(len(scenes))]
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        list(pool.map(fetch_image, scenes, paths, seeds))
+    return paths
+
+
 # ---------------------------------------------------------------- 5. video
 def make_clip(img, seconds, out, zoom_in):
     frames = int(seconds * 30) + 1
@@ -1186,10 +1197,7 @@ def make_one(slot, today, stamp, upload_it, hist):
     if cards_mode:
         try:
             log(f"[slot {slot}] fetching background pictures and drawing the news cards")
-            for i, scene in enumerate(list(s.get("scenes") or FALLBACK_SCENES)[:5]):
-                ip = work / f"img{i}.png"
-                fetch_image(scene, ip, seed=(int(stamp) % 1000) * 10 + slot * 7 + i)
-                imgs.append(ip)
+            imgs = fetch_images(s.get("scenes"), work, stamp, slot)
             sys.path.insert(0, str(Path(__file__).resolve().parent))
             import cards_news
             base = cards_news.render_cards_video(s, starts, vdur + 1.0, work, today, imgs)
@@ -1197,10 +1205,7 @@ def make_one(slot, today, stamp, upload_it, hist):
             log(f"[slot {slot}] news cards failed, using the normal picture video instead: {e}")
             base = None
     if base is None and not imgs:
-        for i, scene in enumerate(list(s.get("scenes") or FALLBACK_SCENES)[:5]):
-            p = work / f"img{i}.png"
-            fetch_image(scene, p, seed=(int(stamp) % 1000) * 10 + slot * 7 + i)
-            imgs.append(p)
+        imgs = fetch_images(s.get("scenes"), work, stamp, slot)
 
     final = OUT / f"tnpsc-{tag}.mp4"
     subs = work / "captions.ass"

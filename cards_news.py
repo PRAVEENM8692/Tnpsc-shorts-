@@ -12,6 +12,7 @@ Needs:  pip install playwright  (it uses the Chrome that GitHub runners already 
 """
 import html
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 W, H = 1080, 1920
@@ -208,28 +209,31 @@ def render_cards_video(s, starts, total, workdir, today, bg_images):
     begin = [max(starts[n] - 0.1, 0.0) for n in names]
     begin[0] = 0.0
     ends = begin[1:] + [total]
-    clips = []
-    for i, ((bg, fg, dim, lit, bounds), b, e) in enumerate(zip(pngs, begin, ends)):
+    def make_clip_i(args):
+        i, (bg, fg, dim, lit, bounds), b, e = args
         d = max(e - b, 0.8)
         frames = int(d * 30) + 2
         z = "min(zoom+0.0005,1.12)" if i % 2 == 0 else "if(eq(on,1),1.12,max(zoom-0.0005,1.0))"
         bgclip = workdir / f"cbg{i}.mp4"
-        _run(["ffmpeg", "-y", "-i", str(bg), "-vf",
+        _run(["ffmpeg", "-y", "-threads", "2", "-i", str(bg), "-vf",
               f"scale=1296:2304,zoompan=z='{z}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={frames}:s={W}x{H}:fps=30,"
               f"format=yuv420p", "-t", f"{d:.2f}", "-r", "30", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", str(bgclip)])
         clip = workdir / f"cclip{i}.mp4"
         try:
             _lit_clip(bgclip, dim, lit, bounds, d, clip)
-            clips.append(clip)
-            continue
-        except RuntimeError as e:   # never lose the video because of the light effect: fall back to the plain card
-            print(f"light effect failed for card {i}, using the plain card: {str(e)[-200:]}", flush=True)
+            return clip
+        except RuntimeError as err:   # never lose the video because of the light effect: fall back to the plain card
+            print(f"light effect failed for card {i}, using the plain card: {str(err)[-200:]}", flush=True)
         _run(["ffmpeg", "-y", "-i", str(bgclip), "-loop", "1", "-framerate", "30", "-t", f"{d:.2f}", "-i", str(fg),
               "-filter_complex",
               "[1:v]format=rgba,fade=t=in:st=0:d=0.35:alpha=1[f];"
               "[0:v][f]overlay=x=0:y='if(lt(t,0.35),70*(1-t/0.35),0)':format=auto:shortest=1,format=yuv420p[v]",
               "-map", "[v]", "-t", f"{d:.2f}", "-r", "30", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", str(clip)])
-        clips.append(clip)
+        return clip
+
+    # the 8 cards are independent: build them three at a time (the runner has 4 CPU cores)
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        clips = list(pool.map(make_clip_i, [(i, p, b, e) for i, (p, b, e) in enumerate(zip(pngs, begin, ends))]))
     lst = workdir / "cards_list.txt"
     lst.write_text("".join(f"file '{c.resolve()}'\n" for c in clips))
     out = workdir / "cards.mp4"
