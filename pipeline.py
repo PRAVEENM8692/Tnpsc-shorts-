@@ -7,6 +7,7 @@ import asyncio
 import datetime as dt
 import json
 import random
+import re
 import os
 import subprocess
 import sys
@@ -320,6 +321,26 @@ def safe_eval(expr):
     return ev(ast.parse(str(expr), mode="eval"))
 
 
+def _gemini_text_model(key):
+    """The newest Gemini 'flash' text model this key can use (Google retires old model names, so the name is looked up
+    instead of being hard-coded). Returns "" if the list cannot be read."""
+    try:
+        r = requests.get("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",
+                         headers={"x-goog-api-key": key}, timeout=30)
+        best = None
+        for m in r.json().get("models", []):
+            name = m.get("name", "").split("/")[-1]
+            if ("flash" not in name or "generateContent" not in m.get("supportedGenerationMethods", [])
+                    or any(w in name for w in ("tts", "image", "live", "audio", "lite", "preview", "exp", "latest", "thinking"))):
+                continue
+            nums = tuple(int(x) for x in re.findall(r"\d+", name)[:2])
+            if best is None or nums > best[0]:
+                best = (nums, name)
+        return best[1] if best else ""
+    except Exception:
+        return ""
+
+
 def apt_brief(topic):
     """Optional research step for the aptitude videos: Gemini (free tier) searches the web with Google Search and
     returns a short reference brief (typical TNPSC-style question, the standard shortcut trick, worked example) that
@@ -328,7 +349,7 @@ def apt_brief(topic):
     key = (os.environ.get("GEMINI_API_KEY") or "").strip()
     if not key or (os.environ.get("APT_RESEARCH") or "1").strip() == "0":
         return ""
-    model = (os.environ.get("GEMINI_TEXT_MODEL") or "gemini-2.5-flash").strip()
+    model = (os.environ.get("GEMINI_TEXT_MODEL") or "").strip() or _gemini_text_model(key) or "gemini-2.5-flash"
     q = (f"Search the web for TNPSC / Tamil Nadu competitive exam aptitude and mental ability questions on the topic "
          f"'{topic}'. Give a short reference brief in English (under 220 words): (1) one realistic exam-style question "
          f"with small numbers, (2) the standard SHORTCUT trick that saves time versus the long method, in 3 steps, "
@@ -338,8 +359,9 @@ def apt_brief(topic):
                           headers={"x-goog-api-key": key, "Content-Type": "application/json"},
                           json={"contents": [{"parts": [{"text": q}]}], "tools": [{"google_search": {}}]}, timeout=120)
         if r.status_code != 200:
-            log(f"aptitude research skipped (Gemini HTTP {r.status_code}): {r.text[:160]}")
+            log(f"aptitude research skipped (Gemini {model} HTTP {r.status_code}): {' '.join(r.text.split())[:300]}")
             return ""
+        log(f"aptitude research with Gemini model {model}")
         parts = r.json()["candidates"][0]["content"]["parts"]
         text = " ".join(p.get("text", "") for p in parts).strip()
     except Exception as e:
