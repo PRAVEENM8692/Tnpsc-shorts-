@@ -31,13 +31,20 @@ config.frame_width = 9
 config.frame_height = 16
 
 FONT = os.environ.get("APT_FONT", "Noto Sans Tamil")
-BG = "#0B1B3A"
-PANEL = "#12306B"
-GOLD = "#FFC93C"
-WHITE = "#FFFFFF"
-GREEN = "#3DDC84"
-CARD = "#1B3F8F"
-CARD2 = "#16357A"
+# colours: pipeline.py picks a random theme for every video (APT_THEME = JSON); run alone, the navy-gold one is used
+try:
+    _TH = json.loads(os.environ.get("APT_THEME") or "{}")
+except ValueError:
+    _TH = {}
+BG = _TH.get("bg", "#0B1B3A")
+PANEL = _TH.get("panel", "#12306B")
+GOLD = _TH.get("gold", "#FFC93C")
+WHITE = _TH.get("white", "#FFFFFF")
+GREEN = _TH.get("green", "#3DDC84")
+CARD = _TH.get("card", "#1B3F8F")
+CARD2 = _TH.get("card2", "#16357A")
+RAD = float(_TH.get("rad", 1.0))   # how round the corners are (1 = normal)
+COUNTDOWN_MIN = 3.4                # show the 3-2-1 countdown only if the question part lasts at least this many seconds
 
 CARD_W = 8.4   # width of the boxes
 MAX_W = 8.0    # widest text allowed
@@ -85,7 +92,7 @@ class AptitudeShort(Scene):
         # ---------- header (only when this file is run on its own) ----------
         header = None
         if header_on:
-            panel = RoundedRectangle(corner_radius=0.3, width=8.4, height=2.6, fill_color=PANEL, fill_opacity=1,
+            panel = RoundedRectangle(corner_radius=0.3 * RAD, width=8.4, height=2.6, fill_color=PANEL, fill_opacity=1,
                                      stroke_color=GOLD, stroke_width=3)
             h1 = Text("TNPSC", font_size=54, color=GOLD, weight=BOLD)
             h2 = Text("APTITUDE TRICKS", font_size=36, color=WHITE, weight=BOLD)
@@ -111,10 +118,32 @@ class AptitudeShort(Scene):
         q_label = Text("கேள்வி", font=FONT, font_size=24, color=GOLD, weight=BOLD)
         q_text = T(data["question"], size=40, color=WHITE, max_chars=24, max_w=CARD_W - 0.6)
         q_inner = VGroup(q_label, q_text).arrange(DOWN, buff=0.15)
-        q_box = RoundedRectangle(corner_radius=0.25, width=CARD_W, height=q_inner.height + 0.5,
+        q_box = RoundedRectangle(corner_radius=0.25 * RAD, width=CARD_W, height=q_inner.height + 0.5,
                                  fill_color=CARD, fill_opacity=1, stroke_width=0)
         q_inner.move_to(q_box)
         q_all = VGroup(q_box, q_inner)
+
+        # quiz layout: four answer chips under the question; the right one lights up green when the answer is announced
+        options = [str(o) for o in (data.get("options") or [])][:4]
+        correct = int(data.get("correct", 0))
+        quiz = len(options) == 4 and 0 <= correct < 4
+        chips = []
+        if quiz:
+            cw = (CARD_W - 0.25) / 2
+            for k, o in enumerate(options):
+                box = RoundedRectangle(corner_radius=0.2 * RAD, width=cw, height=0.95, fill_color=CARD2, fill_opacity=1,
+                                       stroke_color=CARD, stroke_width=2)
+                dot = Circle(radius=0.27, fill_color=GOLD, fill_opacity=1, stroke_width=0)
+                let = Text("ABCD"[k], font_size=28, color=BG, weight=BOLD).move_to(dot)
+                badge = VGroup(dot, let).move_to(box.get_left() + RIGHT * 0.5)
+                val = Text(o, font=FONT, font_size=36, color=WHITE, weight=BOLD)
+                if val.width > cw - 1.2:
+                    val.scale_to_fit_width(cw - 1.2)
+                val.next_to(badge, RIGHT, buff=0.25)
+                chips.append(VGroup(box, badge, val))
+            grid = VGroup(*chips).arrange_in_grid(rows=2, cols=2, buff=(0.25, 0.2))
+        else:
+            grid = None
 
         # step cards: [box, badge, text]
         rows = []
@@ -123,7 +152,7 @@ class AptitudeShort(Scene):
             num = Text(str(i), font_size=30, color=BG, weight=BOLD).move_to(dot)
             badge = VGroup(dot, num)
             txt = T(s, size=34, color=WHITE, max_chars=26, max_w=CARD_W - 1.5)
-            box = RoundedRectangle(corner_radius=0.2, width=CARD_W, height=max(txt.height + 0.3, 0.85),
+            box = RoundedRectangle(corner_radius=0.2 * RAD, width=CARD_W, height=max(txt.height + 0.3, 0.85),
                                    fill_color=CARD2, fill_opacity=1, stroke_color=CARD, stroke_width=2)
             badge.move_to(box.get_left() + RIGHT * 0.55)
             txt.next_to(badge, RIGHT, buff=0.3)
@@ -135,13 +164,14 @@ class AptitudeShort(Scene):
         ans_inner = VGroup(ans_label, ans_val).arrange(RIGHT, buff=0.45)
         if ans_inner.width > CARD_W - 0.8:
             ans_inner.scale_to_fit_width(CARD_W - 0.8)
-        ans_box = RoundedRectangle(corner_radius=0.3, width=CARD_W, height=ans_inner.height + 0.5,
+        ans_box = RoundedRectangle(corner_radius=0.3 * RAD, width=CARD_W, height=ans_inner.height + 0.5,
                                    fill_color=GREEN, fill_opacity=1, stroke_color=WHITE, stroke_width=4)
         ans_inner.move_to(ans_box)
         ans_group = VGroup(ans_box, ans_inner)
 
         # stack them (top aligned in the content area; shrink a little if it would be too tall)
-        layout = VGroup(q_all, *rows, ans_group).arrange(DOWN, buff=0.22)
+        parts = [q_all] + ([grid] if quiz else []) + rows + ([] if quiz else [ans_group])
+        layout = VGroup(*parts).arrange(DOWN, buff=0.22)
         if layout.height > region_h:
             layout.scale_to_fit_height(region_h)
         layout.move_to(np.array([0.0, top - layout.height / 2, 0.0]))
@@ -152,7 +182,7 @@ class AptitudeShort(Scene):
             p_label = Text("உங்க முறை!", font=FONT, font_size=36, color=GOLD, weight=BOLD)
             p_text = T(practice, size=44, color=WHITE, max_chars=22, max_w=CARD_W - 0.8)
             p_inner = VGroup(p_label, p_text).arrange(DOWN, buff=0.3)
-            p_box = RoundedRectangle(corner_radius=0.3, width=CARD_W, height=p_inner.height + 0.9,
+            p_box = RoundedRectangle(corner_radius=0.3 * RAD, width=CARD_W, height=p_inner.height + 0.9,
                                      fill_color=CARD, fill_opacity=1, stroke_color=GOLD, stroke_width=4)
             p_inner.move_to(p_box)
             practice_group = VGroup(p_box, p_inner)
@@ -184,6 +214,23 @@ class AptitudeShort(Scene):
             self.play(FadeOut(hook), FadeIn(q_all, shift=UP * 0.3), run_time=0.6)
         else:
             self.play(FadeIn(q_all, shift=UP * 0.3), run_time=0.6)
+        if quiz:
+            self.play(LaggedStart(*[FadeIn(c, shift=UP * 0.2) for c in chips], lag_ratio=0.25), run_time=0.9)
+
+        # 3-2-1 countdown: gives the viewer a moment to think before the first step appears
+        if cs[0] - cq >= COUNTDOWN_MIN:
+            at(cs[0] - 3.0)
+            ring = Circle(radius=0.3, color=GOLD, stroke_width=6, fill_color=BG, fill_opacity=1)
+            ring.move_to(q_box.get_corner(UR) + LEFT * 0.55)
+            num = Text("3", font_size=34, color=GOLD, weight=BOLD).move_to(ring)
+            clock = VGroup(ring, num)
+            self.play(FadeIn(clock, scale=0.6), run_time=0.25)
+            for k in (2, 1):
+                at(cs[0] - k)
+                new = Text(str(k), font_size=34, color=GOLD, weight=BOLD).move_to(ring)
+                self.play(Transform(num, new), Indicate(ring, color=GOLD, scale_factor=1.18), run_time=0.3)
+            at(cs[0] - 0.15)
+            self.play(FadeOut(clock), run_time=0.15)
 
         for row, t in zip(rows, cs):
             at(t)
@@ -191,12 +238,32 @@ class AptitudeShort(Scene):
             self.play(Indicate(row[2], color=GOLD, scale_factor=1.06), run_time=0.4)
 
         at(ca)
-        self.play(GrowFromCenter(ans_group), run_time=0.6)
-        self.play(Flash(ans_group, color=GREEN, flash_radius=2.4, line_length=0.35), run_time=0.5)
+        if quiz:
+            win = chips[correct]
+            others = [c for k, c in enumerate(chips) if k != correct]
+            self.play(win[0].animate.set_fill(GREEN, 1).set_stroke(WHITE, 4), win[2].animate.set_color(BG),
+                      *[c.animate.set_opacity(0.3) for c in others], run_time=0.5)
+            focus = win
+            self.play(Indicate(win, color=GREEN, scale_factor=1.08), run_time=0.4)
+        else:
+            self.play(GrowFromCenter(ans_group), run_time=0.6)
+            focus = ans_group
+        self.play(Flash(focus, color=GREEN, flash_radius=2.4, line_length=0.35), run_time=0.5)
+        # confetti
+        rng = np.random.default_rng(int(total * 100) % 9999)
+        colors = [GOLD, GREEN, WHITE, "#FF6B9D", "#5CE1FF"]
+        bits = VGroup(*[Square(side_length=float(rng.uniform(0.1, 0.2)), fill_opacity=1, stroke_width=0,
+                               fill_color=colors[k % len(colors)]).rotate(float(rng.uniform(0, 3))).move_to(focus.get_center())
+                        for k in range(30)])
+        self.add(bits)
+        self.play(*[b.animate.shift(np.array([float(rng.uniform(-4, 4)), float(rng.uniform(-1.5, 3.2)), 0])).set_opacity(0)
+                    for b in bits], run_time=1.2, rate_func=rush_from)
+        self.remove(bits)
 
         if practice_group is not None and cp is not None:
             at(cp)
-            self.play(FadeOut(q_all, *rows, ans_group), FadeIn(practice_group, shift=UP * 0.3), run_time=0.7)
+            gone = [q_all, *rows] + ([grid] if quiz else [ans_group])
+            self.play(FadeOut(*gone), FadeIn(practice_group, shift=UP * 0.3), run_time=0.7)
 
         at(total)
         self.wait(0.3)

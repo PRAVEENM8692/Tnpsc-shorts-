@@ -23,7 +23,6 @@ import tamil_quality as tq
 
 IST = ZoneInfo("Asia/Kolkata")
 OUT = Path("out")
-BGM = Path("assets/bgm.mp3")
 W, H = 1080, 1920
 
 
@@ -578,7 +577,19 @@ GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
 FEMALE_VOICES = {"kore", "zephyr", "leda", "aoede", "sulafat", "callirrhoe", "autonoe", "despina", "erinome",
                  "laomedeia", "achernar", "gacrux", "pulcherrima", "vindemiatrix"}
-_VOICE = {"name": None, "kind": "news"}
+_VOICE = {"name": None, "kind": "news", "part": None}
+
+# how Gemini should speak each part of a video (the style is a hint, the words are read exactly as written)
+PART_STYLE = {
+    "hook": "energetic and curious, a punchy hook that makes people stop scrolling",
+    "outro": "warm and inviting, asking the viewers a question and encouraging them to follow",
+    "question": "clear and curious, slightly slower, like reading out a puzzle",
+    "step1": "clear, patient and confident, like explaining a trick step by step",
+    "step2": "clear, patient and confident, like explaining a trick step by step",
+    "step3": "clear, patient and confident, like explaining a trick step by step",
+    "answer": "triumphant and happy, announcing the answer",
+    "tip": "friendly and encouraging, a handy memory tip",
+}
 
 
 def _is_female(name):
@@ -649,8 +660,10 @@ def make_voice_gemini(text, path):
         raise RuntimeError("GEMINI_API_KEY secret is not set in GitHub (Settings > Secrets and variables > Actions)")
     model = os.environ.get("GEMINI_TTS_MODEL") or "gemini-3.8-flash-tts"
     voice = (os.environ.get("GEMINI_VOICE") or "").strip() or _cur_voice()   # Charon (man) or Kore (woman), random per video
-    style = os.environ.get("GEMINI_STYLE") or ("friendly, casual and clear, like a young teacher chatting with "
-                                                "students, not too fast")
+    base_style = os.environ.get("GEMINI_STYLE") or ("friendly, casual and clear, like a young teacher chatting with "
+                                                      "students, not too fast")
+    part = PART_STYLE.get(_VOICE.get("part") or "")
+    style = f"{base_style}; for this part: {part}" if part else base_style
     spoken = tts_text(text)
     headers = {"x-goog-api-key": key, "Content-Type": "application/json"}
 
@@ -789,6 +802,7 @@ def make_voice(text, path):
     """One voiceover file: the chosen engine, then the next one in the chain (Gemini -> edge-tts)."""
     chain = _engine_chain(tts_engine())
     pick_voice()   # a new random voice for every video
+    _VOICE["part"] = None
     for i, engine in enumerate(chain):
         try:
             return speak_checked(text, path, engine)
@@ -819,6 +833,7 @@ def _voice_parts(parts, path, workdir, gap, engine):
         p = workdir / f"part_{name}.mp3"
         if i and engine == "gemini":
             time.sleep(2)   # be gentle with the per-minute limit
+        _VOICE["part"] = name
         speak_checked(text, p, engine)
         starts[name] = t
         t += duration(p) + gap
@@ -1035,6 +1050,44 @@ def make_logo(src, dst, size=170):
 LOGO = Path("assets/logo.png")
 
 
+MANIM_THEMES = [   # dark colour sets for the animated aptitude video; one is picked at random per video
+    dict(bg="#0B1B3A", panel="#12306B", card="#1B3F8F", card2="#16357A", gold="#FFC93C", green="#3DDC84", rad=1.0),
+    dict(bg="#06261C", panel="#0E5C42", card="#137A57", card2="#0E5C42", gold="#7CF0B0", green="#FFD866", rad=1.6),
+    dict(bg="#2A0A12", panel="#5A1224", card="#7A162C", card2="#5A1224", gold="#FFC45A", green="#7BE0C3", rad=0.6),
+    dict(bg="#150A33", panel="#2E1B6B", card="#462296", card2="#2E1B6B", gold="#5CE1FF", green="#FF8AD8", rad=1.2),
+    dict(bg="#062A2E", panel="#0C5560", card="#0F6E7C", card2="#0C5560", gold="#FF9F5C", green="#B6F36B", rad=1.0),
+    dict(bg="#1A1A1F", panel="#2A2A33", card="#3A3A46", card2="#2A2A33", gold="#C6F135", green="#5CE1FF", rad=0.8),
+]
+
+
+def make_options(answer):
+    """Four A-D options for a quiz layout when the answer contains a number; returns (options, correct_index) or (None, 0)."""
+    import re
+    m = re.search(r"\d+(?:\.\d+)?", str(answer))
+    if not m or len(re.findall(r"\d+(?:\.\d+)?", str(answer))) > 1:   # only a short, single-number answer
+        return None, 0
+    if False:
+        return None, 0
+    txt = m.group(0)
+    val = float(txt)
+    dec = len(txt.split(".")[1]) if "." in txt else 0
+    step = max(1.0, round(abs(val) * 0.1)) if dec == 0 else 0.5
+    cands = []
+    for d in (step, -step, 2 * step, -2 * step, 3 * step, 10 ** len(txt.split(".")[0]) / 10):
+        v = val + d
+        if v > 0 and v != val and v not in cands:
+            cands.append(v)
+    wrong = random.sample(cands[:5], 3)
+    fmt = (lambda v: f"{v:.{dec}f}")
+    vals = wrong + [val]
+    random.shuffle(vals)
+    pre, post = str(answer)[:m.start()].strip(), str(answer)[m.end():].strip(" .")
+    if len(pre) + len(post) > 10:
+        return None, 0
+    join = lambda v: pre + fmt(v) + (post if post.startswith("%") else (" " + post if post else ""))
+    return [join(v) for v in vals], vals.index(val)
+
+
 def render_manim(s, starts, total, workdir, today):
     """Renders the animated question / steps / answer scene (manim_aptitude.py) and returns the mp4 path."""
     data = {
@@ -1050,10 +1103,16 @@ def render_manim(s, starts, total, workdir, today):
             "practice": max(starts["outro"] - 0.1, 0.0),
         },
     }
+    opts, correct = make_options(s["screen_answer"]) if random.random() < 0.5 else (None, 0)
+    if opts:
+        data["options"], data["correct"] = opts, correct
+        log("quiz layout: four options")
+    theme = random.choice(MANIM_THEMES)
     jpath = (workdir / "apt.json").resolve()
     jpath.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     media = (workdir / "manim_media").resolve()
-    e = dict(os.environ, APT_JSON=str(jpath), APT_DURATION=f"{total:.2f}", APT_DATE=today, APT_HEADER="0")
+    e = dict(os.environ, APT_JSON=str(jpath), APT_DURATION=f"{total:.2f}", APT_DATE=today, APT_HEADER="0",
+             APT_THEME=json.dumps(theme))
     scene_file = str(Path(__file__).with_name("manim_aptitude.py"))
     cmd = [sys.executable, "-m", "manim", "-qm", "--fps", "30", "--media_dir", str(media), "-o", "apt.mp4",
            scene_file, "AptitudeShort"]
@@ -1064,12 +1123,86 @@ def render_manim(s, starts, total, workdir, today):
     return found[0]
 
 
+def pick_bgm():
+    """A random background track from assets/ (bgm.mp3 and the generated bgm_*.mp3); None if there is none."""
+    tracks = sorted(Path("assets").glob("bgm*.mp3"))
+    if not tracks:
+        return None
+    t = random.choice(tracks)
+    log(f"background music for this video: {t.name}")
+    return t
+
+
+SFX_RATE = 44100
+
+
+def _read_wav(path):
+    import wave
+    from array import array
+    with wave.open(str(path), "rb") as w:
+        a = array("h")
+        a.frombytes(w.readframes(w.getnframes()))
+    return a
+
+
+def make_sfx(events, total, path):
+    """Mixes little sound effects (whoosh / pop / tick / ding / sparkle from assets/sfx_*.wav) at the given seconds
+    into one silent-elsewhere wav as long as the video. events: [(second, name, gain)]. Returns the path or None."""
+    import wave
+    from array import array
+    n = int((total + 1) * SFX_RATE)
+    mix = array("i", bytes(4 * n))
+    cache, used = {}, 0
+    for at, name, gain in events:
+        f = Path("assets") / f"sfx_{name}.wav"
+        if not f.exists() or at < 0:
+            continue
+        clip = cache.setdefault(name, _read_wav(f))
+        i0 = int(at * SFX_RATE)
+        for k in range(min(len(clip), n - i0)):
+            mix[i0 + k] += int(clip[k] * gain)
+        used += 1
+    if not used:
+        return None
+    out = array("h", (max(-32767, min(32767, v)) for v in mix))
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(SFX_RATE); w.writeframes(out.tobytes())
+    return path
+
+
+def cards_sfx(starts):
+    """Sound effects for the news-card video: a whoosh when each card slides in, a ding on the last card."""
+    ev = []
+    for name, t in starts.items():
+        ev.append((max(t - 0.1, 0.0), "ding" if name == "outro" else "whoosh", 0.55 if name == "outro" else 0.6))
+    return ev
+
+
+def manim_sfx(starts):
+    """Sound effects for the animated aptitude video: whoosh for the question, pop for every step, a tick for each
+    second of the 3-2-1 countdown, a ding + sparkle for the answer."""
+    q = max(starts["question"] - 0.1, 0.0)
+    s1 = max(starts["step1"] - 0.1, 0.0)
+    ev = [(q, "whoosh", 0.6)]
+    if s1 - q >= COUNTDOWN_MIN:
+        ev += [(s1 - k, "tick", 0.5) for k in (3, 2, 1)]
+    for i in (1, 2, 3):
+        ev.append((max(starts[f"step{i}"] - 0.1, 0.0), "pop", 0.6))
+    a = max(starts["answer"] - 0.1, 0.0)
+    ev += [(a, "ding", 0.55), (a + 0.1, "sparkle", 0.4)]
+    ev.append((max(starts["outro"] - 0.1, 0.0), "whoosh", 0.55))
+    return ev
+
+
+COUNTDOWN_MIN = 3.4   # the 3-2-1 countdown on the question card is shown only if the question part lasts this long (seconds)
+
+
 # Voice clean-up for clearer speech: cut low rumble, even out loud and soft words, same loudness for every voice
 VOICE_CLEAN = ("highpass=f=70,acompressor=threshold=0.1:ratio=3:attack=5:release=80:makeup=2,"
                "loudnorm=I=-16:TP=-1.5:LRA=9,aresample=44100")
 
 
-def build_video(images, voice, out, workdir, bgm=BGM, subs=None, base_video=None):
+def build_video(images, voice, out, workdir, bgm=None, subs=None, base_video=None, sfx=None):
     total = duration(voice) + 1.0
     if base_video:
         joined = Path(base_video)   # a ready-made picture track (the Manim animation)
@@ -1085,16 +1218,28 @@ def build_video(images, voice, out, workdir, bgm=BGM, subs=None, base_video=None
         joined = workdir / "joined.mp4"
         run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(joined)])
 
+    bgm = bgm or pick_bgm()
     cmd = ["ffmpeg", "-y", "-i", str(joined), "-i", str(voice)]
     n = 2
-    if Path(bgm).exists():
+    if bgm and Path(bgm).exists():
         cmd += ["-stream_loop", "-1", "-i", str(bgm)]
         n += 1
-        afilter = (f"[1:a]{VOICE_CLEAN},apad=pad_dur=1[va];[2:a]volume=0.10,afade=t=in:d=1.5[b];"
-                   f"[va][b]amix=inputs=2:duration=first:dropout_transition=0[m];"
-                   f"[m]volume=1.8,afade=t=out:st={total - 1.5:.2f}:d=1.5[a]")
+        # the music is a little louder in the gaps and ducks (sidechain) while the voice speaks
+        parts = [f"[1:a]{VOICE_CLEAN},apad=pad_dur=1,asplit=2[va][vs]",
+                 "[2:a]volume=0.17,afade=t=in:d=1.5[b]",
+                 "[b][vs]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=400[bd]"]
+        mix_in, k = "[va][bd]", 2
+        if sfx:
+            cmd += ["-i", str(sfx)]
+            parts.append(f"[{n}:a]volume=0.8[sx]")
+            n += 1
+            mix_in, k = "[va][bd][sx]", 3
+        # amix divides by the number of inputs: 1.8 for two inputs, 2.7 for three keeps the voice level the same
+        parts.append(f"{mix_in}amix=inputs={k}:duration=first:dropout_transition=0[m]")
+        parts.append(f"[m]volume={0.9 * k:.2f},afade=t=out:st={total - 1.5:.2f}:d=1.5[a]")
+        afilter = ";".join(parts)
     else:
-        log("WARNING: assets/bgm.mp3 not found, publishing without BGM")
+        log("WARNING: no assets/bgm*.mp3 found, publishing without BGM")
         afilter = f"[1:a]{VOICE_CLEAN},apad=pad_dur=1[a]"
     base = "null"
     if subs:
@@ -1193,8 +1338,8 @@ def make_one(slot, today, stamp, upload_it, hist):
         doy = dt.datetime.now(IST).timetuple().tm_yday
         topic = APTITUDE_TOPICS[(doy * 2 + (0 if slot == 3 else 1)) % len(APTITUDE_TOPICS)]
         log(f"[slot {slot}] aptitude topic: {topic}")
-        # which aptitude slots use the animated Manim video (default: slot 5 only; set repo variable MANIM_SLOTS=3,5 for both)
-        manim_slots = [x.strip() for x in (os.environ.get("MANIM_SLOTS") or "5").split(",")]
+        # which aptitude slots use the animated Manim video (default: slots 3 and 5; set repo variable MANIM_SLOTS=5 for one only)
+        manim_slots = [x.strip() for x in (os.environ.get("MANIM_SLOTS") or "3,5").split(",")]
         manim_mode = str(slot) in manim_slots
         avoid_apt = avoid_text(hist, 12) + apt_brief(topic)
         if manim_mode:
@@ -1256,7 +1401,13 @@ def make_one(slot, today, stamp, upload_it, hist):
               spans=speech_spans(voice), total_seconds=vdur + 1.0,
               cta_y=1570 if base else 1000, cta_tamil=base is None, cap_margin=390 if base else 430,
               captions=base is None)   # cards / animation already show the text: no running subtitles
-    secs = build_video(imgs, voice, final, work, subs=subs, base_video=base)
+    sfx = None
+    try:   # little sound effects at the card / step changes (never worth stopping the video for)
+        if starts and base is not None:
+            sfx = make_sfx(manim_sfx(starts) if manim_mode else cards_sfx(starts), vdur + 1.0, work / "sfx.wav")
+    except Exception as e:
+        log(f"[slot {slot}] sound effects skipped: {e}")
+    secs = build_video(imgs, voice, final, work, subs=subs, base_video=base, sfx=sfx)
     log(f"[slot {slot}] video ready ({secs:.0f}s): {final}")
 
     if upload_it:
