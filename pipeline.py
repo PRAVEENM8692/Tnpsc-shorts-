@@ -146,6 +146,87 @@ APTITUDE_TOPICS = [
 
 
 
+# ---------------------------------------------------------------- 1b. main source: tnpscthervupettagam.com daily PDFs
+SITE = "https://www.tnpscthervupettagam.com"
+SITE_HEAD = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"}
+# which part of the daily PDF each slot uses (the English PDF is read; the Tamil PDF uses an old font that cannot be copied as text)
+SITE_SECTIONS = {
+    1: r"tamil\s*nadu",
+    2: r"national|india|econom|bank|polity|government",
+    4: r"international|world|science|technolog|sport|award|important\s*days|environment|space",
+}
+
+
+def _pdf_text(data):
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        f = Path(d) / "x.pdf"
+        f.write_bytes(data)
+        try:
+            return subprocess.run(["pdftotext", "-layout", str(f), "-"], capture_output=True, text=True, timeout=90).stdout
+        except (OSError, subprocess.SubprocessError):
+            pass
+        try:
+            from pypdf import PdfReader
+            return "\n".join((pg.extract_text() or "") for pg in PdfReader(str(f)).pages)
+        except Exception:
+            return ""
+
+
+def _section(text, pattern):
+    """Text of the headed sections whose heading matches pattern (a heading = a short line); "" if none."""
+    lines = [l.rstrip() for l in text.splitlines()]
+    out, on = [], False
+    for l in lines:
+        t = l.strip()
+        if 2 < len(t) < 45 and not t.endswith((".", ",")) and (t.isupper() or t.istitle() or t.lower().endswith(("news", "affairs", "days"))):
+            on = bool(re.search(pattern, t, re.I))
+            continue
+        if on and t:
+            out.append(t)
+    return "\n".join(out)
+
+
+def site_notes(slot, today_dt):
+    """Current-affairs notes from the website's latest daily English PDFs; None if the site cannot be read (then Tavily is used)."""
+    if (os.environ.get("SITE_SOURCE") or "1").strip() == "0":
+        return None
+    try:
+        links = []
+        for back in (0, 1):   # this month's page, and the previous one right at the start of a month
+            d = (today_dt.replace(day=1) - dt.timedelta(days=1)).replace(day=1) if back else today_dt
+            page = f"{SITE}/downloads-detail/tnpsc-daily-current-affairs-%E2%80%93-{d.strftime('%B').lower()}-{d.year}?cat=tnpsc-daily-current-affairs"
+            r = requests.get(os.environ.get("SITE_URL") or page if not back else page, headers=SITE_HEAD, timeout=60)
+            if r.status_code != 200:
+                continue
+            found = re.findall(r'href="([^"]+\.pdf)"', r.text, re.I)
+            links = [urllib.parse.urljoin(page, u.replace(" ", "%20")) for u in found if "english" in u.lower()] + links
+            if len(links) >= 3:
+                break
+        links = list(dict.fromkeys(links))[-3:][::-1]   # the 3 newest days, newest first
+        if not links:
+            log("website: no PDF links found; using news search instead")
+            return None
+        chunks = []
+        for u in links:
+            data = requests.get(u, headers=SITE_HEAD, timeout=90).content
+            text = _pdf_text(data)
+            part = _section(text, SITE_SECTIONS.get(slot, "."))
+            if len(part) < 500:
+                part = re.sub(r"\n{2,}", "\n", text)   # headings not recognised: use the whole day
+            name = urllib.parse.unquote(u.rsplit("/", 1)[-1])
+            chunks.append(f"- ({name}): " + re.sub(r"\s+", " ", part)[:4000])
+        notes = "\n".join(chunks)
+        if len(notes) < 800:
+            log("website text too short; using news search instead")
+            return None
+        log(f"website: read {len(links)} daily PDFs ({len(notes)} characters)")
+        return notes, ["tnpscthervupettagam.com"], []
+    except Exception as e:
+        log(f"website could not be read ({e}); using news search instead")
+        return None
+
+
 def search_news(queries, used_urls=()):
     key = env("TAVILY_API_KEY")
     seen, items = set(used_urls), []
@@ -1367,7 +1448,8 @@ def make_one(slot, today, stamp, upload_it, hist):
 
     if kind == "news":
         log(f"[slot {slot}] {name}: searching news")
-        notes, hosts, urls = search_news(queries, hist.get("urls", []))
+        got = site_notes(slot, dt.datetime.now(IST))   # main source: the website's daily PDFs; Tavily search is the fallback
+        notes, hosts, urls = got if got else search_news(queries, hist.get("urls", []))
         (OUT / f"notes-{tag}.txt").write_text(notes, encoding="utf-8")
         # step 1 of the Tamil quality layer: any-language news -> clean English facts, THEN write Tamil from them
         log(f"[slot {slot}] cleaning the news into English facts")
