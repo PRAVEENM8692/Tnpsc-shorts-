@@ -1116,6 +1116,10 @@ def build_video(images, voice, out, workdir, bgm=BGM, subs=None, base_video=None
 
 
 # ---------------------------------------------------------------- 6. YouTube upload
+class UploadLimit(Exception):
+    """YouTube refused the upload because the channel reached its upload limit (it resets by itself later)."""
+
+
 def upload(video, title, description, tags):
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
@@ -1139,8 +1143,13 @@ def upload(video, title, description, tags):
     req = yt.videos().insert(part="snippet,status", body=body,
                              media_body=MediaFileUpload(str(video), chunksize=-1, resumable=True))
     resp = None
-    while resp is None:
-        _, resp = req.next_chunk()
+    try:
+        while resp is None:
+            _, resp = req.next_chunk()
+    except Exception as e:
+        if "uploadLimitExceeded" in str(e):
+            raise UploadLimit(str(e)[:200]) from e
+        raise
     log(f"uploaded: https://youtube.com/watch?v={resp['id']} (privacy: {body['status']['privacyStatus']})")
 
 
@@ -1252,7 +1261,17 @@ def make_one(slot, today, stamp, upload_it, hist):
 
     if upload_it:
         desc = s["description"] + f"\n\n{pre}\n{post}\n{hashtags}"
-        upload(final, f"{s['title']} #Shorts", desc, [str(t) for t in s["tags"]])
+        try:
+            upload(final, f"{s['title']} #Shorts", desc, [str(t) for t in s["tags"]])
+        except UploadLimit as e:
+            # not a failure of the video: keep the file (it is in the run's output), do not count a try, and pause the
+            # automatic runs for a few hours instead of building the same video again and again
+            until = dt.datetime.now(IST) + dt.timedelta(hours=6)
+            hist["upload_blocked"] = until.isoformat()
+            log(f"[slot {slot}] YouTube upload limit reached ({e}); the finished video is kept in the run output. "
+                f"Automatic runs pause until {until:%H:%M} IST.")
+            save_history(hist)
+            return "limit"
     else:
         log("UPLOAD=false, skipping YouTube upload")
 
@@ -1288,7 +1307,8 @@ def main():
     done, failed = 0, []
     for slot in slots:
         try:
-            make_one(slot, today, stamp, upload_it, hist)
+            if make_one(slot, today, stamp, upload_it, hist) == "limit":
+                break   # no point building the other videos while YouTube refuses uploads
             done += 1
             time.sleep(20)  # ease free-tier rate limits
         except BaseException as e:  # with SLOT=all, one bad video does not cancel the rest
