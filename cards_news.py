@@ -20,36 +20,80 @@ TOP, HEIGHT = 480, 900          # the card area: below the header panel, above t
 
 CSS = """
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:1080px;height:1920px;overflow:hidden;background:#0B1B3A;
+html,body{width:1080px;height:1920px;overflow:hidden;background:var(--page);
   font-family:'Noto Sans Tamil','Latha','Nirmala UI','FreeSans',sans-serif;color:#fff}
-#bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(9px) brightness(.5) saturate(1.1);
+#bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(9px) brightness(var(--bgbright)) saturate(1.1);
   transform:scale(1.08)}
-#bgshade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,27,58,.55),rgba(11,27,58,.15) 40%%,rgba(11,27,58,.65))}
+#bgshade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(var(--shade),.55),rgba(var(--shade),.15) 40%%,rgba(var(--shade),.65))}
 #fg{position:absolute;left:40px;top:%(top)dpx;width:1000px;height:%(h)dpx}
-.card{width:100%%;height:100%%;border-radius:36px;padding:30px 36px;display:flex;flex-direction:column;gap:18px;
-  background:linear-gradient(160deg,rgba(18,48,107,.93),rgba(11,27,58,.93));border:3px solid rgba(255,201,60,.85);
+.card{width:100%%;height:100%%;border-radius:var(--radius);padding:30px 36px;display:flex;flex-direction:column;gap:18px;
+  background:linear-gradient(160deg,var(--c1),var(--c2));border:var(--bw) var(--bstyle) var(--border);
   box-shadow:0 18px 60px rgba(0,0,0,.45)}
-.card.gold{background:linear-gradient(160deg,#FFD866,#FFC93C);border-color:#fff;color:#0B1B3A}
 .row{display:flex;align-items:center;justify-content:space-between;height:62px;flex:none}
-.chip{background:#FFC93C;color:#0B1B3A;font-weight:800;font-size:34px;padding:6px 26px;border-radius:40px;white-space:nowrap}
-.card.gold .chip{background:#0B1B3A;color:#FFC93C}
+.chip{background:var(--accent);color:var(--onaccent);font-weight:800;font-size:34px;padding:6px 26px;border-radius:var(--chip);white-space:nowrap}
 .dots{display:flex;gap:12px}
-.dot{width:20px;height:20px;border-radius:50%%;background:rgba(255,255,255,.28)}
-.dot.on{background:#FFC93C}.dot.cur{background:#3DDC84;transform:scale(1.35)}
-.t{font-weight:800;line-height:1.3;overflow:hidden;color:#fff;flex:none}
-.big{font-weight:900;line-height:1.15;overflow:hidden;color:#FFC93C;flex:none;text-align:center;
-  background:rgba(255,255,255,.08);border-radius:22px;display:flex;align-items:center;justify-content:center}
-.d{font-weight:500;line-height:1.45;overflow:hidden;color:#E8EEFF;flex:1;min-height:0}
-.card.gold .t,.card.gold .d{color:#0B1B3A}
+.dot{width:20px;height:20px;border-radius:50%%;background:var(--dot)}
+.dot.on{background:var(--accent)}.dot.cur{background:var(--good);transform:scale(1.35)}
+.t{font-weight:800;line-height:1.3;overflow:hidden;color:var(--title);flex:none}
+.big{font-weight:900;line-height:1.15;overflow:hidden;color:var(--bigc);flex:none;text-align:center;
+  background:var(--bigbg);border-radius:22px;display:flex;align-items:center;justify-content:center}
+.d{font-weight:500;line-height:1.45;overflow:hidden;color:var(--body);flex:1;min-height:0}
 .center{flex:1;display:flex;flex-direction:column;justify-content:center;gap:26px;min-height:0}
-.sub{font-weight:700;font-size:38px;color:#3DDC84;text-align:center;flex:none}
-body.dim .t,body.dim .d,body.dim .big,body.dim .sub{opacity:.55}
+.sub{font-weight:700;font-size:38px;color:var(--good);text-align:center;flex:none}
+body.dim .t,body.dim .d,body.dim .big,body.dim .sub{opacity:var(--dimop)}
 body.lit .card{background:none !important;border-color:transparent !important;box-shadow:none !important}
 body.lit .chip,body.lit .dots,body.lit .row{visibility:hidden}
 body.lit .big{background:none !important}
-body.lit .t,body.lit .d,body.lit .big,body.lit .sub{text-shadow:0 0 12px rgba(255,214,102,.95),0 0 30px rgba(255,201,60,.6)}
-body.lit .card.gold .t{text-shadow:0 0 12px rgba(255,255,255,.95),0 0 28px rgba(255,255,255,.6)}
+body.lit .t,body.lit .d,body.lit .big,body.lit .sub{text-shadow:0 0 12px rgba(var(--glow),.95),0 0 30px rgba(var(--glow),.6)}
 """
+
+# A different look for each video, chosen at random (set the repo variable CARD_THEME to a theme name to force one).
+# c1/c2: card gradient, border, accent: chips / dots / numbers, good: the "current" dot and subtitle line, glow: the light.
+THEMES = {
+    "navy-gold": dict(page="#0B1B3A", shade="11,27,58", c1="rgba(18,48,107,.93)", c2="rgba(11,27,58,.93)", border="rgba(255,201,60,.85)",
+                      accent="#FFC93C", onaccent="#0B1B3A", good="#3DDC84", title="#fff", body="#E8EEFF", bigc="#FFC93C",
+                      glow="255,214,102", dot="rgba(255,255,255,.28)", bigbg="rgba(255,255,255,.08)", dimop=".55",
+                      radius="36px", bw="3px", bstyle="solid", chip="40px", bgbright=".5"),
+    "emerald": dict(page="#06261C", shade="6,38,28", c1="rgba(14,92,66,.94)", c2="rgba(6,38,28,.94)", border="rgba(160,255,200,.8)",
+                    accent="#7CF0B0", onaccent="#06261C", good="#FFD866", title="#fff", body="#E4FFF1", bigc="#B8FFD9",
+                    glow="160,255,200", dot="rgba(255,255,255,.28)", bigbg="rgba(255,255,255,.09)", dimop=".55",
+                    radius="52px", bw="3px", bstyle="solid", chip="14px", bgbright=".45"),
+    "maroon-gold": dict(page="#2A0A12", shade="42,10,18", c1="rgba(122,22,44,.94)", c2="rgba(52,8,20,.95)", border="rgba(255,196,90,.9)",
+                        accent="#FFC45A", onaccent="#3A0A16", good="#7BE0C3", title="#FFF6E6", body="#FFE9DA", bigc="#FFC45A",
+                        glow="255,200,110", dot="rgba(255,255,255,.28)", bigbg="rgba(255,200,110,.12)", dimop=".55",
+                        radius="22px", bw="5px", bstyle="double", chip="10px", bgbright=".42"),
+    "violet-neon": dict(page="#150A33", shade="21,10,51", c1="rgba(70,34,150,.93)", c2="rgba(24,10,60,.95)", border="rgba(120,230,255,.85)",
+                        accent="#5CE1FF", onaccent="#150A33", good="#FF8AD8", title="#fff", body="#EDE6FF", bigc="#5CE1FF",
+                        glow="120,230,255", dot="rgba(255,255,255,.3)", bigbg="rgba(92,225,255,.12)", dimop=".55",
+                        radius="64px", bw="3px", bstyle="solid", chip="40px", bgbright=".42"),
+    "teal-orange": dict(page="#052A30", shade="5,42,48", c1="rgba(9,92,104,.94)", c2="rgba(4,36,42,.95)", border="rgba(255,150,70,.9)",
+                        accent="#FF9A47", onaccent="#052A30", good="#B9F2FF", title="#fff", body="#DFF8FC", bigc="#FFB170",
+                        glow="255,176,110", dot="rgba(255,255,255,.28)", bigbg="rgba(255,154,71,.14)", dimop=".55",
+                        radius="30px", bw="4px", bstyle="dashed", chip="40px", bgbright=".48"),
+    "cream-paper": dict(page="#2B2418", shade="43,36,24", c1="rgba(255,248,230,.97)", c2="rgba(255,236,196,.97)", border="rgba(196,82,28,.95)",
+                        accent="#D9531E", onaccent="#FFF8E6", good="#1E8A5A", title="#2A1708", body="#3F2A14", bigc="#C4401A",
+                        glow="255,140,40", dot="rgba(60,40,20,.25)", bigbg="rgba(196,82,28,.10)", dimop=".5",
+                        radius="26px", bw="6px", bstyle="solid", chip="8px", bgbright=".5"),
+    "charcoal-lime": dict(page="#0C0F10", shade="12,15,16", c1="rgba(34,40,42,.95)", c2="rgba(12,15,16,.96)", border="rgba(170,255,60,.9)",
+                          accent="#B4FF3C", onaccent="#0C0F10", good="#FFD23C", title="#fff", body="#E9EEF0", bigc="#B4FF3C",
+                          glow="190,255,90", dot="rgba(255,255,255,.26)", bigbg="rgba(180,255,60,.10)", dimop=".5",
+                          radius="14px", bw="4px", bstyle="solid", chip="6px", bgbright=".4"),
+}
+
+
+def pick_theme():
+    import os
+    import random
+    name = (os.environ.get("CARD_THEME") or "").strip().lower()
+    if name not in THEMES:
+        name = random.choice(list(THEMES))
+    print(f"card theme for this video: {name}", flush=True)
+    return name, THEMES[name]
+
+
+def _root(theme):
+    return ":root{" + ";".join(f"--{k}:{v}" for k, v in theme.items()) + "}"
+
 
 BOUNDS_JS = """
 () => {
@@ -91,7 +135,7 @@ def _card(kind, d, today):
     """HTML of the card for one segment. kind: hook | fact | outro."""
     if kind == "hook":
         return (f'<div class="card"><div class="row"><div class="chip">{_e(d.get("chip") or "நடப்பு நிகழ்வுகள்")}</div>'
-                f'<div class="chip" style="background:#3DDC84">{_e(today)}</div></div>'
+                f'<div class="chip" style="background:var(--good)">{_e(today)}</div></div>'
                 f'<div class="center"><div class="t" data-fit="96,44" style="height:430px;display:flex;align-items:center;'
                 f'text-align:center;justify-content:center">{_e(d["headline"])}</div>'
                 f'<div class="sub">இன்னைக்கு தெரிஞ்சுக்க வேண்டிய 5 தகவல்கள்</div></div></div>')
@@ -121,13 +165,14 @@ def segments_from_script(s):
     return segs
 
 
-def render_pngs(segs, bg_images, workdir, today):
+def render_pngs(segs, bg_images, workdir, today, theme=None):
     """Per segment: the blurred background, the normal card, the card with dim text, the lit text alone, and the
     vertical range of the text. Returns [(bg, fg, dim, lit, (y0, y1))]."""
     from playwright.sync_api import sync_playwright
 
     workdir = Path(workdir)
     out = []
+    root = _root(theme or THEMES["navy-gold"])
     with sync_playwright() as p:
         try:
             browser = p.chromium.launch(channel="chrome")   # the Chrome that GitHub runners already have
@@ -136,7 +181,7 @@ def render_pngs(segs, bg_images, workdir, today):
         page = browser.new_page(viewport={"width": W, "height": H})
         for i, (name, kind, d) in enumerate(segs):
             bg_img = Path(bg_images[min(i, len(bg_images) - 1)]).resolve()
-            doc = (f"<!doctype html><html><head><meta charset='utf-8'><style>{CSS % {'top': TOP, 'h': HEIGHT}}</style></head>"
+            doc = (f"<!doctype html><html><head><meta charset='utf-8'><style>{root}{CSS % {'top': TOP, 'h': HEIGHT}}</style></head>"
                    f"<body><div id='bg' style=\"background-image:url('{bg_img.as_uri()}')\"></div><div id='bgshade'></div>"
                    f"<div id='fg'>{_card(kind, d, today)}</div></body></html>")
             hp = workdir / f"card_{name}.html"
@@ -199,7 +244,7 @@ def render_cards_video(s, starts, total, workdir, today, bg_images):
     """Builds the silent picture track (mp4, 1080x1920, 30 fps, `total` seconds) and returns its path."""
     workdir = Path(workdir)
     segs = segments_from_script(s)
-    pngs = render_pngs(segs, bg_images, workdir, today)
+    pngs = render_pngs(segs, bg_images, workdir, today, pick_theme()[1])
     names = [n for n, _, _ in segs]
     begin = [max(starts[n] - 0.1, 0.0) for n in names]
     begin[0] = 0.0
