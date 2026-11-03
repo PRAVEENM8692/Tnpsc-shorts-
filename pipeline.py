@@ -388,7 +388,7 @@ Use ONLY facts that appear in these news notes. Do not add facts, numbers or dat
 This is video {part} of {total} today, so cover ONLY this theme: {focus}. Pick the 5 most exam-relevant facts for that theme.
 The video shows ONE CARD per fact while a voice explains it, so every card text must say the SAME fact as its spoken part.
 
-{CASUAL_TAMIL}
+{CASUAL_NEWS}
 
 Return JSON with these keys:
 title (Tamil, under 85 characters),
@@ -565,7 +565,16 @@ CASUAL_TAMIL = ("Style: speak like a friendly elder brother or sister teacher ch
                 "Use natural spoken forms such as பண்ணுங்க, பாருங்க, வாங்க, இருக்கு, சொல்றேன், வரும், ரொம்ப ஈசி, சரியா?; "
                 "call the viewers நண்பர்களே or நீங்க; Tamil-letter English words such as ஷார்ட்கட், ஈசி, டிரிக் are welcome. "
                 "Avoid stiff words like கணக்கிடுக, விடையைக் காண்க, பின்வருமாறு.")
-CASUAL_APT = CASUAL_TAMIL + "\n" + tq.APT_RULES
+TEACH_APT = ("Teaching method (like a good school teacher): open with a small challenge or a question the viewer wants to answer; "
+             "give the idea behind the shortcut in ONE plain sentence (why it works, not just a formula); use a simple everyday Tamil Nadu "
+             "example; in every step say what you do AND why, in a few words; warn about the one mistake most students make; "
+             "before the answer say a short pause line like 'நீங்களே யோசிங்க' so the viewer tries first; end with a one-line tip to remember. "
+             "Keep every spoken part within its sentence limit.")
+TEACH_NEWS = ("Teaching method (like a good school teacher): for each fact say WHAT happened in plain words, then add a few words on WHY "
+              "it matters or how TNPSC may ask it (for example 'தேர்வில் இதை கேட்பாங்க'); group related facts so they are easy to remember; "
+              "a number, a name or a place is repeated once so it sticks. Keep every spoken part within its sentence limit.")
+CASUAL_APT = CASUAL_TAMIL + "\n" + TEACH_APT + "\n" + tq.APT_RULES
+CASUAL_NEWS = CASUAL_TAMIL + "\n" + TEACH_NEWS
 
 SAY_KEYS = ("say_hook", "say_question", "say_step1", "say_step2", "say_step3", "say_answer", "say_tip", "say_outro")
 FALLBACK_SCENES = ["a notebook and pencil on a wooden study desk, warm light", "an old analog clock on a study table",
