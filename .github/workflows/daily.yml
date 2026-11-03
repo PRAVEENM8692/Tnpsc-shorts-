@@ -30,6 +30,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}   # always the newest history.json, even when runs were queued together
       - name: Decide which video is due
         id: plan
         env:

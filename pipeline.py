@@ -51,6 +51,7 @@ def load_history():
 def save_history(h):
     h["urls"] = h["urls"][-400:]
     h["titles"] = h["titles"][-80:]
+    h["facts"] = h.get("facts", [])[-200:]   # every single fact / question already used in a video
     h["done"] = dict(sorted(h.get("done", {}).items())[-3:])      # which slots were published, last 3 days
     h["tries"] = dict(sorted(h.get("tries", {}).items())[-15:])   # failed attempts per slot
     HISTORY.write_text(json.dumps(h, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -58,10 +59,66 @@ def save_history(h):
 
 def avoid_text(h, n=25):
     t = h.get("titles", [])[-n:]
-    if not t:
+    f = h.get("facts", [])[-80:]
+    if not t and not f:
         return ""
-    return ("\n\nThese topics were ALREADY covered in recent videos. Do NOT repeat them or their facts, "
-            "pick different ones:\n" + "\n".join(f"- {x}" for x in t))
+    out = ""
+    if f:
+        out += ("\n\nThese exact facts / questions were ALREADY told in earlier videos. Do NOT use any of them again, even if a "
+                "news site words it differently or it is the same event: pick completely different facts:\n"
+                + "\n".join(f"- {x}" for x in f))
+    if t:
+        out += "\n\nEarlier video titles (do not repeat the same topics):\n" + "\n".join(f"- {x}" for x in t[-10:])
+    return out
+
+
+def fact_lines(s):
+    """The individual facts (or the question) this script teaches, as short lines for the no-repeat memory."""
+    cards = s.get("cards")
+    if cards:
+        return [f"{c.get('title', '')}: {c.get('detail', '')}".strip(": ")[:170] for c in cards if isinstance(c, dict)]
+    if s.get("screen_question"):
+        return [str(s["screen_question"])[:170]]
+    return [str(s.get("description") or s.get("title") or "")[:300]]
+
+
+def find_repeats(s, hist):
+    """Facts of the new script that were already told earlier (same event, even if worded differently). [] if none / if the check fails."""
+    old = hist.get("facts", [])[-150:]
+    new = fact_lines(s)
+    if not old or not new:
+        return []
+    try:
+        d = llm_json("Below are FACTS ALREADY USED in earlier videos, then NEW facts for a new video. List the NEW facts "
+                     "that tell the same event, announcement, number or question as an old one (even if worded differently or from "
+                     "another news site). Be strict about the same event, but a different event on a similar topic is NOT a repeat.\n\n"
+                     "OLD:\n" + "\n".join(f"- {x}" for x in old) + "\n\nNEW:\n"
+                     + "\n".join(f"{i}. {x}" for i, x in enumerate(new)) + '\n\nReturn JSON: {"repeated": [indexes of the NEW facts that repeat]}',
+                     temperature=0.1)
+        idx = [int(i) for i in d.get("repeated", []) if str(i).lstrip("-").isdigit() and 0 <= int(i) < len(new)]
+        return [new[i] for i in sorted(set(idx))]
+    except (Exception, SystemExit) as e:
+        log(f"repeat check skipped: {e}")
+        return []
+
+
+def no_repeats(s, hist, rewrite, extra):
+    """Writes the script again (up to 2 times) while it still contains facts used in earlier videos."""
+    for attempt in range(2):
+        dup = find_repeats(s, hist)
+        if not dup:
+            return s
+        log(f"{len(dup)} repeated fact(s) found, writing the script again ({attempt + 1}/2): " + " | ".join(x[:50] for x in dup))
+        extra[0] += "\n\nYour last draft repeated these old facts, so do NOT use them or the same events:\n" + "\n".join(f"- {x}" for x in dup)
+        try:
+            s = rewrite()
+        except (Exception, SystemExit) as e:
+            log(f"rewrite failed ({e}); keeping the previous draft")
+            return s
+    left = find_repeats(s, hist)
+    if left:
+        log(f"warning: {len(left)} fact(s) still repeat after rewriting (not enough new news)")
+    return s
 
 
 # ---------------------------------------------------------------- 1. news search
@@ -1320,18 +1377,20 @@ def make_one(slot, today, stamp, upload_it, hist):
         # news slots use the HTML news-card video (set repo variable CARDS_SLOTS=none to switch it off, default 1,2,4)
         card_slots = [x.strip() for x in (os.environ.get("CARDS_SLOTS") or "1,2,4").split(",")]
         s = None
+        extra = [""]   # facts a draft repeated, added to the instructions of the next draft
         if str(slot) in card_slots:
             try:
-                s = write_news_cards_script(notes, today, focus, slot, 5, avoid_text(hist))
+                s = write_news_cards_script(notes, today, focus, slot, 5, avoid_text(hist) + extra[0])
                 cards_mode = True
             except (Exception, SystemExit) as e:
                 log(f"[slot {slot}] news-card script failed, using the normal script: {e}")
         if s is None:
-            s = write_script(notes, today, focus, slot, 5, avoid_text(hist))
+            s = write_script(notes, today, focus, slot, 5, avoid_text(hist) + extra[0])
         if cards_mode:
-            rewrite = lambda: write_news_cards_script(notes, today, focus, slot, 5, avoid_text(hist))
+            rewrite = lambda: write_news_cards_script(notes, today, focus, slot, 5, avoid_text(hist) + extra[0])
         else:
-            rewrite = lambda: write_script(notes, today, focus, slot, 5, avoid_text(hist))
+            rewrite = lambda: write_script(notes, today, focus, slot, 5, avoid_text(hist) + extra[0])
+        s = no_repeats(s, hist, rewrite, extra)
         head2, head3, hashtags = "CURRENT AFFAIRS", "நடப்பு நிகழ்வுகள்", "#TNPSC #CurrentAffairs #Shorts"
         pre, post = "Sources: " + ", ".join(hosts), "AI-assisted video. Verify facts with official sources."
     else:
@@ -1342,11 +1401,12 @@ def make_one(slot, today, stamp, upload_it, hist):
         manim_slots = [x.strip() for x in (os.environ.get("MANIM_SLOTS") or "3,5").split(",")]
         manim_mode = str(slot) in manim_slots
         avoid_apt = avoid_text(hist, 12) + apt_brief(topic)
+        extra = [""]
         if manim_mode:
-            rewrite = lambda: write_aptitude_manim_script(topic, today, avoid_apt)
+            rewrite = lambda: write_aptitude_manim_script(topic, today, avoid_apt + extra[0])
         else:
-            rewrite = lambda: write_aptitude_script(topic, today, avoid_apt)
-        s = rewrite()
+            rewrite = lambda: write_aptitude_script(topic, today, avoid_apt + extra[0])
+        s = no_repeats(rewrite(), hist, rewrite, extra)
         head2, head3, hashtags = "APTITUDE TRICKS", "கணிதம் - குறுக்கு வழி", "#TNPSC #Aptitude #MathsTricks #Shorts"
         pre, post = "Topic: " + topic, "AI-assisted video. Practise the method on your own."
     # step 3 of the Tamil quality layer: remove foreign letters, review the Tamil against the English facts, hard check
@@ -1431,6 +1491,7 @@ def make_one(slot, today, stamp, upload_it, hist):
     if upload_it:   # a test run (UPLOAD=false) must not use up the news for the real videos
         hist.setdefault("urls", []).extend(urls)
         hist.setdefault("titles", []).append(f"{name}: {s['title']}")
+        hist.setdefault("facts", []).extend(fact_lines(s))
         save_history(hist)
 
 
