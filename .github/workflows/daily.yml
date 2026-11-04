@@ -2,16 +2,16 @@ name: daily-tnpsc-short
 
 on:
   schedule:
-    # Wakes up every 30 minutes from 07:37 to 22:07 IST. plan.py picks the video that is due,
+    # Wakes up every 30 minutes from 07:37 to 22:37 IST. plan.py picks the video that is due,
     # so a late or skipped GitHub run is caught up automatically.
-    - cron: "7,37 2-16 * * *"
+    - cron: "7,37 2-17 * * *"
   workflow_dispatch:
     inputs:
       upload:
         description: "Upload to YouTube? (true/false)"
         default: "false"
       slot:
-        description: "Which video: 1-5, or all"
+        description: "Which video: 1-7, or all"
         default: "1"
       voice:
         description: "Voice for this run: gemini (default, needs GEMINI_API_KEY; falls back to free edge-tts) or edge (free only)"

@@ -122,7 +122,7 @@ def no_repeats(s, hist, rewrite, extra):
 
 
 # ---------------------------------------------------------------- 1. news search
-# 5 videos a day: 3 current affairs + 2 aptitude (see .github/workflows/daily.yml for the clock times)
+# 7 videos a day: 3 current affairs + 2 aptitude + 2 syllabus lessons (see .github/workflows/daily.yml for the clock times)
 SLOTS = {
     1: ("news", "Tamil Nadu", ["Tamil Nadu government announcement news", "Tamil Nadu scheme policy news today"],
         "Tamil Nadu government, schemes, places, appointments"),
@@ -133,7 +133,96 @@ SLOTS = {
                                           "India sports awards international summit news"],
         "science, technology, space, environment, sports, awards, international events"),
     5: ("aptitude", "Aptitude B", None, None),
+    6: ("lesson", "Syllabus lesson A", None, None),   # a TNPSC Group 1 / 2 / 4 syllabus topic taught like a class
+    7: ("lesson", "Syllabus lesson B", None, None),
 }
+START_TIMES = {1: 8.0, 2: 10.5, 3: 13.0, 4: 15.5, 5: 18.0, 6: 19.5, 7: 21.0}   # IST hours (same table as plan.py)
+
+# TNPSC Group 1 / 2 / 4 general-studies syllabus: one subject per lesson, topics rotate so nothing repeats for months
+SYLLABUS = {
+    "Indian Polity": ["President of India: powers and responsibilities", "Governor: powers and responsibilities",
+                      "Prime Minister and Council of Ministers", "Parliament: Lok Sabha and Rajya Sabha", "Supreme Court and High Courts",
+                      "Fundamental Rights", "Directive Principles and Fundamental Duties", "Preamble of the Constitution",
+                      "Central Vigilance Commission (CVC)", "CBI and its powers", "Comptroller and Auditor General (CAG)",
+                      "Election Commission of India", "UPSC and TNPSC", "Panchayati Raj system", "District administration: Collector and powers",
+                      "State administration: Chief Minister and Secretariat", "Constitutional amendments", "Emergency provisions",
+                      "Right to Information Act", "Lokpal and Lokayukta"],
+    "Indian History": ["Delhi Sultanate: Slave dynasty", "Khilji and Tughlaq dynasties", "Mughal emperors: Babur and Humayun",
+                       "Akbar and his administration", "Shah Jahan and Aurangzeb", "Maratha Empire and Shivaji", "Vijayanagara Empire",
+                       "Bhakti and Sufi movements", "Revolt of 1857", "Indian National Congress and moderates", "Gandhian era movements",
+                       "Quit India Movement", "Mauryan Empire and Ashoka", "Gupta Empire", "Harappan civilisation"],
+    "Tamil Nadu History and Culture": ["Chola kingdom: administration and temples", "Chola kings: Rajaraja I and Rajendra I",
+                                       "Pandya kingdom", "Pallava kingdom and Mahabalipuram", "Chera kingdom", "Sangam age and literature",
+                                       "Kalabhras and Bhakti period in Tamil Nadu", "Nayaks of Madurai and Thanjavur", "Tamil Nadu freedom fighters",
+                                       "Dravidian movement and social reformers", "Tamil Nadu temples and architecture", "Tamil Nadu folk arts and festivals"],
+    "Geography": ["Major rivers of India: Himalayan rivers", "Peninsular rivers of India", "Rivers of Tamil Nadu", "Monsoon and climate of India",
+                  "Soils of India", "Mountains and plateaus of India", "Tamil Nadu: physical features and districts", "Natural vegetation and forests of India",
+                  "Minerals and power resources", "Agriculture and major crops of India", "Ports and transport of India", "Earth: latitudes, longitudes and time"],
+    "General Science": ["Newton's laws of motion", "Light: reflection and refraction", "Electricity basics", "Human digestive system",
+                        "Vitamins and deficiency diseases", "Blood and circulatory system", "Acids, bases and salts", "Metals and non-metals",
+                        "Cell: the unit of life", "Plant nutrition and photosynthesis", "Space technology and ISRO missions", "Diseases and vaccines",
+                        "Environment and ecosystem", "Energy sources: renewable and non-renewable"],
+    "Indian Economy": ["GDP, GNP and national income", "Inflation and its types", "Reserve Bank of India and monetary policy", "Banking in India",
+                       "Budget and fiscal policy", "GST and indirect taxes", "Five Year Plans and NITI Aayog", "Poverty and unemployment",
+                       "Tamil Nadu economy and industries", "Agriculture schemes and MSP"],
+    "Tamil Nadu Administration and Welfare": ["Tamil Nadu government departments and schemes", "Local bodies in Tamil Nadu", "Tamil Nadu welfare boards",
+                                              "Tamil Nadu Public Service Commission", "Tamil Nadu legislative assembly", "Social justice in Tamil Nadu: reservation"],
+}
+
+
+def lesson_topic(slot, hist):
+    """The syllabus topic for this lesson slot today: rotates through the subjects, skips topics taught recently."""
+    subjects = list(SYLLABUS)
+    flat = []
+    for i in range(max(len(v) for v in SYLLABUS.values())):
+        for sub in subjects:
+            if i < len(SYLLABUS[sub]):
+                flat.append((sub, SYLLABUS[sub][i]))
+    doy = dt.datetime.now(IST).timetuple().tm_yday
+    start = (doy * 2 + (slot - 6)) % len(flat)
+    taught = set(hist.get("lessons", [])[-len(flat) + 2:])
+    for k in range(len(flat)):
+        sub, top = flat[(start + k) % len(flat)]
+        if top not in taught:
+            return sub, top
+    return flat[start]
+
+
+def lesson_notes(subject, topic):
+    """Reference notes for a syllabus lesson: Gemini with Google Search (free tier); Tavily search as the fallback."""
+    key = (os.environ.get("GEMINI_API_KEY") or "").strip()
+    q = (f"TNPSC Group 1 / Group 2 / Group 4 exam topic: '{topic}' (subject: {subject}). Search the web (official sources, NCERT / "
+         f"Tamil Nadu textbooks, Government of India or Tamil Nadu sites) and write a precise reference note in English, under 350 words: "
+         f"the 8 most exam-relevant facts about this topic with exact names, numbers, years and article / section numbers where they apply, "
+         f"in a sensible teaching order, plus 2 facts that exam questions commonly ask. Do not invent anything.")
+    if key:
+        model = (os.environ.get("GEMINI_TEXT_MODEL") or "").strip() or _gemini_text_model(key) or "gemini-2.5-flash"
+        try:
+            r = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+                              headers={"x-goog-api-key": key, "Content-Type": "application/json"},
+                              json={"contents": [{"parts": [{"text": q}]}], "tools": [{"google_search": {}}]}, timeout=150)
+            if r.status_code == 200:
+                text = " ".join(p.get("text", "") for p in r.json()["candidates"][0]["content"]["parts"]).strip()
+                if len(text) > 300:
+                    log(f"lesson notes from Gemini search ({len(text)} chars)")
+                    return "- " + " ".join(text.split())[:3800] + " (Gemini web search)", ["Gemini web search"]
+            else:
+                log(f"lesson research skipped (Gemini {model} HTTP {r.status_code}): {' '.join(r.text.split())[:200]}")
+        except Exception as e:
+            log(f"lesson research skipped ({e})")
+    try:   # fallback: Tavily general search
+        r = requests.post("https://api.tavily.com/search", headers={"Authorization": f"Bearer {env('TAVILY_API_KEY')}"},
+                          json={"query": f"{topic} {subject} TNPSC notes", "max_results": 6}, timeout=60)
+        r.raise_for_status()
+        items = r.json().get("results", [])
+        hosts = list(dict.fromkeys(urllib.parse.urlparse(x["url"]).netloc.replace("www.", "") for x in items))
+        notes = "\n".join(f"- {x.get('title', '')}: {(x.get('content') or '')[:600]}" for x in items)
+        if len(notes) > 400:
+            log(f"lesson notes from Tavily search ({len(notes)} chars)")
+            return notes, hosts[:4]
+    except Exception as e:
+        log(f"lesson search failed: {e}")
+    sys.exit("Could not collect reliable notes for the lesson; stopping instead of inventing facts.")
 APTITUDE_TOPICS = [
     "Percentage shortcuts", "Ratio and proportion", "Time and work", "Speed, time and distance",
     "Simple interest", "Compound interest shortcut", "Average", "Profit and loss", "HCF and LCM",
@@ -377,7 +466,7 @@ abbreviations (TNPSC, GST, RBI) in English capital letters; use short sentences 
 NEWS_SAY = ("say_hook", "say_f1", "say_f2", "say_f3", "say_f4", "say_f5", "say_outro")
 
 
-def write_news_cards_script(notes, today, focus="", part=1, total=1, avoid=""):
+def write_news_cards_script(notes, today, focus="", part=1, total=1, avoid="", lesson=False):
     """Current-affairs script for the news-card video: the voice is written in PARTS (hook, fact 1-5, outro) so each card appears exactly when its part starts. Raises (or exits) if the LLM cannot produce it."""
     prompt = f"""You write 45-second YouTube Shorts for TNPSC aspirants in simple spoken TAMIL. Date: {today}.
 Use ONLY facts that appear in these news notes. Do not add facts, numbers or dates from memory:
@@ -410,6 +499,14 @@ All the spoken parts together must be 90-115 Tamil words.
 Language rules for the spoken parts (they are read by a Tamil text-to-speech voice): write in Tamil script; everyday English words that Tamil speakers normally use (bank, online, mobile, budget, school) are written in Tamil letters; a name, scheme name, abbreviation or technical term with no good Tamil form stays in English letters exactly as in the news (never invent a Tamil translation for it, the program makes the voice say it correctly); write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; keep
 abbreviations (TNPSC, GST, RBI) in English capital letters; use short sentences of at most
 12 words, a comma wherever a speaker would pause, and avoid very long compound words."""
+    if lesson:   # a syllabus lesson, not news: same card layout, teaching wording
+        for old, new in (("Use ONLY facts that appear in these news notes", "Use ONLY facts that appear in these reference notes"),
+                         ("This is video {part} of {total} today, so cover ONLY this theme: {focus}. Pick the 5 most exam-relevant facts for that theme.".format(part=part, total=total, focus=focus),
+                          f"This is a CLASS on one TNPSC Group 1 / 2 / 4 syllabus topic: {focus}. Teach the 5 most exam-relevant points of this topic in a logical teaching order, "
+                          "from the basic idea to the facts the exam asks (names, numbers, years, article numbers). Each card is one teaching point."),
+                         ("follow for daily current affairs", "follow for daily TNPSC lessons")):
+            assert old in prompt, old[:40]
+            prompt = prompt.replace(old, new)
     hint = ""
     for attempt in range(5):
         d = llm_json(prompt + avoid + hint)
@@ -1455,10 +1552,18 @@ def make_one(slot, today, stamp, upload_it, hist):
     manim_mode = False
     cards_mode = False
 
-    if kind == "news":
-        log(f"[slot {slot}] {name}: searching news")
-        got = site_notes(slot, dt.datetime.now(IST))   # main source: the website's daily PDFs; Tavily search is the fallback
-        notes, hosts, urls = got if got else search_news(queries, hist.get("urls", []))
+    lesson_topic_name = ""
+    if kind in ("news", "lesson"):
+        if kind == "lesson":
+            subject, lesson_topic_name = lesson_topic(slot, hist)
+            focus = f"{subject}: {lesson_topic_name}"
+            log(f"[slot {slot}] {name}: {focus}")
+            notes, hosts = lesson_notes(subject, lesson_topic_name)
+            urls = []
+        else:
+            log(f"[slot {slot}] {name}: searching news")
+            got = site_notes(slot, dt.datetime.now(IST))   # main source: the website's daily PDFs; Tavily search is the fallback
+            notes, hosts, urls = got if got else search_news(queries, hist.get("urls", []))
         (OUT / f"notes-{tag}.txt").write_text(notes, encoding="utf-8")
         # step 1 of the Tamil quality layer: any-language news -> clean English facts, THEN write Tamil from them
         log(f"[slot {slot}] cleaning the news into English facts")
@@ -1466,24 +1571,28 @@ def make_one(slot, today, stamp, upload_it, hist):
         (OUT / f"facts-{tag}.txt").write_text(notes, encoding="utf-8")
         log(f"[slot {slot}] writing Tamil script")
         # news slots use the HTML news-card video (set repo variable CARDS_SLOTS=none to switch it off, default 1,2,4)
-        card_slots = [x.strip() for x in (os.environ.get("CARDS_SLOTS") or "1,2,4").split(",")]
+        card_slots = [x.strip() for x in (os.environ.get("CARDS_SLOTS") or "1,2,4,6,7").split(",")]
         s = None
         extra = [""]   # facts a draft repeated, added to the instructions of the next draft
-        if str(slot) in card_slots:
+        if str(slot) in card_slots or (kind == "lesson" and "none" not in card_slots):   # lessons always use the card layout
             try:
-                s = write_news_cards_script(notes, today, focus, slot, 5, avoid_text(hist) + extra[0])
+                s = write_news_cards_script(notes, today, focus, slot, 5, avoid_text(hist) + extra[0], lesson=(kind == "lesson"))
                 cards_mode = True
             except (Exception, SystemExit) as e:
                 log(f"[slot {slot}] news-card script failed, using the normal script: {e}")
         if s is None:
             s = write_script(notes, today, focus, slot, 5, avoid_text(hist) + extra[0])
         if cards_mode:
-            rewrite = lambda: write_news_cards_script(notes, today, focus, slot, 5, avoid_text(hist) + extra[0])
+            rewrite = lambda: write_news_cards_script(notes, today, focus, slot, 5, avoid_text(hist) + extra[0], lesson=(kind == "lesson"))
         else:
             rewrite = lambda: write_script(notes, today, focus, slot, 5, avoid_text(hist) + extra[0])
         s = no_repeats(s, hist, rewrite, extra)
-        head2, head3, hashtags = "CURRENT AFFAIRS", "நடப்பு நிகழ்வுகள்", "#TNPSC #CurrentAffairs #Shorts"
-        pre, post = "Sources: " + ", ".join(hosts), "AI-assisted video. Verify facts with official sources."
+        if kind == "lesson":
+            head2, head3, hashtags = "TNPSC LESSON", "பாடம் - " + focus.split(":")[0], "#TNPSC #Group1 #Group2 #Group4 #Shorts"
+            pre, post = "Topic: " + focus, "AI-assisted lesson. Verify facts with standard textbooks and official sources."
+        else:
+            head2, head3, hashtags = "CURRENT AFFAIRS", "நடப்பு நிகழ்வுகள்", "#TNPSC #CurrentAffairs #Shorts"
+            pre, post = "Sources: " + ", ".join(hosts), "AI-assisted video. Verify facts with official sources."
     else:
         doy = dt.datetime.now(IST).timetuple().tm_yday
         topic = APTITUDE_TOPICS[(doy * 2 + (0 if slot == 3 else 1)) % len(APTITUDE_TOPICS)]
@@ -1502,14 +1611,14 @@ def make_one(slot, today, stamp, upload_it, hist):
         pre, post = "Topic: " + topic, "AI-assisted video. Practise the method on your own."
     # step 3 of the Tamil quality layer: remove foreign letters, review the Tamil against the English facts, hard check
     (OUT / f"script-{tag}-draft.json").write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
-    tq_kind = ("cards" if cards_mode else "script") if kind == "news" else ("manim" if manim_mode else "apt")
+    tq_kind = ("cards" if cards_mode else "script") if kind in ("news", "lesson") else ("manim" if manim_mode else "apt")
     log(f"[slot {slot}] checking the Tamil")
     try:
-        s = tq.finalize(s, tq_kind, notes if kind == "news" else "", llm_json, log)
+        s = tq.finalize(s, tq_kind, notes if kind in ("news", "lesson") else "", llm_json, log)
     except SystemExit as e:   # the Tamil was unusable: write the whole script once more before giving up
         log(f"[slot {slot}] {e}; writing the script again")
         s = rewrite()
-        s = tq.finalize(s, tq_kind, notes if kind == "news" else "", llm_json, log)
+        s = tq.finalize(s, tq_kind, notes if kind in ("news", "lesson") else "", llm_json, log)
     log(f"[slot {slot}] preparing the text for the voice")
     s = tq.voice_prep(s, tq_kind, llm_json, log)   # AI rewrite for pronunciation; captions keep the original text
     (OUT / f"script-{tag}.json").write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -1583,6 +1692,9 @@ def make_one(slot, today, stamp, upload_it, hist):
         hist.setdefault("urls", []).extend(urls)
         hist.setdefault("titles", []).append(f"{name}: {s['title']}")
         hist.setdefault("facts", []).extend(fact_lines(s))
+        if lesson_topic_name:
+            hist.setdefault("lessons", []).append(lesson_topic_name)
+            hist["lessons"] = hist["lessons"][-200:]
         save_history(hist)
 
 
@@ -1594,8 +1706,7 @@ def pick_slots():
         return [int(v)]
     # no slot given: choose by the IST clock (8, 10:30, 13, 15:30, 18)
     h = dt.datetime.now(IST).hour + dt.datetime.now(IST).minute / 60
-    starts = {1: 8.0, 2: 10.5, 3: 13.0, 4: 15.5, 5: 18.0}
-    return [min(starts, key=lambda k: abs(starts[k] - h))]
+    return [min(START_TIMES, key=lambda k: abs(START_TIMES[k] - h))]
 
 
 def main():

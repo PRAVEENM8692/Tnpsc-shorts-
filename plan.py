@@ -1,4 +1,4 @@
-"""Decides which video (slot 1-5) this run should build. Standard library only, so it runs in seconds.
+"""Decides which video (slot 1-7) this run should build. Standard library only, so it runs in seconds.
 
 The workflow wakes up every 30 minutes. A slot is DUE once its start time (IST) has passed, and is skipped if
 it was already published today or has failed 3 times. So a late or skipped GitHub schedule is caught up on the
@@ -8,8 +8,8 @@ import json
 import os
 from zoneinfo import ZoneInfo
 
-START = {1: 8.0, 2: 10.5, 3: 13.0, 4: 15.5, 5: 18.0}   # IST hours
-LAST_HOUR = 22.0
+START = {1: 8.0, 2: 10.5, 3: 13.0, 4: 15.5, 5: 18.0, 6: 19.5, 7: 21.0}   # IST hours
+LAST_HOUR = 22.75
 
 now = dt.datetime.now(ZoneInfo("Asia/Kolkata"))
 h = now.hour + now.minute / 60
