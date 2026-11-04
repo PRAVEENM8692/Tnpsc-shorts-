@@ -507,6 +507,10 @@ abbreviations (TNPSC, GST, RBI) in English capital letters; use short sentences 
                          ("follow for daily current affairs", "follow for daily TNPSC lessons")):
             assert old in prompt, old[:40]
             prompt = prompt.replace(old, new)
+        prompt += ("\n\nLANGUAGE OF A LESSON (very important): the reference notes are in English, but you TEACH IN TAMIL. Every spoken part must be "
+                   "full Tamil sentences with at least 80% Tamil words. Explain every idea in Tamil. Write English subject words in Tamil letters "
+                   "(கலெக்டர், ஹரப்பா நாகரிகம், பிரசிடென்ட், கவர்னர், பார்லிமென்ட், ஆர்ட்டிகிள் 74). Keep Latin letters only for official abbreviations "
+                   "(CVC, CBI, CAG, GST, RBI) and use digits for numbers and years. Never leave a whole sentence in English.")
     hint = ""
     for attempt in range(5):
         d = llm_json(prompt + avoid + hint)
