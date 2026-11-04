@@ -1617,12 +1617,18 @@ def make_one(slot, today, stamp, upload_it, hist):
     (OUT / f"script-{tag}-draft.json").write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
     tq_kind = ("cards" if cards_mode else "script") if kind in ("news", "lesson") else ("manim" if manim_mode else "apt")
     log(f"[slot {slot}] checking the Tamil")
-    try:
-        s = tq.finalize(s, tq_kind, notes if kind in ("news", "lesson") else "", llm_json, log)
-    except SystemExit as e:   # the Tamil was unusable: write the whole script once more before giving up
-        log(f"[slot {slot}] {e}; writing the script again")
-        s = rewrite()
-        s = tq.finalize(s, tq_kind, notes if kind in ("news", "lesson") else "", llm_json, log)
+    for attempt in range(3):   # the Tamil was unusable: write the whole script again (up to 2 times) before giving up
+        try:
+            s = tq.finalize(s, tq_kind, notes if kind in ("news", "lesson") else "", llm_json, log)
+            break
+        except SystemExit as e:
+            if attempt == 2:
+                raise
+            log(f"[slot {slot}] {e}; writing the script again ({attempt + 1}/2)")
+            if not manim_mode:   # (the animated aptitude script has its own fixed wording)
+                extra[0] += ("\n\nYour last draft was rejected because these spoken parts were not in Tamil: " + str(e)[-200:]
+                             + ". Write EVERY spoken part (say_hook, say_f1 ... say_outro) as full Tamil sentences; English terms in Tamil letters.")
+            s = rewrite()
     log(f"[slot {slot}] preparing the text for the voice")
     s = tq.voice_prep(s, tq_kind, llm_json, log)   # AI rewrite for pronunciation; captions keep the original text
     (OUT / f"script-{tag}.json").write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
