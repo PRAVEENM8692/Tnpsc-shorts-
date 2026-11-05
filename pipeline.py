@@ -369,6 +369,19 @@ def pick_model(base, headers):
     sys.exit("No usable chat model found on the LLM provider.")
 
 
+def next_model(base, headers, bad):
+    """Another chat model of the same provider that has not hit its limit yet (each model has its own free quota); None if there is none."""
+    r = requests.get(base + "/models", headers=headers, timeout=60)
+    r.raise_for_status()
+    ids = [m["id"] for m in r.json().get("data", []) if m.get("active", True)]
+    ids = [i for i in ids if not any(b_ in i.lower() for b_ in ("whisper", "guard", "tts", "orpheus", "embed", "safeguard"))]
+    for pref in ("gpt-oss-120b", "llama-3.3-70b", "llama-4-maverick", "qwen", "kimi", "llama-4-scout", "gpt-oss-20b", "llama-3.1-8b"):
+        for i in ids:
+            if pref in i.lower() and i not in bad:
+                return i
+    return None
+
+
 def llm_json(prompt, model=None, temperature=0.5, effort="low"):
     """model: use this model for this one call (for example LLM_MODEL_TA for translation review).
     temperature: lower = more careful (translation / review use 0.2). effort: 'low' or 'medium' (reasoning models)."""
@@ -398,10 +411,27 @@ def llm_json(prompt, model=None, temperature=0.5, effort="low"):
             r = call()
         if r.status_code == 400:
             r = call(json_mode=False)
-    for attempt in range(4):
-        if r.status_code == 429:  # free-tier rate limit: wait and retry
-            log("LLM rate limited; waiting 30s")
-            time.sleep(30)
+    for attempt in range(8):
+        if r.status_code == 429:  # free-tier rate limit
+            try:
+                wait = float(r.headers.get("retry-after") or 30)
+            except ValueError:
+                wait = 30.0
+            log(f"LLM rate limited ({' '.join(r.text.split())[:200]}); retry-after {wait:.0f}s")
+            if wait > 60 or attempt >= 2:   # a long wait means this model's quota is used up: switch to another model of the same provider
+                _MODEL.setdefault("bad", set()).add(use["name"])
+                try:
+                    nxt = next_model(base, headers, _MODEL["bad"])
+                except Exception:
+                    nxt = None
+                if nxt:
+                    log(f"switching the LLM model from {use['name']} to {nxt}")
+                    use["name"] = nxt
+                    if not model:
+                        _MODEL["name"] = nxt
+                    r = call()
+                    continue
+            time.sleep(min(wait, 60) + 1)
             r = call()
             continue
         if r.status_code == 400:
@@ -421,7 +451,7 @@ def llm_json(prompt, model=None, temperature=0.5, effort="low"):
         log(f"LLM returned no valid JSON (attempt {attempt + 1}); retrying")
         time.sleep(5)
         r = call()
-    sys.exit("LLM kept returning invalid JSON.")
+    sys.exit(f"LLM unavailable: last answer was HTTP {r.status_code} {' '.join(r.text.split())[:200]}" if not r.ok else "LLM kept returning invalid JSON.")
 
 
 def write_script(notes, today, focus="", part=1, total=1, avoid=""):
