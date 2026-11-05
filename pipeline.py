@@ -375,7 +375,7 @@ def next_model(base, headers, bad):
     r.raise_for_status()
     ids = [m["id"] for m in r.json().get("data", []) if m.get("active", True)]
     ids = [i for i in ids if not any(b_ in i.lower() for b_ in ("whisper", "guard", "tts", "orpheus", "embed", "safeguard"))]
-    for pref in ("gpt-oss-120b", "llama-3.3-70b", "llama-4-maverick", "qwen", "kimi", "llama-4-scout", "gpt-oss-20b", "llama-3.1-8b"):
+    for pref in ("gpt-oss-120b", "llama-3.3-70b", "gpt-oss-20b", "llama-4-maverick", "llama-4-scout", "kimi", "qwen", "llama-3.1-8b"):
         for i in ids:
             if pref in i.lower() and i not in bad:
                 return i
@@ -586,7 +586,10 @@ def safe_eval(expr):
         if isinstance(n, ast.UnaryOp) and type(n.op) in ops:
             return ops[type(n.op)](ev(n.operand))
         raise ValueError("unsupported expression")
-    return ev(ast.parse(str(expr), mode="eval"))
+    t = str(expr).replace("×", "*").replace("÷", "/").replace("^", "**").replace("−", "-").replace("–", "-").replace("₹", "").replace(",", "")
+    t = re.sub(r"(\d+(?:\.\d+)?)\s*%", r"(\1/100)", t)     # 20% -> (20/100)
+    t = re.sub(r"(?<=\d)\s*[xX]\s*(?=\d)", "*", t)           # 5 x 4 -> 5*4
+    return ev(ast.parse(t.strip(), mode="eval"))
 
 
 def _gemini_text_model(key):
