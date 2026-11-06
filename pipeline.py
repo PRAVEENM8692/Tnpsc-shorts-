@@ -382,6 +382,33 @@ def next_model(base, headers, bad):
     return None
 
 
+def gemini_json(prompt, temperature=0.5):
+    """The same job on Gemini (free tier, good Tamil): the back-up when the Groq quota of the day is used up. None if it cannot answer."""
+    key = (os.environ.get("GEMINI_API_KEY") or "").strip()
+    if not key:
+        return None
+    model = (os.environ.get("GEMINI_TEXT_MODEL") or "").strip() or _gemini_text_model(key) or "gemini-2.5-flash"
+    for attempt in range(2):
+        try:
+            r = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+                              headers={"x-goog-api-key": key, "Content-Type": "application/json"},
+                              json={"contents": [{"parts": [{"text": prompt}]}],
+                                    "generationConfig": {"temperature": temperature, "responseMimeType": "application/json"}}, timeout=180)
+            if r.status_code == 429 and attempt == 0:
+                time.sleep(20)
+                continue
+            if r.status_code != 200:
+                log(f"Gemini back-up failed: HTTP {r.status_code} {' '.join(r.text.split())[:160]}")
+                return None
+            txt = "".join(p_.get("text", "") for p_ in r.json()["candidates"][0]["content"]["parts"])
+            a, b = txt.find("{"), txt.rfind("}")
+            return json.loads(txt[a:b + 1])
+        except Exception as e:
+            log(f"Gemini back-up failed: {e}")
+            return None
+    return None
+
+
 def llm_json(prompt, model=None, temperature=0.5, effort="low"):
     """model: use this model for this one call (for example LLM_MODEL_TA for translation review).
     temperature: lower = more careful (translation / review use 0.2). effort: 'low' or 'medium' (reasoning models)."""
@@ -394,7 +421,7 @@ def llm_json(prompt, model=None, temperature=0.5, effort="low"):
 
     def call(json_mode=True):
         payload = {"model": use["name"], "messages": [{"role": "user", "content": prompt}],
-                   "temperature": temperature, "max_tokens": 6000 if effort == "low" else 9000}
+                   "temperature": temperature, "max_tokens": 3500 if effort == "low" else 6000}
         if "gpt-oss" in use["name"]:
             payload["reasoning_effort"] = effort  # reasoning models can use up the budget and return nothing
         if json_mode:
@@ -412,6 +439,11 @@ def llm_json(prompt, model=None, temperature=0.5, effort="low"):
         if r.status_code == 400:
             r = call(json_mode=False)
     for attempt in range(8):
+        if r.status_code == 413 or (r.status_code == 429 and "tokens per day" in r.text):   # too big for this model / its quota of the day is gone
+            d = gemini_json(prompt, temperature)
+            if d:
+                log("answered by the Gemini back-up")
+                return d
         if r.status_code == 429:  # free-tier rate limit
             try:
                 wait = float(r.headers.get("retry-after") or 30)
