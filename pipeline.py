@@ -59,7 +59,7 @@ def save_history(h):
 
 def avoid_text(h, n=25):
     t = h.get("titles", [])[-n:]
-    f = h.get("facts", [])[-80:]
+    f = [x[:120] for x in h.get("facts", [])[-40:]]
     if not t and not f:
         return ""
     out = ""
@@ -84,7 +84,7 @@ def fact_lines(s):
 
 def find_repeats(s, hist):
     """Facts of the new script that were already told earlier (same event, even if worded differently). [] if none / if the check fails."""
-    old = hist.get("facts", [])[-150:]
+    old = [x[:110] for x in hist.get("facts", [])[-70:]]
     new = fact_lines(s)
     if not old or not new:
         return []
@@ -304,7 +304,7 @@ def site_notes(slot, today_dt):
             if len(part) < 500:
                 part = re.sub(r"\n{2,}", "\n", text)   # headings not recognised: use the whole day
             name = urllib.parse.unquote(u.rsplit("/", 1)[-1])
-            chunks.append(f"- ({name}): " + re.sub(r"\s+", " ", part)[:4000])
+            chunks.append(f"- ({name}): " + re.sub(r"\s+", " ", part)[:2600])
         notes = "\n".join(chunks)
         if len(notes) < 800:
             log("website text too short; using news search instead")
@@ -708,7 +708,11 @@ TEACH_NEWS = ("Teaching method (like a good school teacher): for each fact say W
               "it matters or how TNPSC may ask it (for example 'தேர்வில் இதை கேட்பாங்க'); group related facts so they are easy to remember; "
               "a number, a name or a place is repeated once so it sticks. Keep every spoken part within its sentence limit.")
 CASUAL_APT = CASUAL_TAMIL + "\n" + TEACH_APT + "\n" + tq.APT_RULES
-CASUAL_NEWS = CASUAL_TAMIL + "\n" + TEACH_NEWS
+TAMIL_ONLY = ("LANGUAGE (very important): the source notes are in English, but you speak TAMIL. Every spoken part must be full Tamil sentences "
+              "with at least 80% Tamil words: explain everything in Tamil and write English words in Tamil letters (கவர்னர், பார்லிமென்ட், பட்ஜெட், "
+              "ஏற்றுமதி). Keep Latin letters only for official abbreviations (RBI, GDP, ISRO, GST) and use digits for numbers. Never leave a whole "
+              "sentence in English.")
+CASUAL_NEWS = CASUAL_TAMIL + "\n" + TEACH_NEWS + "\n" + TAMIL_ONLY
 
 SAY_KEYS = ("say_hook", "say_question", "say_step1", "say_step2", "say_step3", "say_answer", "say_tip", "say_outro")
 FALLBACK_SCENES = ["a notebook and pencil on a wooden study desk, warm light", "an old analog clock on a study table",
