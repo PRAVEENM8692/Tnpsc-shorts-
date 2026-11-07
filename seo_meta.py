@@ -41,7 +41,7 @@ def make_title(raw, kind):
     t = re.sub(r"#\w+", "", t)
     t = re.sub(r"^[^\w஀-௿]+", "", t)       # an old emoji / mark at the front
     t = re.sub(r"(?:\s+(?:TNPSC|aptitude|\d+))+\s*$", "", t, flags=re.I).strip() or t   # leftover tail such as 'TNPSC aptitude 45'
-    t = _cut(t, 62)
+    t = _cut(t, 62).rstrip(" |–—-:,")
     return f"{ICON.get(kind, '📰')} {t} #Shorts"
 
 
