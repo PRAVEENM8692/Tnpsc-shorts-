@@ -450,7 +450,14 @@ def llm_json(prompt, model=None, temperature=0.5, effort="low"):
             except ValueError:
                 wait = 30.0
             log(f"LLM rate limited ({' '.join(r.text.split())[:200]}); retry-after {wait:.0f}s")
-            if wait > 60 or attempt >= 2:   # a long wait means this model's quota is used up: switch to another model of the same provider
+            if attempt >= 4:   # still limited after several waits: let Gemini (good Tamil) answer before any weaker model does
+                d = gemini_json(prompt, temperature)
+                if d:
+                    log("answered by the Gemini back-up")
+                    return d
+            # only a LONG wait means this model's quota of the day is used up: then switch to another model of the same provider.
+            # A short per-minute limit is just waited out (the smaller models write Tamil that fails the Tamil check).
+            if wait > 60:
                 _MODEL.setdefault("bad", set()).add(use["name"])
                 try:
                     nxt = next_model(base, headers, _MODEL["bad"])
