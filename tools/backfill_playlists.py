@@ -106,8 +106,7 @@ def main():
                         "status": {"privacyStatus": "public"}}).execute()["id"]
                     members[name] = set()
                     P.log(f"playlist created: {name}")
-                yt.playlistItems().insert(part="snippet", body={"snippet": {
-                    "playlistId": mine[name], "resourceId": {"kind": "youtube#video", "videoId": v["id"]}}}).execute()
+                P.playlist_insert(yt, mine[name], v["id"])
                 members[name].add(v["id"])
                 adds += 1
                 P.log(f"added '{v['snippet']['title'][:40]}' -> {name}")
