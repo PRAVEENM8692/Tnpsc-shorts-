@@ -1,0 +1,31 @@
+name: add-existing-videos-to-playlists
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_adds:
+        description: "How many playlist additions in this run (50 YouTube quota units each; the daily quota is 10,000)"
+        default: "90"
+
+permissions:
+  contents: read
+
+jobs:
+  playlists:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python tools/backfill_playlists.py
+        env:
+          MAX_ADDS: ${{ github.event.inputs.max_adds }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          TAVILY_API_KEY: "unused"
+          LLM_API_KEY: "unused"
