@@ -101,9 +101,7 @@ def main():
                     P.log(f"stopped after {adds} additions (daily API quota); run again tomorrow to continue")
                     return
                 if name not in mine:
-                    mine[name] = yt.playlists().insert(part="snippet,status", body={
-                        "snippet": {"title": name[:150], "description": "TNPSC Group 1, 2, 4 - தமிழில் தினசரி Shorts", "defaultLanguage": "ta"},
-                        "status": {"privacyStatus": "public"}}).execute()["id"]
+                    mine[name] = P.playlist_create(yt, name)
                     members[name] = set()
                     P.log(f"playlist created: {name}")
                 P.playlist_insert(yt, mine[name], v["id"])

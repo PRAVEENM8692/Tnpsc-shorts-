@@ -1640,6 +1640,22 @@ def playlists_for(kind, slot, focus, topic):
     return [f"Aptitude - {topic}" if topic else "Aptitude", "Aptitude Shortcuts - அனைத்தும்"]
 
 
+def playlist_create(yt, name):
+    """Creates a playlist; YouTube limits how fast playlists may be created (429 RATE_LIMIT_EXCEEDED), so wait and try again."""
+    from googleapiclient.errors import HttpError
+    for wait in (30, 60, 90, 0):
+        try:
+            return yt.playlists().insert(part="snippet,status", body={
+                "snippet": {"title": name[:150], "description": "TNPSC Group 1, 2, 4 - தமிழில் தினசரி Shorts", "defaultLanguage": "ta"},
+                "status": {"privacyStatus": "public"}}).execute()["id"]
+        except HttpError as e:
+            if e.resp.status in (409, 429, 500, 503) and wait:
+                log(f"playlist creation limited by YouTube; waiting {wait}s")
+                time.sleep(wait)
+                continue
+            raise
+
+
 def playlist_insert(yt, playlist_id, video_id):
     """playlistItems.insert with retries: YouTube answers 409 'operation was aborted' (or 5xx) now and then, especially right after
     a playlist was created."""
@@ -1675,9 +1691,7 @@ def add_to_playlists(video_id, names):
         for name in names:
             pid = mine.get(name)
             if not pid:
-                pid = yt.playlists().insert(part="snippet,status", body={
-                    "snippet": {"title": name[:150], "description": "TNPSC Group 1, 2, 4 - தமிழில் தினசரி Shorts", "defaultLanguage": "ta"},
-                    "status": {"privacyStatus": "public"}}).execute()["id"]
+                pid = playlist_create(yt, name)
                 log(f"playlist created: {name}")
             playlist_insert(yt, pid, video_id)
             log(f"added to playlist: {name}")
