@@ -92,6 +92,19 @@ def news():
         return []
 
 
+# Only IMPORTANT items go to the Telegram channel: new notifications, results, hall tickets, exam dates / schedule changes,
+# syllabus / scheme changes, amendments, corrigenda, answer keys, certificate verification / counselling lists.
+IMPORTANT = re.compile(r"(new|change of|changed|revised) date|date of (the )?(written )?exam|press release|notification|recruitment 20\d\d|result|hall ticket|admit card|exam(ination)? date|time ?table|schedule|"
+                       r"postpone|reschedul|re-?exam|syllabus|scheme of exam|amend|corrigendum|addendum|supplement|"
+                       r"answer key|certificate verification|counselling|cut.?off|final selection|rank list|vacancies (increased|announced)", re.I)
+UNIMPORTANT = re.compile(r"instruction|guideline|requisition|question paper|previous year|memo\b|faq|service rules|"
+                         r"how to|mock test|study material|admission|apply online guide|list of ", re.I)
+
+
+def important(title):
+    return bool(IMPORTANT.search(title or "")) and not UNIMPORTANT.search(title or "")
+
+
 def header(title):
     for rx, h in HEADER:
         if rx.search(title):
@@ -146,6 +159,12 @@ def main():
     post = not dry and token and chat and (not first or os.environ.get("SEED_POST") == "1")
     done = 0
     for t, u, h, k in new:
+        if not important(t):   # minor items are only remembered (never posted, never looked at again)
+            if dry:
+                log(f"(dry run) skipped, not important: {t[:80]}")
+            seen.append(k)
+            seen_titles.append(tokens(t))
+            continue
         if post and done < limit:
             msg = (f"{header(t)}\n\n{t}\n\n🔗 {u}\n🌐 {h}\n\n📺 தினமும் TNPSC Shorts: YouTube-ல் SUBSCRIBE செய்யுங்கள்.\n#TNPSC #Group4 #Group2 #Group1")
             r = requests.post(f"https://api.telegram.org/bot{token}/sendMessage", data={"chat_id": chat, "text": msg[:4000]}, timeout=60)
