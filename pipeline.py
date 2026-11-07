@@ -1582,7 +1582,7 @@ class UploadLimit(Exception):
     """YouTube refused the upload because the channel reached its upload limit (it resets by itself later)."""
 
 
-def upload(video, title, description, tags):
+def upload(video, title, description, tags, thumb=None):
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
     from googleapiclient.http import MediaFileUpload
@@ -1613,6 +1613,13 @@ def upload(video, title, description, tags):
             raise UploadLimit(str(e)[:200]) from e
         raise
     log(f"uploaded: https://youtube.com/watch?v={resp['id']} (privacy: {body['status']['privacyStatus']})")
+    if thumb:
+        try:
+            import seo_meta
+            if seo_meta.set_thumbnail(yt, resp["id"], thumb):
+                log("custom thumbnail set")
+        except Exception as e:
+            log(f"thumbnail skipped: {e}")
     return resp["id"]
 
 
@@ -1840,9 +1847,23 @@ def make_one(slot, today, stamp, upload_it, hist):
     log(f"[slot {slot}] video ready ({secs:.0f}s): {final}")
 
     if upload_it:
-        desc = s["description"] + f"\n\n{pre}\n{post}\n{hashtags}"
+        try:   # title, description (hook + key points + comment / subscribe call), tags: see seo_meta.py
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            import seo_meta
+            yt_title, desc, yt_tags = seo_meta.new_video_meta(kind, s, focus=focus if kind == "lesson" else "",
+                                                              topic=topic if kind == "aptitude" else "", pre=pre, post=post)
+        except Exception as e:
+            log(f"[slot {slot}] description builder failed, using the plain text: {e}")
+            yt_title, desc, yt_tags = f"{s['title']} #Shorts", s["description"] + f"\n\n{pre}\n{post}\n{hashtags}", [str(t) for t in s["tags"]]
+        thumb = None
+        if (os.environ.get("YT_THUMBNAIL") or "1") != "0":
+            try:
+                import seo_meta
+                thumb = seo_meta.make_thumbnail(s.get("headline") or s.get("screen_question") or s["title"], kind, work / "thumb.jpg")
+            except Exception as e:
+                log(f"[slot {slot}] thumbnail not made: {e}")
         try:
-            vid = upload(final, f"{s['title']} #Shorts", desc, [str(t) for t in s["tags"]])
+            vid = upload(final, yt_title, desc, yt_tags, thumb)
             if vid and (os.environ.get("YT_PLAYLISTS") or "1") != "0":
                 add_to_playlists(vid, playlists_for(kind, slot, focus, topic if kind == "aptitude" else ""))
         except UploadLimit as e:

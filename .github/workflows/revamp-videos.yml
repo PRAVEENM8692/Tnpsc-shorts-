@@ -1,0 +1,41 @@
+name: revamp-existing-videos
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_updates:
+        description: "How many videos to change in this run (50 YouTube quota units each, 100 with thumbnails)"
+        default: "40"
+      with_thumbnails:
+        description: "Also set a new thumbnail (1 = yes, 0 = no)"
+        default: "0"
+      dry_run:
+        description: "1 = only show what would change, change nothing"
+        default: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  revamp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m playwright install --with-deps chromium
+        if: ${{ github.event.inputs.with_thumbnails == '1' }}
+      - run: python tools/revamp_videos.py
+        env:
+          MAX_UPDATES: ${{ github.event.inputs.max_updates }}
+          WITH_THUMBNAILS: ${{ github.event.inputs.with_thumbnails }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          TAVILY_API_KEY: "unused"
+          LLM_API_KEY: "unused"
