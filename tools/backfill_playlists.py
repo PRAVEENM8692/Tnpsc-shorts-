@@ -120,4 +120,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    from googleapiclient.errors import HttpError
+    try:
+        main()
+    except HttpError as e:
+        if e.resp.status in (401, 403):
+            sys.exit("NO PLAYLIST PERMISSION: the YT_REFRESH_TOKEN secret was made with upload permission only (or the daily YouTube "
+                     "quota is used up). Run get_youtube_token.py again on your computer, sign in with the channel account, press Allow, "
+                     "and replace the YT_REFRESH_TOKEN secret with the new value. Then run this workflow again.")
+        raise
