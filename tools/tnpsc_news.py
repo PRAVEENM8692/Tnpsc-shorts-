@@ -57,7 +57,7 @@ def official():
                 log(f"official page {page}: HTTP {r.status_code} (skipped)")
                 continue
             p = Links()
-            p.feed(r.text)
+            p.feed(r.content.decode("utf-8", errors="replace"))   # the site is UTF-8; r.text guessed the wrong coding (garbled Tamil)
             n = 0
             for text, href in p.out:
                 if len(text) >= 22 and href and not href.lower().startswith(("javascript", "mailto", "#")) and KEYS.search(text):
@@ -113,8 +113,10 @@ def same_story(a, b):
 
 
 def norm(u):
+    """The identity of a link: host + path + the query without tracking parts (memo / google-news links differ ONLY by their query)."""
     p = urllib.parse.urlparse(u)
-    return (p.netloc.replace("www.", "") + p.path).rstrip("/").lower()
+    q = "&".join(sorted(x for x in p.query.split("&") if x and not x.lower().startswith(("utm_", "fbclid", "gclid", "ref="))))
+    return (p.netloc.replace("www.", "") + p.path).rstrip("/").lower() + ("?" + q if q else "")
 
 
 def main():
