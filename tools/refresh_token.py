@@ -4,6 +4,7 @@ Step 1 (no input): prints the Google consent link.      Step 2 (input = the addr
 refresh token and stores it straight into the YT_REFRESH_TOKEN secret (needs the ADMIN_PAT secret). The token is never printed.
 """
 import os
+import re
 import subprocess
 import sys
 import urllib.parse
@@ -34,9 +35,11 @@ def main():
             f.write(f"### Step 1\n[Open this Google link]({link})\n\nSign in with the channel account, press **Allow**, then copy the address of "
                     "the page that fails to load and run this workflow again with it in *redirect_url*.\n")
         return
-    code = urllib.parse.parse_qs(urllib.parse.urlparse(given).query).get("code", [""])[0] or (given if "/" not in given and len(given) > 20 else "")
+    m = re.search(r"[?&]code=([^&\s#]+)", given) or re.fullmatch(r"(4/[\w\-./%]+)", given)
+    code = urllib.parse.unquote(m.group(1)) if m else ""
     if not code:
-        sys.exit("No code found: paste the whole address that starts with http://localhost:8080/?code=")
+        sys.exit("No code found: paste the whole address that contains 'code=' (starts with localhost:8080/?...)")
+    print(f"code found: {len(code)} characters, starts with {code[:4]!r} (a good one is about 70-100 characters and starts with '4/0')")
     r = requests.post("https://oauth2.googleapis.com/token", data={"code": code, "client_id": cid, "client_secret": secret,
                       "redirect_uri": REDIRECT, "grant_type": "authorization_code"}, timeout=60)
     if r.status_code != 200:
