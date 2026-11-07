@@ -34,6 +34,7 @@ jobs:
           MAX_UPDATES: ${{ github.event.inputs.max_updates }}
           WITH_THUMBNAILS: ${{ github.event.inputs.with_thumbnails }}
           DRY_RUN: ${{ github.event.inputs.dry_run }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}

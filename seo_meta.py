@@ -20,6 +20,18 @@ HASHTAGS = {"news": "#TNPSC #CurrentAffairs #Group4", "lesson": "#TNPSC #Group4 
 CTA_LINE = {"news": "❓ ", "lesson": "❓ ", "aptitude": "❓ "}
 
 
+def tg_link():
+    """https://t.me/<channel> from the TELEGRAM_CHAT_ID secret when it is an @channelusername, else ''."""
+    import os
+    chat = (os.environ.get("TELEGRAM_CHAT_ID") or "").strip()
+    return f"https://t.me/{chat[1:]}" if chat.startswith("@") and len(chat) > 3 else ""
+
+
+def tg_line():
+    link = tg_link()
+    return f"📲 Telegram channel (வீடியோ + TNPSC அறிவிப்புகள்): {link}" if link else ""
+
+
 def clean(text):
     """Removes letters of foreign scripts (e.g. '45秒' -> '45') and tidies the spaces."""
     t = FOREIGN.sub("", str(text or ""))
@@ -71,7 +83,7 @@ def make_description(kind, hook, points, question="", pre="", post="", topic="",
     q = _cut(clean(question), 120)
     lines.append("💬 " + (f"{q} உங்கள் பதிலை கமெண்ட்டில் சொல்லுங்கள்!" if q else "உங்கள் பதிலை / சந்தேகத்தை கமெண்ட்டில் சொல்லுங்கள், நான் படிக்கிறேன்!"))
     lines += ["🔔 தினமும் TNPSC Group 1, 2, 4 தயாரிப்புக்கு SUBSCRIBE செய்து Bell 🔔 அழுத்துங்கள்.",
-              "📤 உங்கள் TNPSC நண்பர்களுக்கு SHARE செய்யுங்கள்.",
+              "📤 உங்கள் TNPSC நண்பர்களுக்கு SHARE செய்யுங்கள்."] + ([tg_line()] if tg_line() else []) + [
               "▶️ இதே தலைப்பின் மற்ற வீடியோக்கள்: எங்கள் சேனலின் Playlists பகுதியில் பாருங்கள்.",
               "", MARK]
     keys = ", ".join(make_tags(list(extra_tags), kind, topic)[:10])
@@ -102,7 +114,14 @@ def new_video_meta(kind, s, focus="", topic="", pre="", post=""):
 
 def revamp_existing(kind, title, desc):
     """New (title, description) for a video that is already on the channel; the old text is kept inside it."""
-    if MARK in (desc or ""):
+    if MARK in (desc or ""):   # already in the new format: only add the Telegram link if it is missing (no other change)
+        link = tg_link()
+        if link and link not in desc:
+            lines = desc.split("\n")
+            i = next((k for k, x in enumerate(lines) if x.startswith("📤")), None)
+            if i is not None:
+                lines.insert(i + 1, tg_line())
+                return title, "\n".join(lines)
         return None
     body, _, rest = (desc or "").strip().partition("\n\n")
     points = [x.strip(" -•") for x in body.split("\n") if x.strip()]
