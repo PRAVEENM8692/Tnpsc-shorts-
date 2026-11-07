@@ -1,0 +1,29 @@
+name: refresh-youtube-token
+
+on:
+  workflow_dispatch:
+    inputs:
+      redirect_url:
+        description: "Leave EMPTY for step 1 (gives the Google link). For step 2 paste the address of the page that failed to load after Allow."
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  token:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python tools/refresh_token.py
+        env:
+          REDIRECT_URL: ${{ github.event.inputs.redirect_url }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          GH_TOKEN: ${{ secrets.ADMIN_PAT }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
