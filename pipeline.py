@@ -1751,6 +1751,38 @@ def playlist_insert(yt, playlist_id, video_id):
             raise
 
 
+def telegram_post(video_path, video_id, title, hook=""):
+    """Shares the finished video (the file itself plus the YouTube link) in the user's own Telegram channel.
+    Needs the secrets TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID (@channelusername or the numeric id). Never stops the run."""
+    token = (os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip()
+    chat = (os.environ.get("TELEGRAM_CHAT_ID") or "").strip()
+    if not token or not chat:
+        return False
+    try:
+        import seo_meta
+        link = f"https://youtube.com/shorts/{video_id}"
+        head = seo_meta._cut(seo_meta.clean(title).replace("#Shorts", "").strip(), 120)
+        q = seo_meta._cut(seo_meta.clean(hook), 160)
+        cap = f"{head}\n\n" + (f"❓ {q}\n\n" if q else "") + (
+            f"▶️ YouTube-ல் பாருங்கள்: {link}\n💬 உங்கள் பதிலை YouTube கமெண்ட்டில் சொல்லுங்கள்!\n"
+            "🔔 தினமும் TNPSC Shorts-க்கு SUBSCRIBE செய்யுங்கள்.\n\n#TNPSC #Group4 #Group2 #Group1")
+        base = f"https://api.telegram.org/bot{token}"
+        r = None
+        if Path(video_path).stat().st_size < 48 * 1024 * 1024:
+            with open(video_path, "rb") as f:
+                r = requests.post(base + "/sendVideo", data={"chat_id": chat, "caption": cap[:1000], "supports_streaming": "true"},
+                                  files={"video": f}, timeout=180)
+        if r is None or not r.ok:
+            r = requests.post(base + "/sendMessage", data={"chat_id": chat, "text": cap[:4000]}, timeout=60)
+        if r.ok:
+            log("shared in the Telegram channel")
+            return True
+        log(f"TELEGRAM SKIPPED ({r.status_code}): {' '.join(r.text.split())[:160]}")
+    except Exception as e:
+        log(f"TELEGRAM SKIPPED ({str(e)[:160]})")
+    return False
+
+
 def add_to_playlists(video_id, names):
     """Puts the uploaded video into the playlists (created when missing). Never stops the run: if the YouTube login was only
     allowed to upload, it says what to do and the video simply stays without a playlist."""
@@ -1939,6 +1971,8 @@ def make_one(slot, today, stamp, upload_it, hist):
             vid = upload(final, yt_title, desc, yt_tags, thumb)
             if vid and (os.environ.get("YT_PLAYLISTS") or "1") != "0":
                 add_to_playlists(vid, playlists_for(kind, slot, focus, topic if kind == "aptitude" else ""))
+            if vid:
+                telegram_post(final, vid, yt_title, s.get("headline") or s.get("screen_question") or s.get("quiz") or "")
         except UploadLimit as e:
             # not a failure of the video: keep the file (it is in the run's output), do not count a try, and pause the
             # automatic runs for a few hours instead of building the same video again and again

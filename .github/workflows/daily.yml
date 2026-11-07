@@ -73,6 +73,8 @@ jobs:
           LLM_MODEL_TA: ${{ vars.LLM_MODEL_TA }}
           TTS_VOICE: ${{ vars.TTS_VOICE }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           ELEVEN_VOICE_ID: ${{ vars.ELEVEN_VOICE_ID }}
           ELEVEN_SLOTS: ${{ vars.ELEVEN_SLOTS }}
