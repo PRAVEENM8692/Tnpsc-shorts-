@@ -957,10 +957,10 @@ def tts_engine():
 
 def eleven_slot():
     """True when THIS slot should speak with the user's own cloned voice (ElevenLabs). Needs the ELEVENLABS_API_KEY secret.
-    ELEVEN_SLOTS (repo variable, default "7") says which slots; "all" = every slot; "" or "none" = off."""
+    ELEVEN_SLOTS (repo variable, default "1") says which slots; "all" = every slot; "" or "none" = off."""
     if not (os.environ.get("ELEVENLABS_API_KEY") or "").strip():
         return False
-    slots = (os.environ.get("ELEVEN_SLOTS") if os.environ.get("ELEVEN_SLOTS") is not None else "7").strip().lower() or "7"
+    slots = (os.environ.get("ELEVEN_SLOTS") if os.environ.get("ELEVEN_SLOTS") is not None else "1").strip().lower() or "1"
     if slots in ("none", "off", "0"):
         return False
     cur = (os.environ.get("SLOT") or "").strip().lower()
