@@ -1,0 +1,46 @@
+name: tnpsc-news-to-telegram
+
+on:
+  schedule:
+    - cron: "15 1,7,13 * * *"     # about 6:45, 12:45 and 18:45 IST
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "1 = only print what would be posted, 0 = post to the Telegram channel"
+        default: "1"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tnpsc-news
+  cancel-in-progress: false
+
+jobs:
+  news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python tools/tnpsc_news.py
+        env:
+          DRY_RUN: ${{ github.event.inputs.dry_run || '0' }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      - name: Remember what was posted
+        if: always() && github.event.inputs.dry_run != '1'
+        run: |
+          git config user.name "shorts-bot"
+          git config user.email "shorts-bot@users.noreply.github.com"
+          git add tnpsc_news_seen.json || true
+          git diff --cached --quiet && exit 0
+          git commit -m "Update tnpsc_news_seen"
+          for i in 1 2 3 4; do git pull --rebase -q && git push && exit 0; sleep $((i * 5)); done
+          echo "could not save the list of posted news"; exit 1
