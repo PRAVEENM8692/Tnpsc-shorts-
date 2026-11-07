@@ -73,6 +73,11 @@ jobs:
           LLM_MODEL_TA: ${{ vars.LLM_MODEL_TA }}
           TTS_VOICE: ${{ vars.TTS_VOICE }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVEN_VOICE_ID: ${{ vars.ELEVEN_VOICE_ID }}
+          ELEVEN_SLOTS: ${{ vars.ELEVEN_SLOTS }}
+          ELEVEN_MODEL: ${{ vars.ELEVEN_MODEL }}
+          ELEVEN_SPEED: ${{ vars.ELEVEN_SPEED }}
           GEMINI_TTS_MODEL: ${{ vars.GEMINI_TTS_MODEL }}
           GEMINI_VOICE: ${{ vars.GEMINI_VOICE }}
           GEMINI_STYLE: ${{ vars.GEMINI_STYLE }}

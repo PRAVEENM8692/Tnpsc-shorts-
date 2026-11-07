@@ -950,12 +950,76 @@ def tts_engine():
     e = (os.environ.get("TTS_ENGINE") or "").strip().lower()
     if e == "edge":
         return "edge"
+    if e == "eleven" or eleven_slot():
+        return "eleven"
     return "gemini" if (os.environ.get("GEMINI_API_KEY") or "").strip() else "edge"
+
+
+def eleven_slot():
+    """True when THIS slot should speak with the user's own cloned voice (ElevenLabs). Needs the ELEVENLABS_API_KEY secret.
+    ELEVEN_SLOTS (repo variable, default "7") says which slots; "all" = every slot; "" or "none" = off."""
+    if not (os.environ.get("ELEVENLABS_API_KEY") or "").strip():
+        return False
+    slots = (os.environ.get("ELEVEN_SLOTS") if os.environ.get("ELEVEN_SLOTS") is not None else "7").strip().lower() or "7"
+    if slots in ("none", "off", "0"):
+        return False
+    cur = (os.environ.get("SLOT") or "").strip().lower()
+    return slots == "all" or cur in [x.strip() for x in slots.split(",")]
+
+
+def make_voice_eleven(text, path):
+    """Voice from ElevenLabs (the user's own cloned voice). Raises when it cannot get audio, so the caller falls back to
+    Gemini / edge-tts. Settings: ELEVENLABS_API_KEY (secret), ELEVEN_VOICE_ID (default: Pravoh_Chennai), ELEVEN_MODEL
+    (default eleven_multilingual_v2, which speaks Tamil), ELEVEN_SPEED (default 0.97)."""
+    key = (os.environ.get("ELEVENLABS_API_KEY") or "").strip()
+    if not key:
+        raise RuntimeError("ELEVENLABS_API_KEY secret is not set in GitHub (Settings > Secrets and variables > Actions)")
+    voice = (os.environ.get("ELEVEN_VOICE_ID") or "").strip() or "jJvhckyxe1g087sAsDtb"
+    model = (os.environ.get("ELEVEN_MODEL") or "").strip() or "eleven_multilingual_v2"
+    try:
+        speed = float(os.environ.get("ELEVEN_SPEED") or 0.97)
+    except ValueError:
+        speed = 0.97
+    body = {"text": tts_text(text), "model_id": model, "language_code": "ta",
+            "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.15, "use_speaker_boost": True, "speed": speed}}
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=mp3_44100_128"
+    last = "no answer"
+    for n in range(3):
+        try:
+            r = requests.post(url, headers={"xi-api-key": key, "Content-Type": "application/json", "Accept": "audio/mpeg"},
+                              json=body, timeout=180)
+        except requests.RequestException as e:
+            last = str(e)
+            time.sleep(5)
+            continue
+        if r.status_code == 400 and "language_code" in body:   # some models do not take language_code: retry without it
+            body.pop("language_code")
+            continue
+        if r.status_code == 429 and "concurrent" in r.text.lower():
+            time.sleep(8 * (n + 1))
+            last = "429 too many parallel requests"
+            continue
+        if r.status_code in (401, 402, 403, 429):   # bad key / credits used up / blocked: waiting will not help
+            raise RuntimeError(f"ElevenLabs refused ({r.status_code}): {' '.join(r.text.split())[:200]}")
+        if r.status_code >= 500:
+            last = f"server error {r.status_code}"
+            time.sleep(6)
+            continue
+        if not r.ok:
+            raise RuntimeError(f"ElevenLabs error {r.status_code}: {' '.join(r.text.split())[:200]}")
+        if len(r.content) < 2000:
+            last = "the answer had no audio"
+            continue
+        Path(path).write_bytes(r.content)
+        return []
+    raise RuntimeError("ElevenLabs TTS failed: " + last)
 
 
 def _engine_chain(engine):
     """The chosen engine first, then the others that can take over (always ending with free edge-tts)."""
     chain = [engine]
+    if engine == "eleven" and (os.environ.get("GEMINI_API_KEY") or "").strip():
+        chain.append("gemini")
     if "edge" not in chain:
         chain.append("edge")
     return chain
@@ -1057,6 +1121,8 @@ def make_voice_gemini(text, path):
 
 def speak(text, path, engine):
     """One voice file with exactly the chosen engine (raises on failure)."""
+    if engine == "eleven":
+        return make_voice_eleven(text, path)
     if engine == "gemini":
         return make_voice_gemini(text, path)
     return make_voice_edge(text, path)
@@ -1097,7 +1163,7 @@ def speak_checked(text, path, engine):
     """speak() plus the listen-back check: if the audio clearly does not match the text (score below VOICE_MIN,
     default 0.45), the same text is spoken once more and the better take is kept. edge-tts is deterministic, so no retry."""
     res = speak(text, path, engine)
-    if engine == "edge":
+    if engine in ("edge", "eleven"):   # edge-tts is deterministic; ElevenLabs costs credits per take, so no second take
         return res
     score = hear_score(text, path)
     try:
