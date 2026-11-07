@@ -3,6 +3,7 @@
 1. pip install google-auth-oauthlib
 2. Put the downloaded OAuth "Desktop app" file next to this script as client_secret.json
 3. python get_youtube_token.py   (a browser opens; sign in with the channel's Google account)
+(Upload + playlist permission are both asked.)
 4. Copy the three values it prints into GitHub repo secrets.
 """
 import json
@@ -10,7 +11,7 @@ import json
 from google_auth_oauthlib.flow import InstalledAppFlow
 
 flow = InstalledAppFlow.from_client_secrets_file(
-    "client_secret.json", scopes=["https://www.googleapis.com/auth/youtube.upload"]
+    "client_secret.json", scopes=["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube"]
 )
 creds = flow.run_local_server(port=0, access_type="offline", prompt="consent")
 info = json.load(open("client_secret.json"))

@@ -1613,6 +1613,68 @@ def upload(video, title, description, tags):
             raise UploadLimit(str(e)[:200]) from e
         raise
     log(f"uploaded: https://youtube.com/watch?v={resp['id']} (privacy: {body['status']['privacyStatus']})")
+    return resp["id"]
+
+
+# ---------------------------------------------------------------- 6b. playlists (each video goes into the playlist of its subject)
+SUBJECT_PLAYLISTS = {   # syllabus subject -> playlist title
+    "Indian Polity": "பாடம் - இந்திய அரசியலமைப்பு (Polity)",
+    "Indian History": "பாடம் - இந்திய வரலாறு (History)",
+    "Tamil Nadu History and Culture": "பாடம் - தமிழ்நாடு வரலாறு & பண்பாடு",
+    "Geography": "பாடம் - புவியியல் (Geography)",
+    "General Science": "பாடம் - அறிவியல் (General Science)",
+    "Indian Economy": "பாடம் - இந்தியப் பொருளாதாரம் (Economy)",
+    "Tamil Nadu Administration and Welfare": "பாடம் - தமிழ்நாடு நிர்வாகம் & நலத்திட்டங்கள்",
+}
+NEWS_PLAYLISTS = {1: "நடப்பு நிகழ்வுகள் - தமிழ்நாடு", 2: "நடப்பு நிகழ்வுகள் - இந்தியா & பொருளாதாரம்",
+                  4: "நடப்பு நிகழ்வுகள் - உலகம், அறிவியல், விளையாட்டு"}
+
+
+def playlists_for(kind, slot, focus, topic):
+    """Names of the playlists this video belongs to: its own subject first, then the 'all videos of this kind' one."""
+    if kind == "lesson":
+        subject = (focus or "").split(":")[0].strip()
+        return [SUBJECT_PLAYLISTS.get(subject, "பாடம் - பொது அறிவு (General Studies)"), "TNPSC Group 1, 2, 4 - அனைத்து பாடங்கள்"]
+    if kind == "news":
+        return [NEWS_PLAYLISTS.get(slot, "நடப்பு நிகழ்வுகள்"), "தினசரி நடப்பு நிகழ்வுகள் (All Current Affairs)"]
+    return [f"Aptitude - {topic}" if topic else "Aptitude", "Aptitude Shortcuts - அனைத்தும்"]
+
+
+def add_to_playlists(video_id, names):
+    """Puts the uploaded video into the playlists (created when missing). Never stops the run: if the YouTube login was only
+    allowed to upload, it says what to do and the video simply stays without a playlist."""
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+    try:
+        creds = Credentials(None, refresh_token=env("YT_REFRESH_TOKEN"), token_uri="https://oauth2.googleapis.com/token",
+                            client_id=env("YT_CLIENT_ID"), client_secret=env("YT_CLIENT_SECRET"))   # no scope list: use what was granted
+        yt = build("youtube", "v3", credentials=creds)
+        mine, token = {}, None
+        while True:
+            r = yt.playlists().list(part="snippet", mine=True, maxResults=50, pageToken=token).execute()
+            mine.update({it["snippet"]["title"]: it["id"] for it in r.get("items", [])})
+            token = r.get("nextPageToken")
+            if not token:
+                break
+        for name in names:
+            pid = mine.get(name)
+            if not pid:
+                pid = yt.playlists().insert(part="snippet,status", body={
+                    "snippet": {"title": name[:150], "description": "TNPSC Group 1, 2, 4 - தமிழில் தினசரி Shorts", "defaultLanguage": "ta"},
+                    "status": {"privacyStatus": "public"}}).execute()["id"]
+                log(f"playlist created: {name}")
+            yt.playlistItems().insert(part="snippet", body={"snippet": {
+                "playlistId": pid, "resourceId": {"kind": "youtube#video", "videoId": video_id}}}).execute()
+            log(f"added to playlist: {name}")
+    except HttpError as e:
+        if "insufficient" in str(e).lower() or e.resp.status in (401, 403):
+            log("PLAYLIST SKIPPED: the YouTube login only has upload permission. Run get_youtube_token.py once more "
+                "(it now asks for playlist permission too) and replace the YT_REFRESH_TOKEN secret.")
+        else:
+            log(f"playlist step failed ({str(e)[:200]}); the video itself is uploaded")
+    except Exception as e:
+        log(f"playlist step failed ({str(e)[:200]}); the video itself is uploaded")
 
 
 # ---------------------------------------------------------------- main
@@ -1752,7 +1814,9 @@ def make_one(slot, today, stamp, upload_it, hist):
     if upload_it:
         desc = s["description"] + f"\n\n{pre}\n{post}\n{hashtags}"
         try:
-            upload(final, f"{s['title']} #Shorts", desc, [str(t) for t in s["tags"]])
+            vid = upload(final, f"{s['title']} #Shorts", desc, [str(t) for t in s["tags"]])
+            if vid and (os.environ.get("YT_PLAYLISTS") or "1") != "0":
+                add_to_playlists(vid, playlists_for(kind, slot, focus, topic if kind == "aptitude" else ""))
         except UploadLimit as e:
             # not a failure of the video: keep the file (it is in the run's output), do not count a try, and pause the
             # automatic runs for a few hours instead of building the same video again and again
