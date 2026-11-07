@@ -18,7 +18,15 @@ def main():
     from googleapiclient.errors import HttpError
 
     dry = (os.environ.get("DRY_RUN") or "1") != "0"
-    text = (Path(__file__).with_name("channel_about.txt")).read_text(encoding="utf-8").strip()[:990]
+    text = (Path(__file__).with_name("channel_about.txt")).read_text(encoding="utf-8").strip()
+    chat = (os.environ.get("TELEGRAM_CHAT_ID") or "").strip()   # @channelusername -> https://t.me/channelusername
+    if chat.startswith("@") and len(chat) > 3:
+        tg = f"📲 Telegram channel (வீடியோ + TNPSC அறிவிப்புகள்): https://t.me/{chat[1:]}"
+        text = text.replace("🔔 தினமும் படிக்க", tg + "\n🔔 தினமும் படிக்க", 1) if "🔔 தினமும் படிக்க" in text else text + "\n" + tg
+    else:
+        P_warn = "Telegram link not added: TELEGRAM_CHAT_ID is not an @channelusername"
+        print(P_warn)
+    text = text[:990]
     creds = Credentials(None, refresh_token=P.env("YT_REFRESH_TOKEN"), token_uri="https://oauth2.googleapis.com/token",
                         client_id=P.env("YT_CLIENT_ID"), client_secret=P.env("YT_CLIENT_SECRET"))
     yt = build("youtube", "v3", credentials=creds)
