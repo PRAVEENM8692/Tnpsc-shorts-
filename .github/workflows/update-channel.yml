@@ -1,0 +1,31 @@
+name: update-channel-description
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "1 = only show the current and new text, 0 = really change the channel description"
+        default: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  channel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python tools/update_channel.py
+        env:
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          TAVILY_API_KEY: "unused"
+          LLM_API_KEY: "unused"
