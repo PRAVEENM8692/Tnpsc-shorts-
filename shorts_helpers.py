@@ -99,3 +99,18 @@ class FactStore:
     def save(self):
         with open(self.path, "w", encoding="utf-8") as f:
             json.dump(self.facts, f, ensure_ascii=False, indent=0)
+
+
+def yt_error(e, n=380):
+    """A readable one-line reason for a YouTube API error: HTTP status, the reason code and YouTube's own message
+    (the plain str(e) is cut short and hides which of several causes it really is)."""
+    try:
+        status = getattr(getattr(e, "resp", None), "status", "?")
+        data = json.loads((getattr(e, "content", b"") or b"{}").decode("utf-8", "ignore"))
+        err = data.get("error", {})
+        first = (err.get("errors") or [{}])[0]
+        if not err:
+            return " ".join(str(e).split())[:n]
+        return f"HTTP {status} | reason={first.get('reason', err.get('status', '?'))} | {err.get('message', '')}"[:n]
+    except Exception:
+        return " ".join(str(e).split())[:n]

@@ -1830,11 +1830,14 @@ def post_question_comment(video_id, text):
         log("question comment posted")
         return True
     except HttpError as e:
-        if "insufficient" in str(e).lower() or e.resp.status in (401, 403):
-            log("COMMENT SKIPPED: the YouTube login has no comment permission. Run get_youtube_token.py once more "
-                "(it now asks for it) and replace the YT_REFRESH_TOKEN secret, or set YT_COMMENT=0.")
+        from shorts_helpers import yt_error
+        why = yt_error(e)
+        if "insufficient" in why.lower() or e.resp.status in (401, 403):
+            log(f"COMMENT SKIPPED: YouTube refused ({why}). If the reason says insufficientPermissions the token lacks the "
+                "force-ssl permission (make a new refresh token); a private video or disabled comments can also cause it. "
+                "Set YT_COMMENT=0 to switch the comment off.")
         else:
-            log(f"comment step failed ({str(e)[:200]}); the video itself is uploaded")
+            log(f"comment step failed ({why}); the video itself is uploaded")
     except Exception as e:
         log(f"comment step failed ({str(e)[:200]}); the video itself is uploaded")
     return False

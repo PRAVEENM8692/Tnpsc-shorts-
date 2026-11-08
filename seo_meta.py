@@ -207,6 +207,11 @@ def set_thumbnail(yt, video_id, image_path):  # sets set_thumbnail.blocked when 
         yt.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(str(image_path), mimetype="image/jpeg")).execute()
         return True
     except Exception as e:   # not verified channel / missing permission / quota
-        print(f"THUMBNAIL SKIPPED ({str(e)[:160]})", flush=True)
+        try:
+            from shorts_helpers import yt_error
+            why = yt_error(e)
+        except Exception:
+            why = str(e)[:300]
+        print(f"THUMBNAIL SKIPPED ({why})", flush=True)
         set_thumbnail.blocked = "429" in str(e) or "too many" in str(e).lower() or "quota" in str(e).lower()
         return False
