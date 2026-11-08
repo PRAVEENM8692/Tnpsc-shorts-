@@ -232,6 +232,8 @@ def lesson_notes(subject, topic):
     except Exception as e:
         log(f"lesson search failed: {e}")
     sys.exit("Could not collect reliable notes for the lesson; stopping instead of inventing facts.")
+NEXT_APT = ""   # tomorrow's aptitude topic, set per run, teased at the end of the aptitude videos
+
 APTITUDE_TOPICS = [
     "Percentage shortcuts", "Ratio and proportion", "Time and work", "Speed, time and distance",
     "Simple interest", "Compound interest shortcut", "Average", "Profit and loss", "HCF and LCM",
@@ -701,9 +703,9 @@ def write_aptitude_script(topic, today, avoid=""):
 spoken TAMIL. Topic: {topic}.
 
 Teach ONE solved aptitude question using a SHORTCUT TRICK that saves time compared with the long method.
-Use small, easy numbers, and make the question DIFFERENT each day (random story, names of Tamil Nadu places, new numbers; variation code {random.randint(1000, 9999)}). Structure of the voiceover: a punchy hook, the question stated slowly, the shortcut
+Use small, easy numbers, and make the question DIFFERENT each day (random story, names of Tamil Nadu places, new numbers; variation code {random.randint(1000, 9999)}). Structure of the voiceover: a punchy hook, the question stated slowly followed by a request to write the answer in the comments before the solution, the shortcut
 in 3-4 very short steps with the numbers, the final answer, a one-line memory tip, then a similar practice
-question for the viewer and a line asking them to follow for daily TNPSC aptitude tricks.
+question for the viewer, tomorrow's topic ({NEXT_APT or 'another new shortcut'}) and a line asking them to follow for daily TNPSC aptitude tricks.
 The voiceover must be 90-115 Tamil words, written exactly as spoken (no emojis, no bullets, no markdown).
 The maths MUST be correct.
 
@@ -795,11 +797,11 @@ screen_answer (the final answer for the screen, at most 14 characters, it must c
 screen_practice (a similar practice question for the viewer, Tamil, at most 60 characters),
 and the SPOKEN parts, each one to three short sentences:
 say_hook (a punchy hook, about 12 words),
-say_question (reads the question slowly),
+say_question (reads the question slowly, then asks viewers to pause and write their answer in the comments before the solution, for example "பதிலை கமெண்ட்ல சொல்லுங்க, அப்புறம் தீர்வு பார்க்கலாம்"),
 say_step1, say_step2, say_step3 (the three steps of the shortcut, with the numbers),
 say_answer (says the final answer),
 say_tip (a one-line memory tip),
-say_outro (the practice question for the viewer, then a line asking them to follow for daily TNPSC aptitude tricks).
+say_outro (the practice question for the viewer, then "நாளைக்கு {NEXT_APT or 'இன்னொரு புதிய ஷார்ட்கட்'} பத்தி பார்க்கலாம்" as tomorrow's topic in Tamil, then a line asking them to follow for daily TNPSC aptitude tricks).
 All the spoken parts together must be 90-115 Tamil words.
 
 Language rules for the spoken parts (they are read by a Tamil text-to-speech voice): write in Tamil script; everyday English words that Tamil speakers normally use (bank, online, mobile, budget, school) are written in Tamil letters; a name, scheme name, abbreviation or technical term with no good Tamil form stays in English letters exactly as in the news (never invent a Tamil translation for it, the program makes the voice say it correctly); write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; keep
@@ -1926,7 +1928,9 @@ def make_one(slot, today, stamp, upload_it, hist):
     else:
         doy = dt.datetime.now(IST).timetuple().tm_yday
         topic = APTITUDE_TOPICS[(doy * 2 + (0 if slot == 3 else 1)) % len(APTITUDE_TOPICS)]
-        log(f"[slot {slot}] aptitude topic: {topic}")
+        global NEXT_APT
+        NEXT_APT = APTITUDE_TOPICS[((doy + 1) * 2 + (0 if slot == 3 else 1)) % len(APTITUDE_TOPICS)]
+        log(f"[slot {slot}] aptitude topic: {topic} (tomorrow: {NEXT_APT})")
         # which aptitude slots use the animated Manim video (default: slots 3 and 5; set repo variable MANIM_SLOTS=5 for one only)
         manim_slots = [x.strip() for x in (os.environ.get("MANIM_SLOTS") or "3,5").split(",")]
         manim_mode = str(slot) in manim_slots
