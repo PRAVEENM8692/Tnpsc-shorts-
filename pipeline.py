@@ -952,6 +952,11 @@ def pick_voice():
     return _VOICE["name"]
 
 
+# ElevenLabs is switched OFF on purpose (decision 2026-11-08). The code below stays so it can be switched on again later:
+# set ELEVEN_ON to True (and pass the ELEVENLABS_API_KEY secret to the step in daily.yml). The secret itself is kept in GitHub.
+ELEVEN_ON = False
+
+
 def tts_engine():
     """Gemini TTS is the DEFAULT voice when the GEMINI_API_KEY secret exists; the free edge-tts (Microsoft Edge neural
     Tamil voices, no key) takes over automatically if Gemini fails or its free limit is used up, and is used for
@@ -959,7 +964,7 @@ def tts_engine():
     e = (os.environ.get("TTS_ENGINE") or "").strip().lower()
     if e == "edge":
         return "edge"
-    if e == "eleven" or eleven_slot():
+    if ELEVEN_ON and (e == "eleven" or eleven_slot()):
         return "eleven"
     return "gemini" if (os.environ.get("GEMINI_API_KEY") or "").strip() else "edge"
 
