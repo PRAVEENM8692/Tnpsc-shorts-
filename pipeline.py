@@ -1740,14 +1740,18 @@ NEWS_PLAYLISTS = {1: "நடப்பு நிகழ்வுகள் - தம
                   4: "நடப்பு நிகழ்வுகள் - உலகம், அறிவியல், விளையாட்டு"}
 
 
+PLAYLIST_NEWS = "தினசரி நடப்பு நிகழ்வுகள் (Current Affairs)"
+PLAYLIST_LESSON = "TNPSC பாடங்கள் (Group 1, 2, 4)"
+PLAYLIST_APT = "Aptitude Shortcuts"
+
+
 def playlists_for(kind, slot, focus, topic):
-    """Names of the playlists this video belongs to: its own subject first, then the 'all videos of this kind' one."""
+    """Just three playlists on the channel: current affairs, lessons, aptitude. Old and new videos use the same rule."""
     if kind == "lesson":
-        subject = (focus or "").split(":")[0].strip()
-        return [SUBJECT_PLAYLISTS.get(subject, "பாடம் - பொது அறிவு (General Studies)"), "TNPSC Group 1, 2, 4 - அனைத்து பாடங்கள்"]
+        return [PLAYLIST_LESSON]
     if kind == "news":
-        return [NEWS_PLAYLISTS.get(slot, "நடப்பு நிகழ்வுகள்"), "தினசரி நடப்பு நிகழ்வுகள் (All Current Affairs)"]
-    return [f"Aptitude - {topic}" if topic else "Aptitude", "Aptitude Shortcuts - அனைத்தும்"]
+        return [PLAYLIST_NEWS]
+    return [PLAYLIST_APT]
 
 
 def playlist_create(yt, name):
