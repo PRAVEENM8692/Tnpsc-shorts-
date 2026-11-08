@@ -135,7 +135,7 @@ def _card(kind, d, today):
     """HTML of the card for one segment. kind: hook | fact | outro."""
     if kind == "hook":
         return (f'<div class="card"><div class="row"><div class="chip">{_e(d.get("chip") or "நடப்பு நிகழ்வுகள்")}</div>'
-                f'<div class="chip" style="background:var(--good)">{_e(today)}</div></div>'
+                f'</div>'
                 f'<div class="center"><div class="t" data-fit="96,44" style="height:430px;display:flex;align-items:center;'
                 f'text-align:center;justify-content:center">{_e(d["headline"])}</div>'
                 f'<div class="sub">இன்னைக்கு தெரிஞ்சுக்க வேண்டிய 5 தகவல்கள்</div></div></div>')
@@ -151,13 +151,13 @@ def _card(kind, d, today):
     return (f'<div class="card"><div class="row"><div class="chip">உங்க பதில் என்ன?</div></div>'
             f'<div class="center"><div class="t" data-fit="80,40" style="height:400px;display:flex;align-items:center;'
             f'text-align:center;justify-content:center">{_e(d["question"])}</div>'
-            f'<div class="sub">கமெண்ட்ல சொல்லுங்க. தினமும் வர ஃபாலோ பண்ணுங்க!</div></div></div>')
+            f'<div class="sub">கமெண்ட்ல சொல்லுங்க. தினமும் ஃபாலோ பண்ணுங்க!</div></div></div>')
 
 
 def segments_from_script(s):
     """The 8 segments in the order they are spoken: [(part name, kind, data)]."""
     cards = s["cards"]
-    segs = [("hook", "hook", {"headline": s["headline"]})]
+    segs = [("hook", "hook", {"headline": s["headline"], "chip": s.get("chip", "")})]
     for i, c in enumerate(cards[:5], 1):
         segs.append((f"f{i}", "fact", {"n": i, "title": c.get("title", ""), "detail": c.get("detail", ""),
                                        "big": c.get("big", "")}))

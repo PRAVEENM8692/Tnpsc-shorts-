@@ -504,7 +504,7 @@ def llm_json(prompt, model=None, temperature=0.5, effort="low"):
 
 def write_script(notes, today, focus="", part=1, total=1, avoid=""):
     prompt = f"""You write 45-second YouTube Shorts for TNPSC aspirants in simple spoken TAMIL.
-Date: {today}.
+
 Use ONLY facts that appear in these news notes. Do not add facts from memory:
 {notes}
 
@@ -546,7 +546,7 @@ NEWS_SAY = ("say_hook", "say_f1", "say_f2", "say_f3", "say_f4", "say_f5", "say_o
 
 def write_news_cards_script(notes, today, focus="", part=1, total=1, avoid="", lesson=False):
     """Current-affairs script for the news-card video: the voice is written in PARTS (hook, fact 1-5, outro) so each card appears exactly when its part starts. Raises (or exits) if the LLM cannot produce it."""
-    prompt = f"""You write 45-second YouTube Shorts for TNPSC aspirants in simple spoken TAMIL. Date: {today}.
+    prompt = f"""You write 45-second YouTube Shorts for TNPSC aspirants in simple spoken TAMIL.
 Use ONLY facts that appear in these news notes. Do not add facts, numbers or dates from memory:
 {notes}
 
@@ -561,7 +561,7 @@ Return JSON with these keys:
 title (Tamil, under 55 characters, the topic first, NO date and NO ellipsis, for example "TNPSC: தமிழ்நாடு அரசு புதிய வயது வரம்பு"),
 description (Tamil, 3-5 line recap of the facts),
 tags (list of 8 strings, Tamil and English),
-headline (Tamil, shown BIG in the very first second: a QUESTION or challenge that makes the viewer stay, at most 60 characters, for example "இந்த கேள்வி Group 4-ல் வந்தது! உங்களுக்கு தெரியுமா?" or "இந்த 5 தகவல் தெரியாம தேர்வுக்கு போகாதீங்க!". Never a plain title, never a greeting),
+headline (Tamil, shown BIG in the very first second: a real QUESTION to the viewer that ends with a question mark ?, at most 60 characters, for example "இந்த கேள்வி Group 4-ல் வந்தது! உங்களுக்கு தெரியுமா?" or "குத்புதீன் ஐபக் எப்படி இறந்தார் தெரியுமா?". It must NOT be a statement, a plain title, an announcement or a greeting, and it must not contain a date),
 cards (list of EXACTLY 5 objects, one per fact in spoken order, each with:
    title (Tamil, the fact's subject, at most 45 characters),
    detail (Tamil, one clear sentence with the key who / what / where, at most 110 characters, digits allowed),
@@ -597,18 +597,21 @@ abbreviations (TNPSC, GST, RBI) in English capital letters; use short sentences 
         cards = d.get("cards")
         lo = 60 if attempt < 3 else 45
         ok = (all(k in d for k in ("title", "description", "tags", "headline", "quiz"))
+              and ("?" in str(d.get("headline", "")) or "？" in str(d.get("headline", "")))
               and all(t for _, t in parts) and isinstance(cards, list) and len(cards) >= 5
               and all(isinstance(c, dict) and str(c.get("title", "")).strip() and str(c.get("detail", "")).strip()
                       for c in cards[:5]) and lo <= words <= 120)
         if not ok:
             log(f"news cards script attempt {attempt + 1} invalid (words={words}); retrying")
             hint = (f"\n\nYour previous answer was invalid: the spoken parts had {words} words in total, or a key / card was "
-                    "missing. Fill EVERY key, give exactly 5 cards and write at least 70 Tamil words in the spoken parts.")
+                    "missing, or the headline was not a question with a ? at the end. Fill EVERY key, give exactly 5 cards, "
+                    "write at least 70 Tamil words in the spoken parts and make the headline a real question ending with ?.")
             continue
         d["cards"] = [{"title": str(c["title"]).strip()[:60], "detail": str(c["detail"]).strip()[:150],
                        "big": str(c.get("big") or "").strip()[:14]} for c in cards[:5]]
         d["headline"] = str(d["headline"]).strip()[:80]
         d["quiz"] = str(d["quiz"]).strip()[:90]
+        d["chip"] = "பாடம்" if lesson else ""
         d["parts"] = parts
         d["voiceover"] = " ".join(t for _, t in parts)
         return d
@@ -695,7 +698,7 @@ def apt_brief(topic):
 
 def write_aptitude_script(topic, today, avoid=""):
     prompt = f"""You write 45-second YouTube Shorts for TNPSC / Tamil Nadu competitive-exam aspirants, in simple
-spoken TAMIL. Date: {today}. Topic: {topic}.
+spoken TAMIL. Topic: {topic}.
 
 Teach ONE solved aptitude question using a SHORTCUT TRICK that saves time compared with the long method.
 Use small, easy numbers, and make the question DIFFERENT each day (random story, names of Tamil Nadu places, new numbers; variation code {random.randint(1000, 9999)}). Structure of the voiceover: a punchy hook, the question stated slowly, the shortcut
@@ -771,7 +774,7 @@ FALLBACK_SCENES = ["a notebook and pencil on a wooden study desk, warm light", "
 def write_aptitude_manim_script(topic, today, avoid=""):
     """Aptitude script for the animated (Manim) video: the voice is written in PARTS (hook, question, step 1-3,
     answer, tip, outro) so the screen can change exactly when each part starts."""
-    prompt = f"""You write 45-second YouTube Shorts for TNPSC / Tamil Nadu competitive-exam aspirants. Date: {today}. Topic: {topic}.
+    prompt = f"""You write 45-second YouTube Shorts for TNPSC / Tamil Nadu competitive-exam aspirants. Topic: {topic}.
 
 Teach ONE solved aptitude question using a SHORTCUT TRICK that saves time compared with the long method.
 Use small, easy numbers and make the question DIFFERENT each day (random story, names of Tamil Nadu places, new numbers; variation code {random.randint(1000, 9999)}). The maths MUST be correct.
@@ -1407,9 +1410,13 @@ def write_ass(text, speech_seconds, path, start=0.15, date_text="", head2="CURRE
     total = total_seconds or (speech_seconds + 1.2)
     gold = r"\c&H3CC8FF&"
     white = r"\c&HFFFFFF&"
-    title = (rf"{{\fs125{gold}}}TNPSC\N{{\fs62{white}}}{head2}\N"
-             rf"{{\fn{font}\fs54{white}}}{head3}\N"
-             rf"{{\fn{latin}\fs50{gold}}}{date_text}")
+    title = rf"{{\fs125{gold}}}TNPSC"
+    if head2:
+        title += rf"\N{{\fs62{white}}}{head2}"
+    if head3:
+        title += rf"\N{{\fn{font}\fs54{white}}}{head3}"
+    if date_text:
+        title += rf"\N{{\fn{latin}\fs50{gold}}}{date_text}"
     lines = [f"Dialogue: 0,{ass_time(0)},{ass_time(total)},Head,0,0,0,,{title}"]
     for c, wt, (t0, t1) in (zip(chunks, weights, times) if captions else []):   # captions=False: no running subtitles
         dur = t1 - t0
@@ -1515,7 +1522,7 @@ def render_manim(s, starts, total, workdir, today):
     jpath = (workdir / "apt.json").resolve()
     jpath.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     media = (workdir / "manim_media").resolve()
-    e = dict(os.environ, APT_JSON=str(jpath), APT_DURATION=f"{total:.2f}", APT_DATE=today, APT_HEADER="0",
+    e = dict(os.environ, APT_JSON=str(jpath), APT_DURATION=f"{total:.2f}", APT_DATE="", APT_HEADER="0",
              APT_THEME=json.dumps(theme))
     scene_file = str(Path(__file__).with_name("manim_aptitude.py"))
     cmd = [sys.executable, "-m", "manim", "-qm", "--fps", "30", "--media_dir", str(media), "-o", "apt.mp4",
@@ -1711,6 +1718,13 @@ def upload(video, title, description, tags, thumb=None):
 
 
 # ---------------------------------------------------------------- 6b. playlists (each video goes into the playlist of its subject)
+SUBJECT_TA = {   # syllabus subject -> Tamil name shown in the video header
+    "Indian Polity": "இந்திய அரசியலமைப்பு", "Indian History": "இந்திய வரலாறு",
+    "Tamil Nadu History and Culture": "தமிழக வரலாறு & பண்பாடு", "Geography": "புவியியல்",
+    "General Science": "பொது அறிவியல்", "Indian Economy": "இந்தியப் பொருளாதாரம்",
+    "Tamil Nadu Administration and Welfare": "தமிழக நிர்வாகம் & நலத்திட்டங்கள்",
+}
+
 SUBJECT_PLAYLISTS = {   # syllabus subject -> playlist title
     "Indian Polity": "பாடம் - இந்திய அரசியலமைப்பு (Polity)",
     "Indian History": "பாடம் - இந்திய வரலாறு (History)",
@@ -1904,7 +1918,7 @@ def make_one(slot, today, stamp, upload_it, hist):
             rewrite = lambda: write_script(notes, today, focus, slot, 5, avoid_text(hist) + extra[0])
         s = no_repeats(s, hist, rewrite, extra)
         if kind == "lesson":
-            head2, head3, hashtags = "TNPSC LESSON", "பாடம் - " + focus.split(":")[0], "#TNPSC #Group1 #Group2 #Group4 #Shorts"
+            head2, head3, hashtags = "", "பாடம் - " + SUBJECT_TA.get(focus.split(":")[0], "பொது அறிவு"), "#TNPSC #Group1 #Group2 #Group4 #Shorts"
             pre, post = "Topic: " + focus, "AI-assisted lesson. Verify facts with standard textbooks and official sources."
         else:
             head2, head3, hashtags = "CURRENT AFFAIRS", "நடப்பு நிகழ்வுகள்", "#TNPSC #CurrentAffairs #Shorts"
@@ -1979,7 +1993,7 @@ def make_one(slot, today, stamp, upload_it, hist):
     final = OUT / f"tnpsc-{tag}.mp4"
     subs = work / "captions.ass"
     # with the animation, the LIKE / SUBSCRIBE buttons go below the captions so they do not cover the answer
-    write_ass(s["voiceover"], vdur, subs, date_text=today, head2=head2, head3=head3,
+    write_ass(s["voiceover"], vdur, subs, date_text="", head2=head2, head3=head3,
               spans=speech_spans(voice), total_seconds=vdur + 1.0,
               cta_y=1570 if base else 1000, cta_tamil=base is None, cap_margin=390 if base else 430,
               captions=base is None)   # cards / animation already show the text: no running subtitles
