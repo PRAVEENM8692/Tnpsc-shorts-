@@ -1,0 +1,73 @@
+name: nightly-rollout
+
+# Every night after the day's videos: (1) gives old videos the current description format, (2) sets the new vertical
+# thumbnail on every video, a few at a time (YouTube limits custom thumbnails). Progress: thumbs_done.json.
+# It does nothing once everything is done, so it can stay switched on.
+on:
+  schedule:
+    - cron: "40 17 * * *"   # 23:10 IST, after the last video of the day
+  workflow_dispatch:
+    inputs:
+      thumb_max:
+        description: "How many thumbnails to set in this run (YouTube usually refuses after about 9)"
+        default: "9"
+      desc_max:
+        description: "How many old descriptions to bring to the current format in this run (50 quota units each)"
+        default: "20"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rollout
+  cancel-in-progress: false
+
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install Tamil fonts
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-noto-core fonts-dejavu-core && fc-list | grep -i "noto sans tamil" | head -1
+      - run: pip install -r requirements.txt
+      - run: pip install playwright && python -m playwright install --with-deps chromium
+      - name: Old descriptions to the current format
+        continue-on-error: true   # if the quota is used up, the thumbnails step still tries
+        run: python tools/revamp_videos.py
+        env:
+          MAX_UPDATES: ${{ github.event.inputs.desc_max || '20' }}
+          WITH_THUMBNAILS: "0"
+          DRY_RUN: "0"
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          TAVILY_API_KEY: "unused"
+          LLM_API_KEY: "unused"
+      - name: New thumbnails, a few at a time
+        continue-on-error: true
+        run: python tools/revamp_videos.py
+        env:
+          THUMB_AUTO: "1"
+          THUMB_MAX: ${{ github.event.inputs.thumb_max || '9' }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          TAVILY_API_KEY: "unused"
+          LLM_API_KEY: "unused"
+      - name: Remember the progress
+        if: always()
+        run: |
+          git config user.name "shorts-bot"
+          git config user.email "shorts-bot@users.noreply.github.com"
+          git add thumbs_done.json || true
+          git diff --cached --quiet || (git commit -m "Update thumbnail progress" && git pull --rebase -q && git push)

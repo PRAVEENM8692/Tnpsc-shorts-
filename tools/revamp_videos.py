@@ -29,6 +29,44 @@ def kind_of(title, desc):
     return ""
 
 
+def auto_thumbnails(yt, videos):
+    """Sets the new vertical thumbnail on EVERY video of the channel, a few per run. YouTube limits custom thumbnails (HTTP 429
+    after about 9), so this stops at the first refusal and continues in the next run. Progress is kept in thumbs_done.json."""
+    import json
+    from shorts_helpers import clean_title
+
+    state = Path("thumbs_done.json")
+    try:
+        done = set(json.loads(state.read_text(encoding="utf-8")).get("ids", []))
+    except Exception:
+        done = set()
+    limit = int(os.environ.get("THUMB_MAX") or 9)
+    todo = [v for v in videos if v["id"] not in done]   # videos come newest first: the newest videos get their thumbnail first
+    P.log(f"thumbnails: {len(done)} done, {len(todo)} left; setting up to {limit} now")
+    tmp = Path(tempfile.mkdtemp())
+    ok = 0
+    for v in todo:
+        if ok >= limit:
+            break
+        sn = v["snippet"]
+        kind = kind_of(sn.get("title", ""), sn.get("description", "")) or "news"
+        text = re.sub(r"#\w+|^[^\w\u0B80-\u0BFF]+", "", seo_meta.clean(sn.get("title", ""))).strip()
+        text = clean_title(text, 70) or text
+        try:
+            img = seo_meta.make_thumbnail(text, kind, tmp / f"{v['id']}.jpg")
+        except Exception as e:
+            P.log(f"thumbnail not made for {v['id']}: {str(e)[:100]}")
+            continue
+        if seo_meta.set_thumbnail(yt, v["id"], img):
+            ok += 1
+            done.add(v["id"])
+            state.write_text(json.dumps({"ids": sorted(done)}, indent=0), encoding="utf-8")
+        elif getattr(seo_meta.set_thumbnail, "blocked", False):
+            P.log("YouTube is limiting thumbnails right now; the rest continues in the next run")
+            break
+    P.log(f"thumbnails set in this run: {ok}; left for later runs: {len([v for v in videos if v['id'] not in done])}")
+
+
 def main():
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
@@ -53,6 +91,10 @@ def main():
     for i in range(0, len(ids), 50):
         videos += yt.videos().list(part="snippet", id=",".join(ids[i:i + 50])).execute().get("items", [])
     P.log(f"{len(videos)} videos on the channel")
+
+    if (os.environ.get("THUMB_AUTO") or "0") == "1":
+        auto_thumbnails(yt, videos)
+        return
 
     only = [x.strip() for x in (os.environ.get("THUMB_IDS") or "").split(",") if x.strip()]
     if only:   # thumbnails only, for videos whose description is already new
