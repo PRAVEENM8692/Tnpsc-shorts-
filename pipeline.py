@@ -51,7 +51,7 @@ def load_history():
 def save_history(h):
     h["urls"] = h["urls"][-400:]
     h["titles"] = h["titles"][-80:]
-    h["facts"] = h.get("facts", [])[-200:]   # every single fact / question already used in a video
+    h["facts"] = h.get("facts", [])[-600:]   # every single fact / question already used in a video
     h["done"] = dict(sorted(h.get("done", {}).items())[-3:])      # which slots were published, last 3 days
     h["tries"] = dict(sorted(h.get("tries", {}).items())[-15:])   # failed attempts per slot
     HISTORY.write_text(json.dumps(h, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -88,6 +88,15 @@ def find_repeats(s, hist):
     new = fact_lines(s)
     if not old or not new:
         return []
+    fast = []
+    try:   # no AI needed: same words / same numbers as ANY fact told before (not only the last 70)
+        from shorts_helpers import is_repeat
+        allold = hist.get("facts", [])
+        fast = [x for x in new if is_repeat(x, allold)]
+        if fast:
+            log(f"{len(fast)} fact(s) match an earlier video by word overlap")
+    except Exception as e:
+        log(f"word-overlap repeat check skipped: {e}")
     try:
         d = llm_json("Below are FACTS ALREADY USED in earlier videos, then NEW facts for a new video. List the NEW facts "
                      "that tell the same event, announcement, number or question as an old one (even if worded differently or from "
@@ -95,11 +104,11 @@ def find_repeats(s, hist):
                      "OLD:\n" + "\n".join(f"- {x}" for x in old) + "\n\nNEW:\n"
                      + "\n".join(f"{i}. {x}" for i, x in enumerate(new)) + '\n\nReturn JSON: {"repeated": [indexes of the NEW facts that repeat]}',
                      temperature=0.1)
-        idx = [int(i) for i in d.get("repeated", []) if str(i).lstrip("-").isdigit() and 0 <= int(i) < len(new)]
-        return [new[i] for i in sorted(set(idx))]
+        idx = {int(i) for i in d.get("repeated", []) if str(i).lstrip("-").isdigit() and 0 <= int(i) < len(new)}
+        return [x for i, x in enumerate(new) if x in fast or i in idx]
     except (Exception, SystemExit) as e:
         log(f"repeat check skipped: {e}")
-        return []
+        return fast
 
 
 def no_repeats(s, hist, rewrite, extra):
@@ -504,10 +513,10 @@ Use ONLY facts that appear in these news notes. Do not add facts from memory:
 This is video {part} of {total} today, so cover ONLY this theme: {focus}. Pick the 5 most exam-relevant facts for that theme. Make them EASY TO REMEMBER: a punchy hook
 line, one short sentence per fact, ONE memory trick (a catchy word, acronym or rhyme in Tamil), then a quick
 question for viewers and a line asking them to follow for daily current affairs.
-The voiceover must be 90-115 Tamil words, written exactly as it should be spoken (no emojis, no bullets).
+The voiceover must be 70-90 Tamil words (a video of 30-40 seconds), written exactly as it should be spoken (no emojis, no bullets). Start with a QUESTION to the viewer, never with a greeting such as நண்பர்களே or வணக்கம்.
 
 Return JSON with keys:
-title (Tamil, under 85 characters),
+title (Tamil, under 55 characters, the topic first, NO date and NO ellipsis, for example "TNPSC: தமிழ்நாடு அரசு புதிய வயது வரம்பு"),
 description (Tamil, 3-5 line recap of the facts),
 tags (list of 8 strings, Tamil and English),
 voiceover (Tamil),
@@ -523,12 +532,12 @@ abbreviations (TNPSC, GST, RBI) in English capital letters; use short sentences 
     for attempt in range(5):
         d = llm_json(prompt + avoid + hint)
         words = len(d.get("voiceover", "").split())
-        lo = 70 if attempt < 3 else 55
+        lo = 60 if attempt < 3 else 45
         if all(k in d for k in ("title", "description", "tags", "voiceover", "scenes")) \
-                and lo <= words <= 150 and len(d["scenes"]) >= 4:
+                and lo <= words <= 120 and len(d["scenes"]) >= 4:
             return d
         log(f"script attempt {attempt + 1} invalid (words={words}); retrying")
-        hint = f"\n\nYour previous voiceover had only {words} words. Write at least 95 Tamil words."
+        hint = f"\n\nYour previous voiceover had only {words} words. Write at least 70 Tamil words."
     sys.exit("Could not get a valid script from the LLM.")
 
 
@@ -549,10 +558,10 @@ The video shows ONE CARD per fact while a voice explains it, so every card text 
 {CASUAL_NEWS}
 
 Return JSON with these keys:
-title (Tamil, under 85 characters),
+title (Tamil, under 55 characters, the topic first, NO date and NO ellipsis, for example "TNPSC: தமிழ்நாடு அரசு புதிய வயது வரம்பு"),
 description (Tamil, 3-5 line recap of the facts),
 tags (list of 8 strings, Tamil and English),
-headline (Tamil, the hook as one screen headline, at most 60 characters),
+headline (Tamil, shown BIG in the very first second: a QUESTION or challenge that makes the viewer stay, at most 60 characters, for example "இந்த கேள்வி Group 4-ல் வந்தது! உங்களுக்கு தெரியுமா?" or "இந்த 5 தகவல் தெரியாம தேர்வுக்கு போகாதீங்க!". Never a plain title, never a greeting),
 cards (list of EXACTLY 5 objects, one per fact in spoken order, each with:
    title (Tamil, the fact's subject, at most 45 characters),
    detail (Tamil, one clear sentence with the key who / what / where, at most 110 characters, digits allowed),
@@ -560,10 +569,10 @@ cards (list of EXACTLY 5 objects, one per fact in spoken order, each with:
 quiz (Tamil, a quick question for the viewers about one of the facts, at most 60 characters),
 scenes (list of exactly 5 English prompts, one per fact, each a vertical cinematic image that relates to that fact: places, buildings, objects and symbols. NO text or letters in the image, NO logos, NO faces, NO real people or politicians),
 and the SPOKEN parts, each one to three short sentences:
-say_hook (a punchy hook, about 12 words),
+say_hook (the headline question spoken in about 10 words; NEVER start with a greeting such as நண்பர்களே or வணக்கம்),
 say_f1, say_f2, say_f3, say_f4, say_f5 (the five facts, one short sentence or two each),
 say_outro (asks the quiz question, then asks viewers to follow for daily current affairs).
-All the spoken parts together must be 90-115 Tamil words.
+All the spoken parts together must be 70-90 Tamil words (the video must be 30-45 seconds). Keep every fact to ONE short sentence.
 
 Language rules for the spoken parts (they are read by a Tamil text-to-speech voice): write in Tamil script; everyday English words that Tamil speakers normally use (bank, online, mobile, budget, school) are written in Tamil letters; a name, scheme name, abbreviation or technical term with no good Tamil form stays in English letters exactly as in the news (never invent a Tamil translation for it, the program makes the voice say it correctly); write numbers as digits (the program turns them into spoken Tamil words), no brackets, quotes or hyphens; keep
 abbreviations (TNPSC, GST, RBI) in English capital letters; use short sentences of at most
@@ -586,15 +595,15 @@ abbreviations (TNPSC, GST, RBI) in English capital letters; use short sentences 
         parts = [(k[4:], str(d.get(k, "")).strip()) for k in NEWS_SAY]
         words = sum(len(t.split()) for _, t in parts)
         cards = d.get("cards")
-        lo = 70 if attempt < 3 else 55
+        lo = 60 if attempt < 3 else 45
         ok = (all(k in d for k in ("title", "description", "tags", "headline", "quiz"))
               and all(t for _, t in parts) and isinstance(cards, list) and len(cards) >= 5
               and all(isinstance(c, dict) and str(c.get("title", "")).strip() and str(c.get("detail", "")).strip()
-                      for c in cards[:5]) and lo <= words <= 150)
+                      for c in cards[:5]) and lo <= words <= 120)
         if not ok:
             log(f"news cards script attempt {attempt + 1} invalid (words={words}); retrying")
             hint = (f"\n\nYour previous answer was invalid: the spoken parts had {words} words in total, or a key / card was "
-                    "missing. Fill EVERY key, give exactly 5 cards and write at least 95 Tamil words in the spoken parts.")
+                    "missing. Fill EVERY key, give exactly 5 cards and write at least 70 Tamil words in the spoken parts.")
             continue
         d["cards"] = [{"title": str(c["title"]).strip()[:60], "detail": str(c["detail"]).strip()[:150],
                        "big": str(c.get("big") or "").strip()[:14]} for c in cards[:5]]
@@ -696,7 +705,7 @@ The voiceover must be 90-115 Tamil words, written exactly as spoken (no emojis, 
 The maths MUST be correct.
 
 Return JSON with keys:
-title (Tamil, under 85 characters, mention the topic),
+title (Tamil, under 60 characters, mention the topic, NO date),
 description (Tamil, 3-5 lines: the question, the trick, the answer),
 tags (list of 8 strings, Tamil and English),
 voiceover (Tamil),
@@ -771,7 +780,7 @@ The video shows the question and the 3 steps on the screen while a voice explain
 {CASUAL_APT}
 
 Return JSON with these keys:
-title (Tamil, under 85 characters, mention the topic),
+title (Tamil, under 60 characters, mention the topic, NO date),
 description (Tamil, 3-5 lines: the question, the trick, the answer),
 tags (list of 8 strings, Tamil and English),
 check_expr (a plain Python arithmetic expression using only numbers and + - * / ** that evaluates to the final answer),
@@ -1783,6 +1792,33 @@ def telegram_post(video_path, video_id, title, hook=""):
     return False
 
 
+def post_question_comment(video_id, text):
+    """Posts the viewers' question as the first comment of the video (this starts the comment section). YouTube's API cannot
+    pin a comment: pin it yourself in YouTube Studio. Never stops the run; set YT_COMMENT=0 to switch it off."""
+    if (os.environ.get("YT_COMMENT") or "1") == "0" or not text:
+        return False
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+    try:
+        creds = Credentials(None, refresh_token=env("YT_REFRESH_TOKEN"), token_uri="https://oauth2.googleapis.com/token",
+                            client_id=env("YT_CLIENT_ID"), client_secret=env("YT_CLIENT_SECRET"))   # no scope list: use what was granted
+        yt = build("youtube", "v3", credentials=creds)
+        body = {"snippet": {"videoId": video_id, "topLevelComment": {"snippet": {"textOriginal": text[:900]}}}}
+        yt.commentThreads().insert(part="snippet", body=body).execute()
+        log("question comment posted")
+        return True
+    except HttpError as e:
+        if "insufficient" in str(e).lower() or e.resp.status in (401, 403):
+            log("COMMENT SKIPPED: the YouTube login has no comment permission. Run get_youtube_token.py once more "
+                "(it now asks for it) and replace the YT_REFRESH_TOKEN secret, or set YT_COMMENT=0.")
+        else:
+            log(f"comment step failed ({str(e)[:200]}); the video itself is uploaded")
+    except Exception as e:
+        log(f"comment step failed ({str(e)[:200]}); the video itself is uploaded")
+    return False
+
+
 def add_to_playlists(video_id, names):
     """Puts the uploaded video into the playlists (created when missing). Never stops the run: if the YouTube login was only
     allowed to upload, it says what to do and the video simply stays without a playlist."""
@@ -1972,7 +2008,9 @@ def make_one(slot, today, stamp, upload_it, hist):
             if vid and (os.environ.get("YT_PLAYLISTS") or "1") != "0":
                 add_to_playlists(vid, playlists_for(kind, slot, focus, topic if kind == "aptitude" else ""))
             if vid:
-                telegram_post(final, vid, yt_title, s.get("headline") or s.get("screen_question") or s.get("quiz") or "")
+                ask = s.get("headline") or s.get("screen_question") or s.get("quiz") or ""
+                post_question_comment(vid, ((s.get("quiz") or s.get("screen_question") or ask) + "\n\nஉங்கள் பதிலை கமெண்ட்டில் சொல்லுங்கள் 👇").strip())
+                telegram_post(final, vid, yt_title, ask)
         except UploadLimit as e:
             # not a failure of the video: keep the file (it is in the run's output), do not count a try, and pause the
             # automatic runs for a few hours instead of building the same video again and again

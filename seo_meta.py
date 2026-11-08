@@ -53,7 +53,11 @@ def make_title(raw, kind):
     t = re.sub(r"#\w+", "", t)
     t = re.sub(r"^[^\w஀-௿]+", "", t)       # an old emoji / mark at the front
     t = re.sub(r"(?:\s+(?:TNPSC|aptitude|\d+))+\s*$", "", t, flags=re.I).strip() or t   # leftover tail such as 'TNPSC aptitude 45'
-    t = _cut(t, 62).rstrip(" |–—-:,")
+    try:   # no date, never cut with "..." (see shorts_helpers.clean_title)
+        from shorts_helpers import clean_title
+        t = clean_title(t, 58) or t
+    except Exception:
+        t = _cut(t, 62).rstrip(" |–—-:,")
     return f"{ICON.get(kind, '📰')} {t} #Shorts"
 
 
