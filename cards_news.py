@@ -44,6 +44,9 @@ body.dim .t,body.dim .d,body.dim .big,body.dim .sub{opacity:var(--dimop)}
 body.lit .card{background:none !important;border-color:transparent !important;box-shadow:none !important}
 body.lit .chip,body.lit .dots,body.lit .row{visibility:hidden}
 body.lit .big{background:none !important}
+.strip{position:absolute;left:20px;top:920px;width:880px;text-align:center;font-weight:800;font-size:44px;line-height:1.25;color:#fff;
+  text-shadow:0 3px 12px rgba(0,0,0,.85),0 0 4px rgba(0,0,0,.9)}
+body.lit .strip{visibility:hidden}
 body.lit .t,body.lit .d,body.lit .big,body.lit .sub{text-shadow:0 0 12px rgba(var(--glow),.95),0 0 30px rgba(var(--glow),.6)}
 """
 
@@ -127,6 +130,17 @@ def _e(x):
     return html.escape(str(x or "").strip())
 
 
+STRIP_TEXT = {   # one clear call to action under the card (YouTube covers the bottom and the right edge, so this sits just under the card)
+    "hook": "கடைசியில் ஒரு கேள்வி இருக்கு!",
+    "fact": "தினமும் புதிய வீடியோ • SUBSCRIBE",
+    "outro": "நண்பர்களுக்கு SHARE பண்ணுங்க",
+}
+
+
+def _strip(kind):
+    return f'<div class="strip">{_e(STRIP_TEXT.get(kind, ""))}</div>'
+
+
 def _dots(i, n=5):
     return "".join(f'<div class="dot {"cur" if k == i else ("on" if k < i else "")}"></div>' for k in range(n))
 
@@ -183,7 +197,7 @@ def render_pngs(segs, bg_images, workdir, today, theme=None):
             bg_img = Path(bg_images[min(i, len(bg_images) - 1)]).resolve()
             doc = (f"<!doctype html><html><head><meta charset='utf-8'><style>{root}{CSS % {'top': TOP, 'h': HEIGHT}}</style></head>"
                    f"<body><div id='bg' style=\"background-image:url('{bg_img.as_uri()}')\"></div><div id='bgshade'></div>"
-                   f"<div id='fg'>{_card(kind, d, today)}</div></body></html>")
+                   f"<div id='fg'>{_card(kind, d, today)}{_strip(kind)}</div></body></html>")
             hp = workdir / f"card_{name}.html"
             hp.write_text(doc, encoding="utf-8")
             page.goto(hp.resolve().as_uri())
