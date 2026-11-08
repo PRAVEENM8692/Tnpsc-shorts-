@@ -148,16 +148,16 @@ def revamp_existing(kind, title, desc):
 # ---------------------------------------------------------------- thumbnail
 THUMB_CSS = """
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:1280px;height:720px;overflow:hidden;font-family:'Noto Sans Tamil','Latha','Nirmala UI','FreeSans',sans-serif}
-body{background:linear-gradient(135deg,%(c1)s,%(c2)s);color:#fff;position:relative}
-.tag{position:absolute;left:48px;top:40px;background:%(accent)s;color:%(on)s;font-weight:900;font-size:46px;padding:8px 32px;border-radius:44px}
-.ico{position:absolute;right:48px;top:24px;font-size:120px}
-.hook{position:absolute;left:48px;right:48px;top:150px;bottom:130px;display:flex;align-items:center;font-weight:900;
-  line-height:1.2;text-shadow:0 6px 24px rgba(0,0,0,.55)}
+html,body{width:1080px;height:1920px;overflow:hidden;font-family:'Noto Sans Tamil','Latha','Nirmala UI','FreeSans',sans-serif}
+body{background:linear-gradient(160deg,%(c1)s,%(c2)s);color:#fff;position:relative}
+.tag{position:absolute;left:50%%;transform:translateX(-50%%);top:300px;background:%(accent)s;color:%(on)s;font-weight:900;font-size:56px;padding:12px 44px;border-radius:60px;white-space:nowrap}
+.ico{position:absolute;left:0;right:0;top:430px;text-align:center;font-size:190px}
+.hook{position:absolute;left:70px;right:70px;top:660px;height:720px;display:flex;align-items:center;justify-content:center;text-align:center;
+  font-weight:900;line-height:1.25;text-shadow:0 6px 24px rgba(0,0,0,.55)}
 .hook b{color:%(accent)s}
-.foot{position:absolute;left:0;right:0;bottom:0;height:96px;background:rgba(0,0,0,.35);display:flex;align-items:center;
-  justify-content:space-between;padding:0 48px;font-weight:800;font-size:44px}
+.foot{position:absolute;left:70px;right:70px;top:1440px;text-align:center;font-weight:800;font-size:52px}
 .foot span{color:%(accent)s}
+.sub{margin-top:18px;font-size:48px}
 """
 THUMB_THEMES = {"news": ("#0B1B3A", "#12306B", "#FFC93C", "#0B1B3A"), "lesson": ("#06261C", "#0E5C42", "#7CF0B0", "#06261C"),
                 "aptitude": ("#2A0A12", "#7A162C", "#FFC45A", "#3A0A16")}
@@ -165,7 +165,7 @@ CHIP = {"news": "நடப்பு நிகழ்வுகள்", "lesson": "
 
 
 def make_thumbnail(hook, kind, out_path):
-    """1280x720 JPEG under 2 MB: big question on a bright background. Returns the path (raises on a failure)."""
+    """1080x1920 (9:16, for Shorts) JPEG under 2 MB: big question on a bright background, all text in the middle so a crop never cuts it. Returns the path (raises on a failure)."""
     import html as _h
     from pathlib import Path
     from playwright.sync_api import sync_playwright
@@ -175,11 +175,11 @@ def make_thumbnail(hook, kind, out_path):
     words = text.split()
     k = max(1, len(words) // 2)
     marked = _h.escape(" ".join(words[:k])) + " <b>" + _h.escape(" ".join(words[k:])) + "</b>"
-    size = 92 if len(text) <= 28 else (78 if len(text) <= 46 else 64)
+    size = 132 if len(text) <= 28 else (112 if len(text) <= 46 else 94)
     doc = (f"<!doctype html><html><head><meta charset='utf-8'><style>{THUMB_CSS % dict(c1=c1, c2=c2, accent=acc, on=on)}"
            f".hook{{font-size:{size}px}}</style></head><body><div class='tag'>{CHIP.get(kind, '')}</div>"
            f"<div class='ico'>{ICON.get(kind, '')}</div><div class='hook'><div>{marked}</div></div>"
-           f"<div class='foot'><div>TNPSC <span>Group 1 · 2 · 4</span></div><div>தினமும் ▶ SUBSCRIBE</div></div></body></html>")
+           f"<div class='foot'><div>TNPSC <span>Group 1 · 2 · 4</span></div><div class='sub'>தினமும் ▶ SUBSCRIBE</div></div></body></html>")
     out_path = Path(out_path)
     html_path = out_path.with_suffix(".html")
     html_path.write_text(doc, encoding="utf-8")
@@ -188,7 +188,7 @@ def make_thumbnail(hook, kind, out_path):
             browser = p.chromium.launch(channel="chrome")
         except Exception:
             browser = p.chromium.launch()
-        page = browser.new_page(viewport={"width": 1280, "height": 720})
+        page = browser.new_page(viewport={"width": 1080, "height": 1920})
         page.goto(html_path.resolve().as_uri())
         page.evaluate("document.fonts.ready")
         page.screenshot(path=str(out_path), type="jpeg", quality=88)
