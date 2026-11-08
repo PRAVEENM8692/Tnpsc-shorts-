@@ -196,7 +196,7 @@ def make_thumbnail(hook, kind, out_path):
     return out_path
 
 
-def set_thumbnail(yt, video_id, image_path):
+def set_thumbnail(yt, video_id, image_path):  # sets set_thumbnail.blocked when YouTube is rate-limiting thumbnails
     """Sets the custom thumbnail. Never raises: a channel without this feature just keeps the automatic picture."""
     from googleapiclient.http import MediaFileUpload
     try:
@@ -204,4 +204,5 @@ def set_thumbnail(yt, video_id, image_path):
         return True
     except Exception as e:   # not verified channel / missing permission / quota
         print(f"THUMBNAIL SKIPPED ({str(e)[:160]})", flush=True)
+        set_thumbnail.blocked = "429" in str(e) or "too many" in str(e).lower() or "quota" in str(e).lower()
         return False

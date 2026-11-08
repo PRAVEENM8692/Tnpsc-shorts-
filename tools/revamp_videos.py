@@ -54,7 +54,34 @@ def main():
         videos += yt.videos().list(part="snippet", id=",".join(ids[i:i + 50])).execute().get("items", [])
     P.log(f"{len(videos)} videos on the channel")
 
+    only = [x.strip() for x in (os.environ.get("THUMB_IDS") or "").split(",") if x.strip()]
+    if only:   # thumbnails only, for videos whose description is already new
+        tmp = Path(tempfile.mkdtemp())
+        by_id = {v["id"]: v for v in videos}
+        ok = 0
+        for vid in only:
+            v = by_id.get(vid)
+            if not v:
+                continue
+            sn = v["snippet"]
+            kind = kind_of(sn.get("title", ""), sn.get("description", ""))
+            try:
+                img = seo_meta.make_thumbnail(re.sub(r"#\w+|^[^\w஀-௿]+", "", seo_meta.clean(sn["title"])).strip(),
+                                              kind or "news", tmp / f"{vid}.jpg")
+            except Exception as e:
+                P.log(f"thumbnail not made for {vid}: {str(e)[:100]}")
+                continue
+            if seo_meta.set_thumbnail(yt, vid, img):
+                ok += 1
+            elif getattr(seo_meta.set_thumbnail, "blocked", False):
+                P.log("YouTube is limiting thumbnails; stopping. Remaining ids: " + ",".join(only[only.index(vid):]))
+                break
+        P.log(f"thumbnails set: {ok} of {len(only)}")
+        return
+
     done = skipped = 0
+    thumbs_ok = True
+    pending = []
     tmp = Path(tempfile.mkdtemp())
     try:
         for v in reversed(videos):   # oldest first
@@ -66,6 +93,8 @@ def main():
                 continue
             if done >= limit:
                 P.log(f"stopped after {done} videos (daily API quota); run again tomorrow to continue")
+                if pending:
+                    P.log("THUMB_PENDING " + ",".join(pending))
                 return
             title, desc = new
             P.log(f"{'(dry run) ' if dry else ''}{sn.get('title', '')[:40]!r} -> {title[:50]!r}")
@@ -75,11 +104,16 @@ def main():
                     "tags": seo_meta.make_tags(sn.get("tags") or [], kind),
                     "defaultLanguage": sn.get("defaultLanguage", "ta")}}
                 yt.videos().update(part="snippet", body=body).execute()
-                if with_thumbs:
+                if with_thumbs and not thumbs_ok:
+                    pending.append(v["id"])
+                elif with_thumbs:
                     try:
                         img = seo_meta.make_thumbnail(re.sub(r"#\w+|^[^\w஀-௿]+", "", seo_meta.clean(sn["title"])).strip(),
                                                       kind, tmp / f"{v['id']}.jpg")
-                        seo_meta.set_thumbnail(yt, v["id"], img)
+                        if not seo_meta.set_thumbnail(yt, v["id"], img):
+                            pending.append(v["id"])
+                            if getattr(seo_meta.set_thumbnail, "blocked", False):
+                                thumbs_ok = False
                     except Exception as e:
                         P.log(f"thumbnail skipped: {str(e)[:120]}")
             done += 1
@@ -88,6 +122,8 @@ def main():
             sys.exit("YouTube refused (login has no permission, or the daily quota is used up). Run again tomorrow. "
                      f"Details: {str(e)[:220]}")
         raise
+    if pending:
+        P.log("THUMB_PENDING " + ",".join(pending))
     P.log(f"done: {done} changed, {skipped} left alone (already new format or not recognised). "
           "If nothing was changed, all videos are done.")
 

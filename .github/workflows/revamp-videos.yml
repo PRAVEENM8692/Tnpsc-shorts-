@@ -13,6 +13,10 @@ on:
         description: "1 = only show what would change, change nothing"
         default: "1"
 
+      thumb_ids:
+        description: "Comma-separated video ids: only set thumbnails for these (nothing else changes)"
+        default: ""
+
 permissions:
   contents: read
 
@@ -28,11 +32,12 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: pip install playwright && python -m playwright install --with-deps chromium
-        if: ${{ github.event.inputs.with_thumbnails == '1' }}
+        if: ${{ github.event.inputs.with_thumbnails == '1' || github.event.inputs.thumb_ids != '' }}
       - run: python tools/revamp_videos.py
         env:
           MAX_UPDATES: ${{ github.event.inputs.max_updates }}
           WITH_THUMBNAILS: ${{ github.event.inputs.with_thumbnails }}
+          THUMB_IDS: ${{ github.event.inputs.thumb_ids }}
           DRY_RUN: ${{ github.event.inputs.dry_run }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
