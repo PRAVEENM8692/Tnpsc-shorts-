@@ -50,7 +50,7 @@ jobs:
       - run: pip install -r requirements.txt
         if: steps.plan.outputs.slot != ''
       - name: Install Manim (only for the animated aptitude videos)
-        if: steps.plan.outputs.slot == '3' || steps.plan.outputs.slot == '5' || steps.plan.outputs.slot == 'all'
+        if: steps.plan.outputs.slot == '3' || steps.plan.outputs.slot == '4' || steps.plan.outputs.slot == '5' || steps.plan.outputs.slot == 'all'
         continue-on-error: true   # if this fails, the video falls back to AI images instead of stopping
         run: |
           sudo apt-get install -y libcairo2-dev libpango1.0-dev pkg-config python3-dev
