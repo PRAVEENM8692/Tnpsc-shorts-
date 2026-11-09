@@ -1,0 +1,37 @@
+name: comment-all-videos
+
+# Posts one question comment on every video that has none of the channel yet (50 quota units each, a few per run).
+on:
+  workflow_dispatch:
+    inputs:
+      max_comments:
+        description: "How many comments to post in this run"
+        default: "20"
+      dry_run:
+        description: "1 = only list what would be posted"
+        default: "0"
+
+permissions:
+  contents: read
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Post the comments
+        run: python tools/comment_all.py
+        env:
+          MAX_COMMENTS: ${{ github.event.inputs.max_comments || '20' }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || '0' }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          TAVILY_API_KEY: "unused"
+          LLM_API_KEY: "unused"
