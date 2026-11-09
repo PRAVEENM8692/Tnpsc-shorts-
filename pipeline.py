@@ -133,14 +133,12 @@ def no_repeats(s, hist, rewrite, extra):
 # ---------------------------------------------------------------- 1. news search
 # 7 videos a day: 3 current affairs + 2 aptitude + 2 syllabus lessons (see .github/workflows/daily.yml for the clock times)
 SLOTS = {
-    1: ("news", "Tamil Nadu", ["Tamil Nadu government announcement news", "Tamil Nadu scheme policy news today"],
-        "Tamil Nadu government, schemes, places, appointments"),
-    2: ("news", "India & economy", ["India national news important today", "India economy RBI budget scheme news"],
-        "India national affairs, government decisions, laws, polity, economy, banking"),
+    1: ("news", "Tamil Nadu", ["Tamil Nadu government scheme announcement news", "Tamil Nadu welfare scheme policy news today"],
+        "Tamil Nadu government schemes, welfare programmes, announcements, appointments"),
+    2: ("news", "India government schemes", ["India central government scheme yojana launched news", "Union cabinet approves scheme policy news today"],
+        "Indian central government schemes, yojanas, cabinet decisions, ministries and policies"),
     3: ("aptitude", "Aptitude A", None, None),
-    4: ("news", "Science, sports & world", ["India science technology ISRO environment news",
-                                          "India sports awards international summit news"],
-        "science, technology, space, environment, sports, awards, international events"),
+    4: ("aptitude", "Aptitude C", None, None),
     5: ("aptitude", "Aptitude B", None, None),
     6: ("lesson", "Syllabus lesson A", None, None),   # a TNPSC Group 1 / 2 / 4 syllabus topic taught like a class
     7: ("lesson", "Syllabus lesson B", None, None),
@@ -252,8 +250,7 @@ SITE_HEAD = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (
 # which part of the daily PDF each slot uses (the English PDF is read; the Tamil PDF uses an old font that cannot be copied as text)
 SITE_SECTIONS = {
     1: r"tamil\s*nadu",
-    2: r"national|india|econom|bank|polity|government",
-    4: r"international|world|science|technolog|sport|award|important\s*days|environment|space",
+    2: r"scheme|yojana|government|national|india|cabinet|union|econom|bank|polity",
 }
 
 
@@ -1910,7 +1907,7 @@ def make_one(slot, today, stamp, upload_it, hist):
         (OUT / f"facts-{tag}.txt").write_text(notes, encoding="utf-8")
         log(f"[slot {slot}] writing Tamil script")
         # news slots use the HTML news-card video (set repo variable CARDS_SLOTS=none to switch it off, default 1,2,4)
-        card_slots = [x.strip() for x in (os.environ.get("CARDS_SLOTS") or "1,2,4,6,7").split(",")]
+        card_slots = [x.strip() for x in (os.environ.get("CARDS_SLOTS") or "1,2,6,7").split(",")]
         s = None
         extra = [""]   # facts a draft repeated, added to the instructions of the next draft
         if str(slot) in card_slots or (kind == "lesson" and "none" not in card_slots):   # lessons always use the card layout
@@ -1934,12 +1931,13 @@ def make_one(slot, today, stamp, upload_it, hist):
             pre, post = "Sources: " + ", ".join(hosts), "AI-assisted video. Verify facts with official sources."
     else:
         doy = dt.datetime.now(IST).timetuple().tm_yday
-        topic = APTITUDE_TOPICS[(doy * 2 + (0 if slot == 3 else 1)) % len(APTITUDE_TOPICS)]
+        apt_i = {3: 0, 4: 1, 5: 2}.get(slot, 0)   # three aptitude videos a day, each its own topic
+        topic = APTITUDE_TOPICS[(doy * 3 + apt_i) % len(APTITUDE_TOPICS)]
         global NEXT_APT
-        NEXT_APT = APTITUDE_TOPICS[((doy + 1) * 2 + (0 if slot == 3 else 1)) % len(APTITUDE_TOPICS)]
+        NEXT_APT = APTITUDE_TOPICS[((doy + 1) * 3 + apt_i) % len(APTITUDE_TOPICS)]
         log(f"[slot {slot}] aptitude topic: {topic} (tomorrow: {NEXT_APT})")
-        # which aptitude slots use the animated Manim video (default: slots 3 and 5; set repo variable MANIM_SLOTS=5 for one only)
-        manim_slots = [x.strip() for x in (os.environ.get("MANIM_SLOTS") or "3,5").split(",")]
+        # which aptitude slots use the animated Manim video (default: slots 3, 4 and 5; set repo variable MANIM_SLOTS=5 for one only)
+        manim_slots = [x.strip() for x in (os.environ.get("MANIM_SLOTS") or "3,4,5").split(",")]
         manim_mode = str(slot) in manim_slots
         avoid_apt = avoid_text(hist, 12) + apt_brief(topic)
         extra = [""]
