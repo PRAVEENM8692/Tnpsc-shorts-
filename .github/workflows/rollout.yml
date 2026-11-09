@@ -9,8 +9,8 @@ on:
   workflow_dispatch:
     inputs:
       thumb_max:
-        description: "How many thumbnails to set in this run (YouTube usually refuses after about 9)"
-        default: "9"
+        description: "How many thumbnails to set in this run (YouTube usually refuses after a few)"
+        default: "5"
       desc_max:
         description: "How many old descriptions to bring to the current format in this run (50 quota units each)"
         default: "20"
@@ -57,7 +57,7 @@ jobs:
         run: python tools/revamp_videos.py
         env:
           THUMB_AUTO: "1"
-          THUMB_MAX: ${{ github.event.inputs.thumb_max || '9' }}
+          THUMB_MAX: ${{ github.event.inputs.thumb_max || '5' }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}

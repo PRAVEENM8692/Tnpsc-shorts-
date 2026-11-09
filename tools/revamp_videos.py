@@ -40,7 +40,7 @@ def auto_thumbnails(yt, videos):
         done = set(json.loads(state.read_text(encoding="utf-8")).get("ids", []))
     except Exception:
         done = set()
-    limit = int(os.environ.get("THUMB_MAX") or 9)
+    limit = int(os.environ.get("THUMB_MAX") or 5)
     todo = [v for v in videos if v["id"] not in done]   # videos come newest first: the newest videos get their thumbnail first
     P.log(f"thumbnails: {len(done)} done, {len(todo)} left; setting up to {limit} now")
     tmp = Path(tempfile.mkdtemp())
