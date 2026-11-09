@@ -4,7 +4,6 @@ Switches: DRY_RUN=1 (only print), MAX_POSTS (default 6 per run), SEED_POST=1 (po
 import json
 import os
 import re
-import sys
 import time
 import urllib.parse
 from html.parser import HTMLParser

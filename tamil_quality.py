@@ -215,7 +215,7 @@ def _sync_voiceover(s, kind):
 
 
 def sanitize_script(s, kind):
-    for key, f in _fields(s, kind).items():
+    for f in _fields(s, kind).values():
         clean = sanitize(f["text"])
         if clean != f["text"]:
             f["set"](clean)

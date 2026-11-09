@@ -15,7 +15,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pipeline as P  # noqa: E402
 import seo_meta  # noqa: E402
-from backfill_playlists import WORLD  # noqa: E402
 
 
 def kind_of(title, desc):

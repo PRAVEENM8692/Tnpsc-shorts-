@@ -17,7 +17,6 @@ TAGS_KIND = {"news": ["TNPSC current affairs", "current affairs Tamil", "daily c
              "aptitude": ["TNPSC aptitude", "maths shortcuts Tamil", "aptitude tricks"]}
 HASHTAGS = {"news": "#TNPSC #CurrentAffairs #Group4", "lesson": "#TNPSC #Group4 #Group2",
             "aptitude": "#TNPSC #Aptitude #MathsTricks"}
-CTA_LINE = {"news": "❓ ", "lesson": "❓ ", "aptitude": "❓ "}
 
 
 def tg_link():
@@ -130,13 +129,12 @@ def revamp_existing(kind, title, desc):
     body, _, rest = (desc or "").strip().partition("\n\n")
     points = [x.strip(" -•") for x in body.split("\n") if x.strip()]
     pre = post = ""
-    hashtags = ""
     for ln in rest.split("\n"):
         ln = ln.strip()
         if not ln:
             continue
         if ln.startswith("#"):
-            hashtags = ln
+            continue   # old hashtag line: the new description builds its own
         elif ln.lower().startswith(("sources:", "topic:")):
             pre = ln
         else:

@@ -86,7 +86,6 @@ def to_mp3(buf, path, target_db):
     """Scale so the average loudness matches target_db, fade the ends, save as mp3."""
     peak = np.abs(buf).max()
     buf = buf / (peak or 1) * 0.9
-    n = buf.shape[1]
     f = int(0.6 * SR)
     buf[:, :f] *= np.linspace(0, 1, f)
     buf[:, -f:] *= np.linspace(1, 0, f)
@@ -185,7 +184,6 @@ def sfx():
     # whoosh: filtered noise sweeping up then down
     n = int(.55 * SR); t = np.arange(n) / SR
     noise = rng.standard_normal(n)
-    sweep = np.sin(2 * np.pi * (300 + 2600 * t / .55) * t) * .0   # unused tonal part
     k = np.exp(-((t - .22) / .14) ** 2)
     y = np.convolve(noise, np.ones(18) / 18, mode="same") * k
     y += np.convolve(noise, np.ones(60) / 60, mode="same") * k * 1.5

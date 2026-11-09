@@ -360,7 +360,7 @@ def search_news(queries, used_urls=()):
     if len(items) < 2:
         sys.exit("Too little news found; stopping instead of inventing facts.")
     notes = "\n".join(f"- {i['title']} ({i['host']}): {i['text']}" for i in items)
-    hosts, urls = [], []
+    hosts = []
     for i in items:
         if i["host"] not in hosts:
             hosts.append(i["host"])
@@ -371,34 +371,38 @@ def search_news(queries, used_urls=()):
 _MODEL = {"name": None}
 
 
-def pick_model(base, headers):
-    """Ask the provider which chat models exist today and choose a good one."""
+def _chat_models(base, headers):
+    """The chat models the provider offers today (speech, guard and embedding models left out)."""
     r = requests.get(base + "/models", headers=headers, timeout=60)
     r.raise_for_status()
-    ids = [m["id"] for m in r.json().get("data", []) if m.get("active", True)]
-    bad = ("whisper", "guard", "tts", "orpheus", "embed", "safeguard")
-    ids = [i for i in ids if not any(b in i.lower() for b in bad)]
-    for pref in ("gpt-oss-120b", "llama-3.3-70b", "llama-4-maverick", "llama-4-scout",
-                 "qwen", "kimi", "gpt-oss-20b", "llama-3.1-8b"):
+    skip = ("whisper", "guard", "tts", "orpheus", "embed", "safeguard")
+    return [m["id"] for m in r.json().get("data", [])
+            if m.get("active", True) and not any(b in m["id"].lower() for b in skip)]
+
+
+def _first_match(ids, prefs, bad=()):
+    for pref in prefs:
         for i in ids:
-            if pref in i.lower():
+            if pref in i.lower() and i not in bad:
                 return i
-    if ids:
-        return ids[0]
+    return None
+
+
+def pick_model(base, headers):
+    """Ask the provider which chat models exist today and choose a good one."""
+    ids = _chat_models(base, headers)
+    found = _first_match(ids, ("gpt-oss-120b", "llama-3.3-70b", "llama-4-maverick", "llama-4-scout",
+                               "qwen", "kimi", "gpt-oss-20b", "llama-3.1-8b"))
+    if found or ids:
+        return found or ids[0]
     sys.exit("No usable chat model found on the LLM provider.")
 
 
 def next_model(base, headers, bad):
     """Another chat model of the same provider that has not hit its limit yet (each model has its own free quota); None if there is none."""
-    r = requests.get(base + "/models", headers=headers, timeout=60)
-    r.raise_for_status()
-    ids = [m["id"] for m in r.json().get("data", []) if m.get("active", True)]
-    ids = [i for i in ids if not any(b_ in i.lower() for b_ in ("whisper", "guard", "tts", "orpheus", "embed", "safeguard"))]
-    for pref in ("gpt-oss-120b", "llama-3.3-70b", "gpt-oss-20b", "llama-4-maverick", "llama-4-scout", "kimi", "qwen", "llama-3.1-8b"):
-        for i in ids:
-            if pref in i.lower() and i not in bad:
-                return i
-    return None
+    return _first_match(_chat_models(base, headers),
+                        ("gpt-oss-120b", "llama-3.3-70b", "gpt-oss-20b", "llama-4-maverick", "llama-4-scout",
+                         "kimi", "qwen", "llama-3.1-8b"), bad)
 
 
 def gemini_json(prompt, temperature=0.5):
@@ -653,9 +657,18 @@ def safe_eval(expr):
     return ev(ast.parse(t.strip(), mode="eval"))
 
 
+_GEMINI_MODEL = {}
+
+
 def _gemini_text_model(key):
     """The newest Gemini 'flash' text model this key can use (Google retires old model names, so the name is looked up
-    instead of being hard-coded). Returns "" if the list cannot be read."""
+    instead of being hard-coded). Returns "" if the list cannot be read. Looked up once per run, not on every call."""
+    if key not in _GEMINI_MODEL:
+        _GEMINI_MODEL[key] = _lookup_gemini_text_model(key)
+    return _GEMINI_MODEL[key]
+
+
+def _lookup_gemini_text_model(key):
     try:
         r = requests.get("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",
                          headers={"x-goog-api-key": key}, timeout=30)
@@ -1023,20 +1036,23 @@ def make_voice_eleven(text, path):
                               json=body, timeout=180)
         except requests.RequestException as e:
             last = str(e)
-            time.sleep(5)
+            if n < 2:
+                time.sleep(5)
             continue
         if r.status_code == 400 and "language_code" in body:   # some models do not take language_code: retry without it
             body.pop("language_code")
             continue
         if r.status_code == 429 and "concurrent" in r.text.lower():
-            time.sleep(8 * (n + 1))
+            if n < 2:
+                time.sleep(8 * (n + 1))
             last = "429 too many parallel requests"
             continue
         if r.status_code in (401, 402, 403, 429):   # bad key / credits used up / blocked: waiting will not help
             raise RuntimeError(f"ElevenLabs refused ({r.status_code}): {' '.join(r.text.split())[:200]}")
         if r.status_code >= 500:
             last = f"server error {r.status_code}"
-            time.sleep(6)
+            if n < 2:
+                time.sleep(6)
             continue
         if not r.ok:
             raise RuntimeError(f"ElevenLabs error {r.status_code}: {' '.join(r.text.split())[:200]}")
@@ -1126,17 +1142,20 @@ def make_voice_gemini(text, path):
                 r = requests.post(url, headers=headers, json=body, timeout=180)
             except requests.RequestException as e:
                 last = f"{name}: {e}"
-                time.sleep(5)
+                if n < 2:   # no waiting after the last try of this API
+                    time.sleep(5)
                 continue
             if r.status_code == 429:
                 last = f"{name}: 429 quota/rate limit: {r.text[:200]}"
                 if "PerDay" in r.text or "per_day" in r.text:
                     raise RuntimeError(last)   # today's free quota is used up; waiting will not help
-                time.sleep(25 * (n + 1))
+                if n < 2:
+                    time.sleep(25 * (n + 1))
                 continue
             if r.status_code >= 500:
                 last = f"{name}: server error {r.status_code}"
-                time.sleep(8)
+                if n < 2:
+                    time.sleep(8)
                 continue
             if not r.ok:
                 last = f"{name}: {r.status_code} {r.text[:250]}"
@@ -1144,7 +1163,8 @@ def make_voice_gemini(text, path):
             got = pick(r.json())
             if not got:
                 last = f"{name}: the answer had no audio"   # the model sometimes answers without audio: retry
-                time.sleep(3)
+                if n < 2:
+                    time.sleep(3)
                 continue
             m = re.search(r"rate=(\d+)", got[1] or "")
             _audio_to_mp3(base64.b64decode(got[0]), path, int(m.group(1)) if m else 24000)
@@ -1326,7 +1346,8 @@ def fetch_image(prompt, path, seed):
                 return
         except requests.RequestException:
             pass
-        time.sleep(10 * (attempt + 1))
+        if attempt < 4:   # no waiting after the last try
+            time.sleep(10 * (attempt + 1))
     prev = _LAST_GOOD["path"]
     if prev and Path(prev).exists():
         log(f"image failed for '{prompt[:40]}', reusing previous image")
@@ -1741,19 +1762,6 @@ SUBJECT_TA = {   # syllabus subject -> Tamil name shown in the video header
     "Tamil Nadu Administration and Welfare": "தமிழக நிர்வாகம் & நலத்திட்டங்கள்",
 }
 
-SUBJECT_PLAYLISTS = {   # syllabus subject -> playlist title
-    "Indian Polity": "பாடம் - இந்திய அரசியலமைப்பு (Polity)",
-    "Indian History": "பாடம் - இந்திய வரலாறு (History)",
-    "Tamil Nadu History and Culture": "பாடம் - தமிழ்நாடு வரலாறு & பண்பாடு",
-    "Geography": "பாடம் - புவியியல் (Geography)",
-    "General Science": "பாடம் - அறிவியல் (General Science)",
-    "Indian Economy": "பாடம் - இந்தியப் பொருளாதாரம் (Economy)",
-    "Tamil Nadu Administration and Welfare": "பாடம் - தமிழ்நாடு நிர்வாகம் & நலத்திட்டங்கள்",
-}
-NEWS_PLAYLISTS = {1: "நடப்பு நிகழ்வுகள் - தமிழ்நாடு", 2: "நடப்பு நிகழ்வுகள் - இந்தியா & பொருளாதாரம்",
-                  4: "நடப்பு நிகழ்வுகள் - உலகம், அறிவியல், விளையாட்டு"}
-
-
 PLAYLIST_NEWS = "தினசரி நடப்பு நிகழ்வுகள் (Current Affairs)"
 PLAYLIST_LESSON = "TNPSC பாடங்கள் (Group 1, 2, 4)"
 PLAYLIST_APT = "Aptitude Shortcuts"
@@ -2113,12 +2121,13 @@ def main():
     log(f"slots to build: {slots}")
 
     done, failed = 0, []
-    for slot in slots:
+    for idx, slot in enumerate(slots):
         try:
             if make_one(slot, today, stamp, upload_it, hist) == "limit":
                 break   # no point building the other videos while YouTube refuses uploads
             done += 1
-            time.sleep(20)  # ease free-tier rate limits
+            if idx < len(slots) - 1:
+                time.sleep(20)  # ease free-tier rate limits (not needed after the last video)
         except BaseException as e:  # with SLOT=all, one bad video does not cancel the rest
             if isinstance(e, KeyboardInterrupt):
                 raise
