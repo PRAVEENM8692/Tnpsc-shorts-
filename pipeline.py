@@ -239,6 +239,17 @@ APTITUDE_TOPICS = [
     "Pipes and cisterns", "Trains problems", "Boats and streams", "Mensuration (area, perimeter)",
     "Divisibility rules", "Simplification (BODMAS tricks)", "Calendar and clock problems",
 ]
+# Reasoning / mental-ability topics (slot 4 each day). The video code checks the maths, so every question is framed with a NUMBER as the answer.
+REASONING_TOPICS = [
+    "Reasoning: Ranking and order (total number of students)", "Reasoning: Direction sense (distance from the starting point)",
+    "Reasoning: Coding-decoding with letter positions", "Reasoning: Number analogy (a : b :: c : ?)",
+    "Reasoning: Alphabet series and letter positions", "Reasoning: Seating arrangement (position from left or right)",
+    "Reasoning: Odd one out in number groups", "Reasoning: Clock angle problems",
+    "Reasoning: Blood relations (how many people in the family)", "Reasoning: Counting problems (handshakes and matches)",
+]
+REASONING_NOTE = ("\n\nThis topic is a REASONING (mental ability) question, not a maths-formula question. Teach ONE exam-style reasoning question "
+                  "with a quick method. Frame the question so that the FINAL ANSWER IS A NUMBER (a count, a position, a distance, a total or a "
+                  "letter position), and give check_expr and answer for it; the steps shown on the screen are the logical steps.\n")
 
 
 
@@ -1931,15 +1942,18 @@ def make_one(slot, today, stamp, upload_it, hist):
             pre, post = "Sources: " + ", ".join(hosts), "AI-assisted video. Verify facts with official sources."
     else:
         doy = dt.datetime.now(IST).timetuple().tm_yday
-        apt_i = {3: 0, 4: 1, 5: 2}.get(slot, 0)   # three aptitude videos a day, each its own topic
-        topic = APTITUDE_TOPICS[(doy * 3 + apt_i) % len(APTITUDE_TOPICS)]
+        def _apt_topic(d, sl):   # slots 3 and 5: maths aptitude; slot 4: reasoning (so every day has maths and reasoning)
+            if sl == 4:
+                return REASONING_TOPICS[d % len(REASONING_TOPICS)]
+            return APTITUDE_TOPICS[(d * 2 + (0 if sl == 3 else 1)) % len(APTITUDE_TOPICS)]
+        topic = _apt_topic(doy, slot)
         global NEXT_APT
-        NEXT_APT = APTITUDE_TOPICS[((doy + 1) * 3 + apt_i) % len(APTITUDE_TOPICS)]
+        NEXT_APT = _apt_topic(doy + 1, slot)
         log(f"[slot {slot}] aptitude topic: {topic} (tomorrow: {NEXT_APT})")
         # which aptitude slots use the animated Manim video (default: slots 3, 4 and 5; set repo variable MANIM_SLOTS=5 for one only)
         manim_slots = [x.strip() for x in (os.environ.get("MANIM_SLOTS") or "3,4,5").split(",")]
         manim_mode = str(slot) in manim_slots
-        avoid_apt = avoid_text(hist, 12) + apt_brief(topic)
+        avoid_apt = avoid_text(hist, 12) + apt_brief(topic) + (REASONING_NOTE if topic in REASONING_TOPICS else "")
         extra = [""]
         if manim_mode:
             rewrite = lambda: write_aptitude_manim_script(topic, today, avoid_apt + extra[0])
