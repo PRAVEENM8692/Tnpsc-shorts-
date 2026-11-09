@@ -43,6 +43,10 @@ def auto_thumbnails(yt, videos):
     limit = int(os.environ.get("THUMB_MAX") or 5)
     todo = [v for v in videos if v["id"] not in done]   # videos come newest first: the newest videos get their thumbnail first
     P.log(f"thumbnails: {len(done)} done, {len(todo)} left; setting up to {limit} now")
+    try:
+        hooks = json.loads(Path(__file__).resolve().parent.parent.joinpath("thumb_hooks.json").read_text(encoding="utf-8"))
+    except Exception:
+        hooks = {}
     tmp = Path(tempfile.mkdtemp())
     ok = 0
     for v in todo:
@@ -53,7 +57,9 @@ def auto_thumbnails(yt, videos):
         text = re.sub(r"#\w+|^[^\w\u0B80-\u0BFF]+", "", seo_meta.clean(sn.get("title", ""))).strip()
         text = clean_title(text, 70) or text
         try:
-            img = seo_meta.make_thumbnail(text, kind, tmp / f"{v['id']}.jpg")
+            h = hooks.get(v["id"])
+            img = (seo_meta.make_thumbnail(h[0], kind, tmp / f"{v['id']}.jpg", h[1]) if h
+                   else seo_meta.make_thumbnail(text, kind, tmp / f"{v['id']}.jpg"))
         except Exception as e:
             P.log(f"thumbnail not made for {v['id']}: {str(e)[:100]}")
             continue

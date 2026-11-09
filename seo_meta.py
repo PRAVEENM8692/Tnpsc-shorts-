@@ -153,37 +153,41 @@ def revamp_existing(kind, title, desc):
 THUMB_CSS = """
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:1080px;height:1920px;overflow:hidden;font-family:'Noto Sans Tamil','Latha','Nirmala UI','FreeSans',sans-serif}
-body{background:linear-gradient(160deg,%(c1)s,%(c2)s);color:#fff;position:relative}
-.tag{position:absolute;left:50%%;transform:translateX(-50%%);top:300px;background:%(accent)s;color:%(on)s;font-weight:900;font-size:56px;padding:12px 44px;border-radius:60px;white-space:nowrap}
-.ico{position:absolute;left:0;right:0;top:430px;text-align:center;font-size:190px}
-.hook{position:absolute;left:70px;right:70px;top:660px;height:720px;display:flex;align-items:center;justify-content:center;text-align:center;
-  font-weight:900;line-height:1.25;text-shadow:0 6px 24px rgba(0,0,0,.55)}
-.hook b{color:%(accent)s}
-.foot{position:absolute;left:70px;right:70px;top:1440px;text-align:center;font-weight:800;font-size:52px}
-.foot span{color:%(accent)s}
-.sub{margin-top:18px;font-size:48px}
+body{background:radial-gradient(circle at 50% 38%,@C2@ 0%,@C1@ 75%);color:#fff;position:relative}
+.tag{position:absolute;top:330px;left:50%;transform:translateX(-50%);background:@ACC@;color:#1a1a1a;font-weight:900;font-size:64px;padding:16px 56px;border-radius:60px;white-space:nowrap}
+.ico{position:absolute;top:470px;width:100%;text-align:center;font-size:260px;line-height:1}
+.txt{position:absolute;top:790px;width:100%;padding:0 50px;text-align:center;font-weight:900;line-height:1.28;text-shadow:0 6px 0 #000,0 0 26px rgba(0,0,0,.7)}
+.l1{color:#fff;font-size:@S1@px}.l2{color:@ACC@;font-size:@S2@px;margin-top:10px}
+.foot{position:absolute;top:1620px;width:100%;text-align:center;font-weight:800;font-size:44px;color:#fff;opacity:.95}.foot b{color:@ACC@}
 """
-THUMB_THEMES = {"news": ("#0B1B3A", "#12306B", "#FFC93C", "#0B1B3A"), "lesson": ("#06261C", "#0E5C42", "#7CF0B0", "#06261C"),
-                "aptitude": ("#2A0A12", "#7A162C", "#FFC45A", "#3A0A16")}
+# kind -> (dark colour, light colour, accent, ...)
+THUMB_THEMES = {"news": ("#0B1B3A", "#1D4FA8", "#FFD23C", ""), "lesson": ("#3B0A5E", "#8E24AA", "#FFE45C", ""),
+                "aptitude": ("#7A0F1E", "#E5392B", "#FFE45C", "")}
 CHIP = {"news": "நடப்பு நிகழ்வுகள்", "lesson": "TNPSC பாடம்", "aptitude": "கணித குறுக்குவழி"}
+DEFAULT_Q = {"news": "இது தெரியுமா?", "lesson": "5 குறிப்புகள் தெரியுமா?", "aptitude": "ஈஸியான ட்ரிக் தெரியுமா?"}
 
 
-def make_thumbnail(hook, kind, out_path):
-    """1080x1920 (9:16, for Shorts) JPEG under 2 MB: big question on a bright background, all text in the middle so a crop never cuts it. Returns the path (raises on a failure)."""
+def make_thumbnail(hook, kind, out_path, line2=None):
+    """1080x1920 (9:16, for Shorts) JPEG: the topic in white, the question in yellow, big and high-contrast, all text in the middle so a
+    crop never cuts it. Without line2 the hook text is split in two halves. Returns the path (raises on a failure)."""
     import html as _h
     from pathlib import Path
     from playwright.sync_api import sync_playwright
 
-    c1, c2, acc, on = THUMB_THEMES.get(kind, THUMB_THEMES["news"])
+    c1, c2, acc, _ = THUMB_THEMES.get(kind, THUMB_THEMES["news"])
     text = _cut(clean(hook), 70)
-    words = text.split()
-    k = max(1, len(words) // 2)
-    marked = _h.escape(" ".join(words[:k])) + " <b>" + _h.escape(" ".join(words[k:])) + "</b>"
-    size = 132 if len(text) <= 28 else (112 if len(text) <= 46 else 94)
-    doc = (f"<!doctype html><html><head><meta charset='utf-8'><style>{THUMB_CSS % dict(c1=c1, c2=c2, accent=acc, on=on)}"
-           f".hook{{font-size:{size}px}}</style></head><body><div class='tag'>{CHIP.get(kind, '')}</div>"
-           f"<div class='ico'>{ICON.get(kind, '')}</div><div class='hook'><div>{marked}</div></div>"
-           f"<div class='foot'><div>TNPSC <span>Group 1 · 2 · 4</span></div><div class='sub'>தினமும் ▶ SUBSCRIBE</div></div></body></html>")
+    if line2:
+        l1, l2 = text, _cut(clean(line2), 40)
+    else:
+        words = text.split()
+        k = max(1, (len(words) + 1) // 2)
+        l1, l2 = " ".join(words[:k]), (" ".join(words[k:]) or DEFAULT_Q.get(kind, ""))
+    s1 = 118 if len(l1) <= 14 else (100 if len(l1) <= 22 else 86)
+    s2 = 112 if len(l2) <= 14 else (96 if len(l2) <= 22 else 84)
+    css = (THUMB_CSS.replace("@C1@", c1).replace("@C2@", c2).replace("@ACC@", acc).replace("@S1@", str(s1)).replace("@S2@", str(s2)))
+    doc = (f"<!doctype html><html><head><meta charset='utf-8'><style>{css}</style></head><body><div class='tag'>{CHIP.get(kind, '')}</div>"
+           f"<div class='ico'>{ICON.get(kind, '')}</div><div class='txt'><div class='l1'>{_h.escape(l1)}</div><div class='l2'>{_h.escape(l2)}</div></div>"
+           f"<div class='foot'>TNPSC <b>Group 1 · 2 · 4</b><br>தினமும் ▶ SUBSCRIBE</div></body></html>")
     out_path = Path(out_path)
     html_path = out_path.with_suffix(".html")
     html_path.write_text(doc, encoding="utf-8")
@@ -195,7 +199,7 @@ def make_thumbnail(hook, kind, out_path):
         page = browser.new_page(viewport={"width": 1080, "height": 1920})
         page.goto(html_path.resolve().as_uri())
         page.evaluate("document.fonts.ready")
-        page.screenshot(path=str(out_path), type="jpeg", quality=88)
+        page.screenshot(path=str(out_path), type="jpeg", quality=90)
         browser.close()
     return out_path
 
