@@ -837,6 +837,12 @@ wherever a speaker would pause, and avoid very long compound words."""
         if abs(got - want) > 1e-6 * max(1.0, abs(want)):
             log(f"aptitude (animated) attempt {attempt + 1}: maths mismatch ({got} vs {want}); retrying")
             continue
+        q_screen = str(d.get("screen_question", ""))
+        if q_screen.count("?") != 1:
+            # a question with two unknowns (e.g. "8 : ? :: 6 : ?") or none cannot have one answer
+            log(f"aptitude (animated) attempt {attempt + 1}: screen question has {q_screen.count('?')} question marks; retrying")
+            hint = "\n\nscreen_question must contain exactly ONE '?' (one unknown) and every other number given."
+            continue
         shown = str(d["screen_answer"]).replace(",", "")
         want_txt = str(int(want)) if want == int(want) else str(want)
         if attempt < 4 and want_txt not in shown:
