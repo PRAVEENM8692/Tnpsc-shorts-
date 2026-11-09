@@ -158,7 +158,7 @@ body{background:radial-gradient(circle at 50% 38%,@C2@ 0%,@C1@ 75%);color:#fff;p
 .ico{position:absolute;top:470px;width:100%;text-align:center;font-size:260px;line-height:1}
 .txt{position:absolute;top:790px;width:100%;padding:0 50px;text-align:center;font-weight:900;line-height:1.28;text-shadow:0 6px 0 #000,0 0 26px rgba(0,0,0,.7)}
 .l1{color:#fff;font-size:@S1@px}.l2{color:@ACC@;font-size:@S2@px;margin-top:10px}
-.foot{position:absolute;top:1620px;width:100%;text-align:center;font-weight:800;font-size:44px;color:#fff;opacity:.95}.foot b{color:@ACC@}
+.foot{position:absolute;top:1480px;width:100%;text-align:center;font-weight:800;font-size:44px;color:#fff;opacity:.95}.foot b{color:@ACC@}
 """
 # kind -> (dark colour, light colour, accent, ...)
 THUMB_THEMES = {"news": ("#0B1B3A", "#1D4FA8", "#FFD23C", ""), "lesson": ("#3B0A5E", "#8E24AA", "#FFE45C", ""),
