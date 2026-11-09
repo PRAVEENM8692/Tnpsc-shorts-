@@ -1890,8 +1890,17 @@ def add_to_playlists(video_id, names):
 
 
 # ---------------------------------------------------------------- main
+# weekday theme for the two scheme-news slots (Mon..Sun): steers the search fallback and the script focus, never the facts
+NEWS_THEMES = ["housing and social security", "education and students", "health", "agriculture and villages",
+               "employment and skills", "women and family welfare", "weekly review of this week's schemes"]
+
+
 def make_one(slot, today, stamp, upload_it, hist):
     kind, name, queries, focus = SLOTS[slot]
+    if kind == "news" and slot in (1, 2):
+        theme = NEWS_THEMES[dt.datetime.now(IST).weekday()]
+        queries = [f"{q} {theme}" for q in queries] + list(queries)
+        focus = f"{focus}. Today's theme (use only if the news notes contain it): {theme}"
     tag = f"{stamp}-s{slot}"
     work = OUT / f"work-{tag}"
     work.mkdir(parents=True, exist_ok=True)
