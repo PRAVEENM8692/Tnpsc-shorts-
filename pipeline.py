@@ -1573,7 +1573,7 @@ def render_manim(s, starts, total, workdir, today):
 
 def pick_bgm():
     """A random background track from assets/ (bgm.mp3 and the generated bgm_*.mp3); None if there is none."""
-    tracks = sorted(Path("assets").glob("bgm*.mp3"))
+    tracks = sorted(Path("assets").glob("bgm_ncs*.mp3")) or sorted(Path("assets").glob("bgm*.mp3"))
     if not tracks:
         return None
     t = random.choice(tracks)
