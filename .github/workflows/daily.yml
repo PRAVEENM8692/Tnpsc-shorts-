@@ -55,8 +55,8 @@ jobs:
         run: |
           sudo apt-get install -y libcairo2-dev libpango1.0-dev pkg-config python3-dev
           pip install manim
-      - name: Install the news-card renderer (only for the current-affairs videos)
-        if: steps.plan.outputs.slot != '' && steps.plan.outputs.slot != '3' && steps.plan.outputs.slot != '5'
+      - name: Install the card and thumbnail renderer (all slots; thumbnails need it too)
+        if: steps.plan.outputs.slot != ''
         continue-on-error: true   # if this fails, the video uses plain AI pictures instead of stopping
         run: |
           pip install playwright
