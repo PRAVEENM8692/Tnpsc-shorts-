@@ -1,0 +1,20 @@
+name: image-style-test
+# Run by hand only: draws a few sample pictures in the long-video comic style. Uploads nothing to YouTube.
+on:
+  workflow_dispatch:
+jobs:
+  draw:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python tools/image_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: image-test
+          path: out/image-test
