@@ -143,7 +143,7 @@ SLOTS = {
     6: ("lesson", "Syllabus lesson A", None, None),   # a TNPSC Group 1 / 2 / 4 syllabus topic taught like a class
     7: ("lesson", "Syllabus lesson B", None, None),
 }
-START_TIMES = {1: 8.0, 2: 10.5, 3: 13.0, 4: 15.5, 5: 18.0, 6: 19.5, 7: 21.0}   # IST hours (same table as plan.py)
+START_TIMES = {1: 10.5, 2: 10.5, 3: 13.0, 4: 21.0, 5: 18.0, 6: 10.5, 7: 10.5}   # IST hours (3 Shorts a day from 12 Nov 2026; plan.py decides the real schedule)
 
 # TNPSC Group 1 / 2 / 4 general-studies syllabus: one subject per lesson, topics rotate so nothing repeats for months
 SYLLABUS = {

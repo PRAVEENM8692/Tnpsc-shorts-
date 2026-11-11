@@ -8,7 +8,11 @@ import json
 import os
 from zoneinfo import ZoneInfo
 
-START = {1: 8.0, 2: 10.5, 3: 13.0, 4: 15.5, 5: 18.0, 6: 19.5, 7: 21.0}   # IST hours
+# From 12 Nov 2026: 3 Shorts a day. Slot 3 = aptitude, slot 4 = reasoning, plus one general video that rotates by weekday
+# (Mon..Sun): Tamil Nadu news, India news, lesson A, Tamil Nadu news, India news, lesson B, lesson A. Slots 2/5/6/7 are only used as the general video or by hand; slot 5 is no longer scheduled.
+GENERAL_BY_WEEKDAY = [1, 2, 6, 1, 2, 7, 6]
+_wd = dt.datetime.now(ZoneInfo("Asia/Kolkata")).weekday()
+START = {GENERAL_BY_WEEKDAY[_wd]: 10.5, 3: 13.0, 4: 21.0}   # IST hours
 LAST_HOUR = 22.75
 
 now = dt.datetime.now(ZoneInfo("Asia/Kolkata"))
