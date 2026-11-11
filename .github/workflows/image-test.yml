@@ -2,6 +2,8 @@ name: image-style-test
 # Run by hand only: draws a few sample pictures in the long-video comic style. Uploads nothing to YouTube.
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   draw:
     runs-on: ubuntu-latest
@@ -18,3 +20,12 @@ jobs:
         with:
           name: image-test
           path: out/image-test
+      - name: Also keep the pictures on a side branch (image-test-out) so they can be viewed without the zip
+        if: always()
+        run: |
+          cd out/image-test
+          git init -q -b image-test-out
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -qm "sample pictures"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" image-test-out
