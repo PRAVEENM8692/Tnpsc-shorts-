@@ -29,7 +29,16 @@ for name, scene in SHOTS:
     for attempt in range(3):
         try:
             if client is None:
-                client = Client("black-forest-labs/FLUX.1-schnell", hf_token=token) if token else Client("black-forest-labs/FLUX.1-schnell")
+                client = None
+                if token:
+                    for kw in ("token", "hf_token"):
+                        try:
+                            client = Client("black-forest-labs/FLUX.1-schnell", **{kw: token})
+                            break
+                        except TypeError:
+                            continue
+                if client is None:
+                    client = Client("black-forest-labs/FLUX.1-schnell")
             res = client.predict(prompt=STYLE + scene + END, seed=41, randomize_seed=False, width=1280, height=720,
                                  num_inference_steps=4, api_name="/infer")
             img = res[0] if isinstance(res, (list, tuple)) else res
