@@ -85,7 +85,7 @@ for name, scene in SHOTS:
         except Exception as e:
             print(f"{name}: try {attempt + 1} failed -> {str(e)[:300]}")
             client = None
-            time.sleep(30 * (attempt + 1))
-    time.sleep(5)
+            time.sleep(3 if USE_CF else 30 * (attempt + 1))
+    time.sleep(1 if USE_CF else 5)
 print(f"done: {ok}/{len(SHOTS)} pictures")
 sys.exit(0 if ok else 1)
