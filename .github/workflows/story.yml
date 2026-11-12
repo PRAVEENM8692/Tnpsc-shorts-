@@ -42,7 +42,7 @@ jobs:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          GEMINI_STYLE: "an engaging Tamil storyteller narrating an exciting true historical story to a big audience, expressive and dramatic, with natural pauses, clear and not too fast"
+          GEMINI_STYLE: "a gifted Tamil storyteller performing a dramatic true historical story for a big audience, deeply expressive with real emotion, a varied pace and pitch that follows the story, natural pauses between sentences, never flat, never robotic, never reading a list"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

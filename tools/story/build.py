@@ -127,19 +127,23 @@ def weight(nar):
     return len(re.sub(r"[\s.,?]", "", t)) + 5 * len(re.findall(r"[.?]", t))
 
 
-def group(shots, size=7):
-    """Voice is made in groups of ~7 sentences (a few calls instead of one per picture); the exam notes are one group."""
-    groups, cur = [], []
-    for s in shots:
-        if "card" in s:
-            if cur:
-                groups.append(cur); cur = []
-            groups.append([x for x in shots if "card" in x]); break
-        cur.append(s)
-        if len(cur) == size:
-            groups.append(cur); cur = []
-    if cur:
-        groups.append(cur)
+def group(shots, size=8):
+    """Voice is made one scene (or half a long scene) at a time, so each group can carry its own feeling. The exam notes
+    are the last group. Returns [(shots, feeling)]."""
+    scenes = DATA.get("scenes") or [[1, ""]]
+    starts = [s0 for s0, _ in scenes] + [10 ** 6]
+    groups = []
+    for k, (s0, feel) in enumerate(scenes):
+        part = [s for s in shots if "card" not in s and s0 <= s["n"] < starts[k + 1]]
+        if not part:
+            continue
+        pieces = 1 if len(part) <= size else 2
+        step = -(-len(part) // pieces)
+        for i in range(0, len(part), step):
+            groups.append((part[i:i + step], feel))
+    cards = [x for x in shots if "card" in x]
+    if cards:
+        groups.append((cards, "a clear, friendly, confident teacher giving the exam points slowly and distinctly, the last line warm and inviting"))
     return groups
 
 
@@ -162,7 +166,9 @@ def main():
     shots = build_shots(missing)
     groups = group(shots)
     gap = 0.35
-    parts = [(f"g{i}", " ".join(s["nar"] for s in g)) for i, g in enumerate(groups)]
+    parts = [(f"g{i}", " ".join(s["nar"] for s in g)) for i, (g, _f) in enumerate(groups)]
+    for i, (_g, feel) in enumerate(groups):
+        P.PART_STYLE[f"g{i}"] = feel   # pipeline.py adds this to the base style for that part
     voice = OUT / "voice.mp3"
     os.environ.setdefault("VOICES", "Charon")
     starts = P.make_voice_parts(parts, voice, WORK, gap=gap)
@@ -184,7 +190,7 @@ def main():
 
     # per-shot durations
     clips, total = [], 0.0
-    for gi, g in enumerate(groups):
+    for gi, (g, _feel) in enumerate(groups):
         part = WORK / f"part_g{gi}.mp3"
         D = P.duration(part)
         spans = P.speech_spans(part)

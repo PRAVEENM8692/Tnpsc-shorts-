@@ -107,7 +107,17 @@ for i, (nar, scene, text) in enumerate(S, 1):
     for k, v in C.items():
         scene = scene.replace("{" + k + "}", v)
     out.append({"n": i, "nar": nar, "scene": scene, "text": text})
-json.dump({"title": "அடிமையிலிருந்து அரசன் – டெல்லி சுல்தானியம் பகுதி 1", "shots": out,
+SCENES = [  # (first picture, how the voice should feel)
+ (1, "hushed and mysterious, slow and gripping like the start of a legend, a long pause after the first sentence, then rising wonder at the three surprises"),
+ (9, "warm and hopeful, a gentle rise of admiration as the boy grows, then a solemn, heavy drop for the death of the king and the worried question, then proud and triumphant at the crowning"),
+ (19, "generous and cheerful for the gifts, awe and pride about the tower, then slow and sad, with a sudden shocked beat at the horse falling, ending on a lingering question"),
+ (28, "bright, proud and energetic, quick brisk pace listing the three great works like a thrilling countdown, then dark and ominous when the forty nobles appear"),
+ (43, "tense and worried, then shocked at the unexpected decision, then bitter and angry about the nobles and the lazy prince"),
+ (50, "powerful, inspiring and heroic, loud proud emotion for the queen, then furious about the nobles, then heartbreaking and slow for her fall, ending soft and respectful"),
+ (62, "cold, menacing and quiet, slow and deliberate, with a chilling pause before the shocking twist that he destroyed his own council, then stern and heavy for the iron rule"),
+ (75, "slow and grave, then a rising dramatic cliffhanger, almost whispering the mysterious new family, and a bold promise of the next part"),
+]
+json.dump({"title": "அடிமையிலிருந்து அரசன் – டெல்லி சுல்தானியம் பகுதி 1", "shots": out, "scenes": SCENES,
            "exam_cards": [
              "டெல்லி சுல்தானியம் தொடங்கிய ஆண்டு 1206. நிறுவியவர் குத்புதீன் ஐபக். பட்டம்: லாக் பக்ஷ்.",
              "குதுப் மினாரைத் தொடங்கியவர் ஐபக், முடித்தவர் இல்துமிஷ்.",
