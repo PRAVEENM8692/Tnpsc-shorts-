@@ -171,6 +171,19 @@ def main():
         P.PART_STYLE[f"g{i}"] = feel   # pipeline.py adds this to the base style for that part
     voice = OUT / "voice.mp3"
     os.environ.setdefault("VOICES", "Charon")
+    urls_file = os.environ.get("VOICE_URLS_FILE")
+    if urls_file and Path(urls_file).exists():
+        # ready-made narration (one mp3 link per part, same voice for the whole video) instead of the speech engines
+        urls = json.loads(Path(urls_file).read_text(encoding="utf-8"))
+        assert len(urls) == len(parts), f"{len(urls)} voice links for {len(parts)} parts"
+
+        def _fetch(text, path, engine=None, _urls=urls):
+            import urllib.request
+            idx = int(P._VOICE["part"][1:])
+            urllib.request.urlretrieve(_urls[idx], str(path))
+        P.speak_checked = _fetch
+        P.make_voice_parts_engine_override = True
+        os.environ["TTS_ENGINE"] = "gemini"
     starts = P.make_voice_parts(parts, voice, WORK, gap=gap)
     log(f"voice ready: {P.duration(voice):.1f} s in {len(parts)} parts")
 
