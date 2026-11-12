@@ -11,28 +11,29 @@ import pipeline as P  # voice helpers (Gemini TTS -> edge-tts fallback), ffmpeg 
 
 NAME = os.environ.get("NAME") or "delhi1"
 DATA = json.load(open(f"tools/story/{NAME}.json", encoding="utf-8"))
-OUT = Path("out/story"); IMG = OUT / "img"; WORK = OUT / "work"
-for d in (IMG, WORK):
+OUT = Path("out/story"); IMG = OUT / "sq"; OLD = OUT / "old"; WORK = OUT / "work"   # sq = whole square pictures; old = first cropped version (fallback only)
+for d in (IMG, OLD, WORK):
     d.mkdir(parents=True, exist_ok=True)
 CF_ID, CF_TOKEN = os.environ.get("CF_ACCOUNT_ID"), os.environ.get("CF_API_TOKEN")
 VW, VH = 1280, 720
 STYLE = ("Indian comic book illustration, bold clean black ink outlines, flat bright colours with soft cel shading, "
          "warm palette, richly detailed background, expressive faces, cinematic. ")
-FRAME = " Wide composition, the main subject centred in the middle of the frame with free space above and below."
+FRAME = " Full figure of every character visible from head to feet, nothing cut off at the frame edges."
 END = " No text, no letters, no watermark."
 log = P.log
 
 
 def restore_cached():
-    """Pictures drawn by an earlier run live on the branch story-out; bring them back instead of drawing again."""
+    """Pictures drawn by earlier runs live on the branch story-out; bring them back instead of drawing again."""
     subprocess.run(["git", "fetch", "-q", "origin", "story-out"], capture_output=True)
     for s in DATA["shots"]:
-        f = IMG / f"{s['n']:02d}.jpg"
-        if f.exists():
-            continue
-        r = subprocess.run(["git", "show", f"FETCH_HEAD:img/{f.name}"], capture_output=True)
-        if r.returncode == 0 and len(r.stdout) > 5000:
-            f.write_bytes(r.stdout)
+        for folder, dst in (("sq", IMG), ("old", OLD), ("img", OLD)):   # img = the very first (cropped) run
+            f = dst / f"{s['n']:02d}.jpg"
+            if f.exists():
+                continue
+            r = subprocess.run(["git", "show", f"FETCH_HEAD:{folder}/{f.name}"], capture_output=True)
+            if r.returncode == 0 and len(r.stdout) > 5000:
+                f.write_bytes(r.stdout)
 
 
 def draw(prompt, dst):
@@ -44,11 +45,7 @@ def draw(prompt, dst):
             body = json.dumps({"prompt": prompt[:2000], "steps": 4}).encode()
             req = urllib.request.Request(url, body, {"Authorization": f"Bearer {CF_TOKEN}", "Content-Type": "application/json"})
             raw = base64.b64decode(json.load(urllib.request.urlopen(req, timeout=180))["result"]["image"])
-            im = Image.open(io.BytesIO(raw)).convert("RGB")
-            w, h = im.size
-            ch = int(w * 9 / 16)                     # centre crop to 16:9
-            top = (h - ch) // 2
-            im.crop((0, top, w, top + ch)).resize((VW, VH), Image.LANCZOS).save(dst, quality=88)
+            Image.open(io.BytesIO(raw)).convert("RGB").save(dst, quality=90)   # keep the WHOLE square picture
             return True
         except urllib.error.HTTPError as e:
             last = f"HTTP {e.code}: {e.read()[:300]!r}"
@@ -61,14 +58,16 @@ def draw(prompt, dst):
 
 def make_pictures():
     restore_cached()
-    missing = []
+    missing, fails = [], 0
     for s in DATA["shots"]:
         f = IMG / f"{s['n']:02d}.jpg"
         if f.exists():
             continue
-        if CF_ID and CF_TOKEN and draw(STYLE + s["scene"] + FRAME + END, f):
+        if fails < 3 and CF_ID and CF_TOKEN and draw(STYLE + s["scene"] + FRAME + END, f):
+            fails = 0
             log(f"picture {s['n']:02d} drawn")
         else:
+            fails += 1   # after 3 failures in a row (daily free limit?) stop asking; the old picture is used for the rest
             missing.append(s["n"])
     log(f"pictures ready: {len(DATA['shots']) - len(missing)}/{len(DATA['shots'])}; missing: {missing}")
     return missing
@@ -201,18 +200,25 @@ def main():
             if "card" in s:
                 src, ov = WORK / f"card_{s['n']:02d}.png", None
             else:
-                src = img if img.exists() else None
+                old = OLD / img.name
+                src = img if img.exists() else (old if old.exists() else None)
                 ov = WORK / f"ov_{s['n']:02d}.png" if (WORK / f"ov_{s['n']:02d}.png").exists() else None
             clip = WORK / f"clip_{s['n']:02d}.mp4"
+            is_sq = src is not None and src.parent == IMG
             if src is None:   # picture missing: dark placeholder, the run still finishes
                 cmd = ["ffmpeg", "-y", "-f", "lavfi", "-t", f"{dur:.3f}", "-i", f"color=c=0x1b1f4a:s={VW}x{VH}:r=30"]
             else:
                 cmd = ["ffmpeg", "-y", "-loop", "1", "-t", f"{dur:.3f}", "-i", str(src)]
+            if is_sq:   # whole square picture in the middle, its own blurred copy fills the sides: nothing is cut off
+                base = (f"[0:v]split[a][b];[a]scale={VW}:{VH}:force_original_aspect_ratio=increase,crop={VW}:{VH},"
+                        f"boxblur=28:4,eq=brightness=-0.15[bg];[b]scale=-2:{VH}[fg];[bg][fg]overlay=(W-w)/2:0,setsar=1[b0]")
+            else:
+                base = f"[0:v]scale={VW}:{VH},setsar=1[b0]"
             if ov:
                 cmd += ["-loop", "1", "-t", f"{dur:.3f}", "-i", str(ov)]
-                fc = f"[0:v]scale={VW}:{VH},setsar=1[b];[b][1:v]overlay=0:0,format=yuv420p[v]"
+                fc = f"{base};[b0][1:v]overlay=0:0,format=yuv420p[v]"
             else:
-                fc = f"[0:v]scale={VW}:{VH},setsar=1,format=yuv420p[v]"
+                fc = f"{base};[b0]format=yuv420p[v]"
             cmd += ["-filter_complex", fc, "-map", "[v]", "-r", "30", "-c:v", "libx264", "-preset", "veryfast", "-crf", "24", str(clip)]
             P.run(cmd)
             clips.append(clip)

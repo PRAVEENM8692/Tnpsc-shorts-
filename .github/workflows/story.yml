@@ -39,8 +39,9 @@ jobs:
       - name: Keep pictures, video and a few sample frames on the side branch story-out
         if: always()
         run: |
-          mkdir -p keep/img keep/frames
-          cp out/story/img/*.jpg keep/img/ 2>/dev/null || true
+          mkdir -p keep/sq keep/old keep/frames
+          cp out/story/sq/*.jpg keep/sq/ 2>/dev/null || true
+          cp out/story/old/*.jpg keep/old/ 2>/dev/null || true
           cp out/story/*.mp4 out/story/report.json keep/ 2>/dev/null || true
           for t in 5 40 120 200 300; do ffmpeg -loglevel error -y -ss $t -i out/story/${{ inputs.name }}.mp4 -frames:v 1 keep/frames/f_$t.jpg 2>/dev/null || true; done
           cd keep
