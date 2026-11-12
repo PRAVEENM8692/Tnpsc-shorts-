@@ -59,9 +59,10 @@ def draw(prompt, dst):
 def make_pictures():
     restore_cached()
     missing, fails = [], 0
+    redo = {int(x) for x in (os.environ.get("REDO") or "").replace(" ", "").split(",") if x}   # only these are drawn again
     for s in DATA["shots"]:
         f = IMG / f"{s['n']:02d}.jpg"
-        if f.exists():
+        if f.exists() or (redo and s["n"] not in redo):
             continue
         if fails < 3 and CF_ID and CF_TOKEN and draw(STYLE + s["scene"] + FRAME + END, f):
             fails = 0

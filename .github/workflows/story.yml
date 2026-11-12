@@ -7,6 +7,9 @@ on:
       name:
         description: "story name (file tools/story/<name>.json)"
         default: "delhi1"
+      redo:
+        description: "picture numbers to draw again (comma separated); empty = draw every missing picture"
+        default: ""
 permissions:
   contents: write
 jobs:
@@ -26,6 +29,7 @@ jobs:
         run: python tools/story/build.py
         env:
           NAME: ${{ inputs.name }}
+          REDO: ${{ inputs.redo }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
