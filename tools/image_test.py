@@ -1,9 +1,30 @@
 """Hand-run test for the long story video: draws the storyboard of the first 30 seconds (9 pictures, 16:9)
 with a free Hugging Face Space (FLUX.1 schnell) into out/image-test/. Uploads nothing to YouTube.
 HF_TOKEN is optional: without it the Space is called anonymously (smaller free quota)."""
-import os, pathlib, shutil, sys, time
+import base64, io, json, os, pathlib, shutil, sys, time, urllib.request
 
-from gradio_client import Client
+CF_ID = os.environ.get("CF_ACCOUNT_ID"); CF_TOKEN = os.environ.get("CF_API_TOKEN")
+USE_CF = bool(CF_ID and CF_TOKEN)
+if not USE_CF:
+    from gradio_client import Client
+
+
+def cf_draw(prompt, seed, dst_base):
+    """Cloudflare Workers AI FLUX.1 schnell. Tries 1280x720 first, falls back to the default size."""
+    url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ID}/ai/run/@cf/black-forest-labs/flux-1-schnell"
+    last = None
+    for extra in ({"width": 1280, "height": 720}, {}):
+        body = json.dumps({"prompt": prompt[:2000], "steps": 4, "seed": seed, **extra}).encode()
+        req = urllib.request.Request(url, body, {"Authorization": f"Bearer {CF_TOKEN}", "Content-Type": "application/json"})
+        try:
+            data = json.load(urllib.request.urlopen(req, timeout=180))
+            raw = base64.b64decode(data["result"]["image"])
+            dst = pathlib.Path(str(dst_base) + ".jpg")
+            dst.write_bytes(raw)
+            return dst
+        except Exception as e:
+            last = e
+    raise last
 
 STYLE = ("Indian comic book illustration, bold clean black ink outlines, flat bright colours with soft cel shading, "
          "warm palette, richly detailed background, expressive faces, cinematic wide 16:9 frame. ")
@@ -23,11 +44,21 @@ SHOTS = [
 ]
 out = pathlib.Path("out/image-test"); out.mkdir(parents=True, exist_ok=True)
 token = os.environ.get("HF_TOKEN") or None
-print("HF token:", "set" if token else "not set (anonymous call)")
+print("backend:", "Cloudflare" if USE_CF else "Hugging Face", "| HF token:", "set" if token else "not set")
 client, ok = None, 0
 for name, scene in SHOTS:
     for attempt in range(3):
         try:
+            if USE_CF:
+                dst = cf_draw(STYLE + scene + END, 41, out / name)
+                try:
+                    from PIL import Image
+                    print("size", Image.open(dst).size)
+                except Exception:
+                    pass
+                ok += 1
+                print(f"saved {dst.name} ({dst.stat().st_size // 1024} KB, try {attempt + 1}, cloudflare)")
+                break
             if client is None:
                 client = None
                 if token:
