@@ -229,7 +229,18 @@ def main():
     silent = WORK / "silent.mp4"
     P.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(silent)])
 
-    bgm = P.pick_bgm()
+    bgm = None
+    if os.environ.get("BGM_URL"):   # a licence-safe track given as a link: download it and make it a normal mp3
+        raw = WORK / "bgm_dl.wav"
+        urllib.request.urlretrieve(os.environ["BGM_URL"], raw)
+        bgm = OUT / "bgm_safe.mp3"
+        P.run(["ffmpeg", "-y", "-i", str(raw), "-af", "loudnorm=I=-18:TP=-1.5:LRA=11", "-ar", "44100", "-ac", "2",
+               "-c:a", "libmp3lame", "-b:a", "160k", str(bgm)])
+        log(f"safe background music: {P.duration(bgm):.0f} s (looped to fit the video)")
+    elif os.environ.get("BGM_FILE"):
+        bgm = Path(os.environ["BGM_FILE"])
+    else:
+        bgm = P.pick_bgm()
     final = OUT / f"{NAME}.mp4"
     T = P.duration(voice)
     if bgm:

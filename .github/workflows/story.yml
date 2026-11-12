@@ -7,6 +7,12 @@ on:
       name:
         description: "story name (file tools/story/<name>.json)"
         default: "delhi1"
+      bgm_url:
+        description: "link to a licence-safe music file (wav/mp3) to use as background music"
+        default: ""
+      bgm:
+        description: "background music file to use (empty = the random pick used for Shorts)"
+        default: ""
       redo:
         description: "picture numbers to draw again (comma separated); empty = draw every missing picture"
         default: ""
@@ -30,6 +36,8 @@ jobs:
         env:
           NAME: ${{ inputs.name }}
           REDO: ${{ inputs.redo }}
+          BGM_FILE: ${{ inputs.bgm }}
+          BGM_URL: ${{ inputs.bgm_url }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -46,7 +54,7 @@ jobs:
           mkdir -p keep/sq keep/old keep/frames
           cp out/story/sq/*.jpg keep/sq/ 2>/dev/null || true
           cp out/story/old/*.jpg keep/old/ 2>/dev/null || true
-          cp out/story/*.mp4 out/story/report.json keep/ 2>/dev/null || true
+          cp out/story/*.mp4 out/story/report.json out/story/bgm_safe.mp3 keep/ 2>/dev/null || true
           for t in 5 40 120 200 300; do ffmpeg -loglevel error -y -ss $t -i out/story/${{ inputs.name }}.mp4 -frames:v 1 keep/frames/f_$t.jpg 2>/dev/null || true; done
           cd keep
           git init -q -b story-out
