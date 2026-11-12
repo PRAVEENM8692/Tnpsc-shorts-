@@ -1,7 +1,7 @@
 """Hand-run test for the long story video: draws the storyboard of the first 30 seconds (9 pictures, 16:9)
 with a free Hugging Face Space (FLUX.1 schnell) into out/image-test/. Uploads nothing to YouTube.
 HF_TOKEN is optional: without it the Space is called anonymously (smaller free quota)."""
-import base64, io, json, os, pathlib, shutil, sys, time, urllib.request
+import base64, io, json, os, pathlib, shutil, sys, time, urllib.error, urllib.request
 
 CF_ID = os.environ.get("CF_ACCOUNT_ID"); CF_TOKEN = os.environ.get("CF_API_TOKEN")
 USE_CF = bool(CF_ID and CF_TOKEN)
@@ -13,8 +13,8 @@ def cf_draw(prompt, seed, dst_base):
     """Cloudflare Workers AI FLUX.1 schnell. Tries 1280x720 first, falls back to the default size."""
     url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ID}/ai/run/@cf/black-forest-labs/flux-1-schnell"
     last = None
-    for extra in ({"width": 1280, "height": 720}, {}):
-        body = json.dumps({"prompt": prompt[:2000], "steps": 4, "seed": seed, **extra}).encode()
+    for base, extra in (({"steps": 4, "seed": seed}, {"width": 1280, "height": 720}), ({"steps": 4, "seed": seed}, {}), ({}, {})):
+        body = json.dumps({"prompt": prompt[:2000], **base, **extra}).encode()
         req = urllib.request.Request(url, body, {"Authorization": f"Bearer {CF_TOKEN}", "Content-Type": "application/json"})
         try:
             data = json.load(urllib.request.urlopen(req, timeout=180))
@@ -22,6 +22,9 @@ def cf_draw(prompt, seed, dst_base):
             dst = pathlib.Path(str(dst_base) + ".jpg")
             dst.write_bytes(raw)
             return dst
+        except urllib.error.HTTPError as e:
+            last = RuntimeError(f"HTTP {e.code} with {sorted(base) + sorted(extra)}: {e.read()[:400]!r}")
+            print("   cloudflare said:", last)
         except Exception as e:
             last = e
     raise last
