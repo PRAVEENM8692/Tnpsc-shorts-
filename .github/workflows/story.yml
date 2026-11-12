@@ -1,0 +1,51 @@
+name: story-video
+# Run by hand only: draws the pictures, makes the Tamil voice, joins everything into one long story video.
+# Uploads NOTHING to YouTube. The video and pictures are kept on the side branch story-out.
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "story name (file tools/story/<name>.json)"
+        default: "delhi1"
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ffmpeg and Tamil fonts
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg fonts-noto-core fonts-dejavu-core
+      - run: pip install -r requirements.txt playwright
+      - run: python -m playwright install --with-deps chromium
+      - name: Build the story video
+        run: python tools/story/build.py
+        env:
+          NAME: ${{ inputs.name }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          GEMINI_STYLE: "an engaging Tamil storyteller narrating an exciting true historical story to a big audience, expressive and dramatic, with natural pauses, clear and not too fast"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: story
+          path: out/story/*.mp4
+      - name: Keep pictures, video and a few sample frames on the side branch story-out
+        if: always()
+        run: |
+          mkdir -p keep/img keep/frames
+          cp out/story/img/*.jpg keep/img/ 2>/dev/null || true
+          cp out/story/*.mp4 out/story/report.json keep/ 2>/dev/null || true
+          for t in 5 40 120 200 300; do ffmpeg -loglevel error -y -ss $t -i out/story/${{ inputs.name }}.mp4 -frames:v 1 keep/frames/f_$t.jpg 2>/dev/null || true; done
+          cd keep
+          git init -q -b story-out
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -qm "story build"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" story-out
