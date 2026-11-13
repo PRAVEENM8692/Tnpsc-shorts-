@@ -36,7 +36,7 @@ jobs:
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
           YT_PRIVACY: ${{ vars.YT_PRIVACY }}
       - name: Keep the thumbnail on the side branch story-thumb so it can be viewed
-        if: always()
+        if: always() && inputs.playlist_only_id == ''
         run: |
           mkdir keep && cp out/story/thumb.jpg keep/ 2>/dev/null || true
           cp out/story/uploaded.txt keep/ 2>/dev/null || true
