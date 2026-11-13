@@ -113,7 +113,7 @@ class Overlay(Scene):
         k = (top - bot) / (max(lats) - min(lats))
 
         def pos(lon, lat):
-            return [cx + 0.35 + (lon - 77.5) * 0.3, bot + (lat - min(lats)) * k, 0]
+            return [cx + 0.15 + (lon - 77.5) * 0.2, bot + (lat - min(lats)) * k, 0]
 
         p_prev = pos(lon0, lat0)
         d0 = Dot(p_prev, radius=0.13, color=WHITE)
@@ -125,7 +125,7 @@ class Overlay(Scene):
             seg = Arrow(p_prev, p, buff=0.16, color=RED, stroke_width=7, max_tip_length_to_length_ratio=0.12)
             dot = Dot(p, radius=0.12, color=GOLD)
             lab = VGroup(T(name, 26, WHITE, max_w=2.3), T(year, 26, GOLD)).arrange(DOWN, buff=0.06)
-            lab.next_to(dot, LEFT if side == "L" else RIGHT, buff=0.2)
+            lab.next_to(dot, LEFT if side == "L" else RIGHT, buff=0.3)
             anims = [GrowArrow(seg), FadeIn(dot, scale=2), FadeIn(lab)]
             if i == 0:
                 anims = [FadeIn(box), FadeIn(title), FadeIn(north), FadeIn(south), FadeIn(d0), FadeIn(l0)] + anims
