@@ -1821,7 +1821,7 @@ def telegram_post(video_path, video_id, title, hook=""):
         q = seo_meta._cut(seo_meta.clean(hook), 160)
         cap = f"{head}\n\n" + (f"❓ {q}\n\n" if q else "") + (
             f"▶️ YouTube-ல் பாருங்கள்: {link}\n💬 உங்கள் பதிலை YouTube கமெண்ட்டில் சொல்லுங்கள்!\n"
-            "🔔 தினமும் TNPSC Shorts-க்கு SUBSCRIBE செய்யுங்கள்.\n\n#TNPSC #Group4 #Group2 #Group1")
+            "🔔 புதிய வீடியோக்களுக்கு SUBSCRIBE செய்யுங்கள்.\n\n#TNPSC #Group4 #Group2 #Group1")
         base = f"https://api.telegram.org/bot{token}"
         r = None
         if Path(video_path).stat().st_size < 48 * 1024 * 1024:

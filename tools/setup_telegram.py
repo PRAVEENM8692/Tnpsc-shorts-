@@ -8,8 +8,8 @@ from pathlib import Path
 import requests
 
 TITLE = "TNPSC Shorts தமிழ் | Group 1, 2, 4 Current Affairs & Aptitude"
-DESC = ("TNPSC Group 1, 2, 4 தேர்வு: தினமும் Current Affairs, Aptitude குறுக்குவழிகள், சிலபஸ் பாடங்கள் – தமிழில் Shorts. "
-        "வீடியோ + YouTube லிங்க் தினமும் இங்கே. #TNPSC #Group4 #CurrentAffairs")
+DESC = ("TNPSC Group 1, 2, 4 தேர்வு: Current Affairs, Aptitude குறுக்குவழிகள், சிலபஸ் பாடங்கள் – தமிழில் Shorts. "
+        "புதிய வீடியோ + YouTube லிங்க் இங்கே. #TNPSC #Group4 #CurrentAffairs")
 
 
 def yt_link():

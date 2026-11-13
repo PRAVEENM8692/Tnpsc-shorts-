@@ -165,7 +165,7 @@ def main():
             seen_titles.append(tokens(t))
             continue
         if post and done < limit:
-            msg = (f"{header(t)}\n\n{t}\n\n🔗 {u}\n🌐 {h}\n\n📺 தினமும் TNPSC Shorts: YouTube-ல் SUBSCRIBE செய்யுங்கள்.\n#TNPSC #Group4 #Group2 #Group1")
+            msg = (f"{header(t)}\n\n{t}\n\n🔗 {u}\n🌐 {h}\n\n📺 TNPSC Shorts: YouTube-ல் SUBSCRIBE செய்யுங்கள்.\n#TNPSC #Group4 #Group2 #Group1")
             r = requests.post(f"https://api.telegram.org/bot{token}/sendMessage", data={"chat_id": chat, "text": msg[:4000]}, timeout=60)
             if r.status_code == 429:
                 time.sleep(float((r.json().get("parameters") or {}).get("retry_after", 20)) + 1)

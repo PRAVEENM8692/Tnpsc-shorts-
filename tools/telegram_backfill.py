@@ -57,7 +57,7 @@ def main():
         sn = v["snippet"]
         head = seo_meta._cut(seo_meta.clean(sn.get("title", "")).replace("#Shorts", "").strip(), 120)
         cap = (f"{head}\n\n▶️ YouTube-ல் பாருங்கள்: https://youtube.com/shorts/{v['id']}\n"
-               "💬 உங்கள் பதிலை கமெண்ட்டில் சொல்லுங்கள்!\n🔔 தினமும் TNPSC Shorts-க்கு SUBSCRIBE செய்யுங்கள்.\n\n#TNPSC #Group4 #Group2 #Group1")
+               "💬 உங்கள் பதிலை கமெண்ட்டில் சொல்லுங்கள்!\n🔔 புதிய வீடியோக்களுக்கு SUBSCRIBE செய்யுங்கள்.\n\n#TNPSC #Group4 #Group2 #Group1")
         if dry:
             P.log(f"(dry run) would post: {head[:70]}")
             done += 1

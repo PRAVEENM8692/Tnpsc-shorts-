@@ -132,7 +132,7 @@ def _e(x):
 
 STRIP_TEXT = {   # one clear call to action under the card (YouTube covers the bottom and the right edge, so this sits just under the card)
     "hook": "கடைசியில் ஒரு கேள்வி இருக்கு!",
-    "fact": "தினமும் புதிய வீடியோ • SUBSCRIBE",
+    "fact": "புதிய வீடியோக்களுக்கு • SUBSCRIBE",
     "outro": "நண்பர்களுக்கு SHARE பண்ணுங்க",
 }
 
@@ -165,7 +165,7 @@ def _card(kind, d, today):
     return (f'<div class="card"><div class="row"><div class="chip">உங்க பதில் என்ன?</div></div>'
             f'<div class="center"><div class="t" data-fit="80,40" style="height:400px;display:flex;align-items:center;'
             f'text-align:center;justify-content:center">{_e(d["question"])}</div>'
-            f'<div class="sub">கமெண்ட்ல சொல்லுங்க. தினமும் ஃபாலோ பண்ணுங்க!</div></div></div>')
+            f'<div class="sub">கமெண்ட்ல சொல்லுங்க. ஃபாலோ பண்ணுங்க!</div></div></div>')
 
 
 def segments_from_script(s):

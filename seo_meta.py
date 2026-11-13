@@ -85,7 +85,7 @@ def make_description(kind, hook, points, question="", pre="", post="", topic="",
         lines.append("")
     q = _cut(clean(question), 120)
     lines.append("💬 " + (f"{q} உங்கள் பதிலை கமெண்ட்டில் சொல்லுங்கள்!" if q else "உங்கள் பதிலை / சந்தேகத்தை கமெண்ட்டில் சொல்லுங்கள், நான் படிக்கிறேன்!"))
-    lines += ["🔔 தினமும் TNPSC Group 1, 2, 4 தயாரிப்புக்கு SUBSCRIBE செய்து Bell 🔔 அழுத்துங்கள்.",
+    lines += ["🔔 TNPSC Group 1, 2, 4 தயாரிப்புக்கு SUBSCRIBE செய்து Bell 🔔 அழுத்துங்கள்.",
               "📤 உங்கள் TNPSC நண்பர்களுக்கு SHARE செய்யுங்கள்."] + ([tg_line()] if tg_line() else []) + [
               "▶️ இதே தலைப்பின் மற்ற வீடியோக்கள்: எங்கள் சேனலின் Playlists பகுதியில் பாருங்கள்.",
               "", MARK]
@@ -185,7 +185,7 @@ def make_thumbnail(hook, kind, out_path, line2=None):
     css = (THUMB_CSS.replace("@C1@", c1).replace("@C2@", c2).replace("@ACC@", acc).replace("@S1@", str(s1)).replace("@S2@", str(s2)))
     doc = (f"<!doctype html><html><head><meta charset='utf-8'><style>{css}</style></head><body><div class='tag'>{CHIP.get(kind, '')}</div>"
            f"<div class='ico'>{ICON.get(kind, '')}</div><div class='txt'><div class='l1'>{_h.escape(l1)}</div><div class='l2'>{_h.escape(l2)}</div></div>"
-           f"<div class='foot'>TNPSC <b>Group 1 · 2 · 4</b><br>தினமும் ▶ SUBSCRIBE</div></body></html>")
+           f"<div class='foot'>TNPSC <b>Group 1 · 2 · 4</b><br>▶ SUBSCRIBE</div></body></html>")
     out_path = Path(out_path)
     html_path = out_path.with_suffix(".html")
     html_path.write_text(doc, encoding="utf-8")
