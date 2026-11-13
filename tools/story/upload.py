@@ -7,6 +7,10 @@ sys.path.insert(0, ".")
 import pipeline as P
 
 NAME = os.environ.get("NAME") or "delhi1"
+PLAYLIST = "TNPSC வரலாறு கதைகள் | Long Videos"   # every Long story video goes into this one playlist (made when missing)
+if os.environ.get("PLAYLIST_ONLY_ID"):   # a video that is already on YouTube: only put it into the playlist, nothing else
+    P.add_to_playlists(os.environ["PLAYLIST_ONLY_ID"].strip(), [PLAYLIST])
+    sys.exit(0)
 OUT = Path("out/story"); OUT.mkdir(parents=True, exist_ok=True)
 VIDEO = OUT / f"{NAME}.mp4"
 subprocess.run(["git", "fetch", "-q", "origin", "story-out"], check=True)
@@ -75,6 +79,8 @@ TAGS = ["TNPSC", "Delhi Sultanate", "டெல்லி சுல்தானி
 if os.environ.get("UPLOAD") == "1":
     vid = P.upload(VIDEO, TITLE, DESC, TAGS, thumb=thumb)
     (OUT / "uploaded.txt").write_text(f"https://youtube.com/watch?v={vid}")
+    if vid:
+        P.add_to_playlists(vid, [PLAYLIST])
     P.log(f"DONE https://youtube.com/watch?v={vid}")
 else:
     P.log("preview only: nothing uploaded (UPLOAD is not 1)")

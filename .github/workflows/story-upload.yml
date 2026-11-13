@@ -8,6 +8,9 @@ on:
       upload:
         description: "true = upload to YouTube; false = only make the thumbnail"
         default: "false"
+      playlist_only_id:
+        description: "Only put this already-uploaded video (its YouTube id) into the Long videos playlist; nothing else is done"
+        default: ""
 permissions:
   contents: write
 jobs:
@@ -27,6 +30,7 @@ jobs:
         env:
           NAME: ${{ inputs.name }}
           UPLOAD: ${{ inputs.upload == 'true' && '1' || '0' }}
+          PLAYLIST_ONLY_ID: ${{ inputs.playlist_only_id }}
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
