@@ -21,11 +21,14 @@ STYLE = ("Indian comic book illustration, bold clean black ink outlines, flat br
 FRAME = " Full figure of every character visible from head to feet, nothing cut off at the frame edges."
 END = " No text, no letters, no watermark."
 log = P.log
+BRANCH = "story-out" if NAME == "delhi1" else f"story-{NAME}"   # side branch that keeps this story's pictures and video
+SAMPLE = (os.environ.get("SAMPLE") or "0") == "1"   # only a short silent sample of the Manim overlays (pictures are still drawn)
 
 
 def restore_cached():
-    """Pictures drawn by earlier runs live on the branch story-out; bring them back instead of drawing again."""
-    subprocess.run(["git", "fetch", "-q", "origin", "story-out"], capture_output=True)
+    """Pictures drawn by earlier runs live on this story's side branch; bring them back instead of drawing again."""
+    if subprocess.run(["git", "fetch", "-q", "origin", BRANCH], capture_output=True).returncode != 0:
+        return   # first run of this story: nothing kept yet
     for s in DATA["shots"]:
         for folder, dst in (("sq", IMG), ("old", OLD), ("img", OLD)):   # img = the very first (cropped) run
             f = dst / f"{s['n']:02d}.jpg"
@@ -161,8 +164,113 @@ def snap(bounds, spans, total):
     return out
 
 
+def make_clip(s, dur):
+    """One picture (or exam card) as a video clip of the given length, with its text box if it has one."""
+    img = IMG / f"{s['n']:02d}.jpg"
+    if "card" in s:
+        src, ov = WORK / f"card_{s['n']:02d}.png", None
+    else:
+        old = OLD / img.name
+        src = img if img.exists() else (old if old.exists() else None)
+        ov = WORK / f"ov_{s['n']:02d}.png" if (WORK / f"ov_{s['n']:02d}.png").exists() else None
+    clip = WORK / f"clip_{s['n']:02d}.mp4"
+    is_sq = src is not None and src.parent == IMG
+    if src is None:   # picture missing: dark placeholder, the run still finishes
+        cmd = ["ffmpeg", "-y", "-f", "lavfi", "-t", f"{dur:.3f}", "-i", f"color=c=0x1b1f4a:s={VW}x{VH}:r=30"]
+    else:
+        cmd = ["ffmpeg", "-y", "-loop", "1", "-t", f"{dur:.3f}", "-i", str(src)]
+    if is_sq:   # whole square picture in the middle, its own blurred copy fills the sides: nothing is cut off
+        base = (f"[0:v]split[a][b];[a]scale={VW}:{VH}:force_original_aspect_ratio=increase,crop={VW}:{VH},"
+                f"boxblur=28:4,eq=brightness=-0.15[bg];[b]scale=-2:{VH}[fg];[bg][fg]overlay=(W-w)/2:0,setsar=1[b0]")
+    else:
+        base = f"[0:v]scale={VW}:{VH},setsar=1[b0]"
+    if ov:
+        cmd += ["-loop", "1", "-t", f"{dur:.3f}", "-i", str(ov)]
+        fc = f"{base};[b0][1:v]overlay=0:0,format=yuv420p[v]"
+    else:
+        fc = f"{base};[b0]format=yuv420p[v]"
+    cmd += ["-filter_complex", fc, "-map", "[v]", "-r", "30", "-c:v", "libx264", "-preset", "veryfast", "-crf", "24", str(clip)]
+    P.run(cmd)
+    return clip
+
+
+def add_anims(silent, timed):
+    """Draws the Manim animations (years, lists, table, route) over the joined pictures. timed = [(shot, start, length)].
+    Each animation gets one step per picture that carries its id, as long as that picture is on screen, so it moves with the
+    voice. If Manim cannot draw one, a plain text box with the same facts is shown instead and the video still finishes."""
+    spans = {}
+    for s, t0, dur in timed:
+        if s.get("anim"):
+            spans.setdefault(s["anim"], []).append((t0, dur))
+    if not spans:
+        return silent
+    inputs, chain, last, k, fallbacks = [], [], "0:v", 0, []
+    mdir = WORK / "manim"
+    for aid, parts in spans.items():
+        spec = dict((DATA.get("anims") or {})[aid])
+        t0, total = parts[0][0], sum(d for _t, d in parts)
+        n = len(spec["items"])
+        steps = [d for _t, d in parts]
+        if len(steps) != n:   # not one picture per item: share the time equally
+            steps = [total / n] * n
+        spec["steps"] = [round(x, 3) for x in steps]
+        jf = WORK / f"anim_{aid}.json"
+        jf.write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
+        mov = None
+        try:
+            r = subprocess.run(["manim", "-qm", "--fps", "30", "-t", "--format=mov", "-o", f"{aid}.mov", "--media_dir", str(mdir),
+                                "tools/story/overlay_anim.py", "Overlay"], env={**os.environ, "OV_JSON": str(jf)},
+                               capture_output=True, text=True, timeout=900)
+            found = sorted(mdir.rglob(f"{aid}.mov"))
+            if r.returncode == 0 and found:
+                mov = found[-1]
+                log(f"animation {aid}: {P.duration(mov):.1f} s for a {total:.1f} s slot at {t0:.1f} s")
+            else:
+                log(f"animation {aid} failed: {(r.stderr or r.stdout)[-600:]}")
+        except Exception as e:
+            log(f"animation {aid} failed: {str(e)[:300]}")
+        k += 1
+        if mov:
+            inputs += ["-itsoffset", f"{t0:.3f}", "-i", str(mov)]
+        else:   # plain text box instead
+            png = WORK / f"anim_{aid}.png"
+            fallbacks.append((overlay_html(spec.get("fallback", "")), png, True))
+            inputs += ["-loop", "1", "-t", f"{total:.3f}", "-itsoffset", f"{t0:.3f}", "-i", str(png)]
+        chain.append(f"[{last}][{k}:v]overlay=0:0:eof_action=pass:enable='between(t,{t0:.3f},{t0 + total:.3f})'[o{k}]")
+        last = f"o{k}"
+    if fallbacks:
+        render_pngs(fallbacks)
+    out = WORK / "silent_anim.mp4"
+    P.run(["ffmpeg", "-y", "-i", str(silent)] + inputs + ["-filter_complex", ";".join(chain) + f";[{last}]format=yuv420p[v]",
+           "-map", "[v]", "-r", "30", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", str(out)])
+    return out
+
+
+def sample(shots):
+    """A short silent video that shows every Manim overlay on its own pictures (3.5 s per picture), to check the look."""
+    picked = [s for i, s in enumerate(shots) if s.get("anim") or (i + 1 < len(shots) and shots[i + 1].get("anim") and not s.get("anim"))]
+    render_pngs([(overlay_html(s["text"]), WORK / f"ov_{s['n']:02d}.png", True) for s in picked if s.get("text")])
+    clips, timed, t = [], [], 0.0
+    for s in picked:
+        dur = 3.5 if s.get("anim") else 2.0
+        clips.append(make_clip(s, dur))
+        timed.append((s, t, dur))
+        t += dur
+    lst = WORK / "clips.txt"
+    lst.write_text("".join(f"file '{c.resolve()}'\n" for c in clips))
+    silent = WORK / "silent.mp4"
+    P.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(silent)])
+    final = OUT / f"{NAME}_sample.mp4"
+    P.run(["ffmpeg", "-y", "-i", str(add_anims(silent, timed)), "-c", "copy", str(final)])
+    log(f"sample ready: {final} {P.duration(final):.1f} s")
+
+
 def main():
     missing = make_pictures()
+    if SAMPLE:
+        sample([dict(s) for s in DATA["shots"]])
+        (OUT / "report.json").write_text(json.dumps({"missing": missing, "sample": True}))
+        return
     shots = build_shots(missing)
     groups = group(shots)
     gap = 0.35
@@ -171,7 +279,7 @@ def main():
         P.PART_STYLE[f"g{i}"] = feel   # pipeline.py adds this to the base style for that part
     voice = OUT / "voice.mp3"
     os.environ.setdefault("VOICES", "Charon")
-    urls_file = os.environ.get("VOICE_URLS_FILE")
+    urls_file = os.environ.get("VOICE_URLS_FILE") or f"tools/story/{NAME}_voice.json"
     if urls_file and Path(urls_file).exists():
         # ready-made narration (one mp3 link per part, same voice for the whole video) instead of the speech engines
         urls = json.loads(Path(urls_file).read_text(encoding="utf-8"))
@@ -202,7 +310,7 @@ def main():
     render_pngs(jobs)
 
     # per-shot durations
-    clips, total = [], 0.0
+    clips, timed, total = [], [], 0.0
     for gi, (g, _feel) in enumerate(groups):
         part = WORK / f"part_g{gi}.mp3"
         D = P.duration(part)
@@ -216,37 +324,14 @@ def main():
         edges = [0.0] + bounds + [D + gap]
         for k, s in enumerate(g):
             dur = edges[k + 1] - edges[k]
-            img = IMG / f"{s['n']:02d}.jpg"
-            if "card" in s:
-                src, ov = WORK / f"card_{s['n']:02d}.png", None
-            else:
-                old = OLD / img.name
-                src = img if img.exists() else (old if old.exists() else None)
-                ov = WORK / f"ov_{s['n']:02d}.png" if (WORK / f"ov_{s['n']:02d}.png").exists() else None
-            clip = WORK / f"clip_{s['n']:02d}.mp4"
-            is_sq = src is not None and src.parent == IMG
-            if src is None:   # picture missing: dark placeholder, the run still finishes
-                cmd = ["ffmpeg", "-y", "-f", "lavfi", "-t", f"{dur:.3f}", "-i", f"color=c=0x1b1f4a:s={VW}x{VH}:r=30"]
-            else:
-                cmd = ["ffmpeg", "-y", "-loop", "1", "-t", f"{dur:.3f}", "-i", str(src)]
-            if is_sq:   # whole square picture in the middle, its own blurred copy fills the sides: nothing is cut off
-                base = (f"[0:v]split[a][b];[a]scale={VW}:{VH}:force_original_aspect_ratio=increase,crop={VW}:{VH},"
-                        f"boxblur=28:4,eq=brightness=-0.15[bg];[b]scale=-2:{VH}[fg];[bg][fg]overlay=(W-w)/2:0,setsar=1[b0]")
-            else:
-                base = f"[0:v]scale={VW}:{VH},setsar=1[b0]"
-            if ov:
-                cmd += ["-loop", "1", "-t", f"{dur:.3f}", "-i", str(ov)]
-                fc = f"{base};[b0][1:v]overlay=0:0,format=yuv420p[v]"
-            else:
-                fc = f"{base};[b0]format=yuv420p[v]"
-            cmd += ["-filter_complex", fc, "-map", "[v]", "-r", "30", "-c:v", "libx264", "-preset", "veryfast", "-crf", "24", str(clip)]
-            P.run(cmd)
-            clips.append(clip)
+            clips.append(make_clip(s, dur))
+            timed.append((s, total, dur))
             total += dur
     lst = WORK / "clips.txt"
     lst.write_text("".join(f"file '{c.resolve()}'\n" for c in clips))
     silent = WORK / "silent.mp4"
     P.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(silent)])
+    silent = add_anims(silent, timed)
 
     bgm = None
     if os.environ.get("BGM_URL"):   # a licence-safe track given as a link: download it and make it a normal mp3
@@ -258,6 +343,8 @@ def main():
         log(f"safe background music: {P.duration(bgm):.0f} s (looped to fit the video)")
     elif os.environ.get("BGM_FILE"):
         bgm = Path(os.environ["BGM_FILE"])
+    elif NAME.startswith("delhi") and Path("assets/story_bgm_delhi.mp3").exists():
+        bgm = Path("assets/story_bgm_delhi.mp3")   # the licence-safe track of the Delhi Sultanate series
     else:
         bgm = P.pick_bgm()
     final = OUT / f"{NAME}.mp4"

@@ -13,6 +13,9 @@ on:
       bgm:
         description: "background music file to use (empty = the random pick used for Shorts)"
         default: ""
+      sample:
+        description: "true = draw the pictures and make only a short silent sample of the Manim overlays (no voice, no full video)"
+        default: "false"
       redo:
         description: "picture numbers to draw again (comma separated); empty = draw every missing picture"
         default: ""
@@ -30,36 +33,44 @@ jobs:
       - name: Install ffmpeg and Tamil fonts
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg fonts-noto-core fonts-dejavu-core
       - run: pip install -r requirements.txt playwright
+      - name: Install Manim (for the animations drawn over the pictures)
+        continue-on-error: true   # if this fails, plain text boxes are shown instead of the animations
+        run: |
+          sudo apt-get install -y libcairo2-dev libpango1.0-dev pkg-config python3-dev
+          pip install manim
       - run: python -m playwright install --with-deps chromium
       - name: Build the story video
         run: python tools/story/build.py
         env:
           NAME: ${{ inputs.name }}
           REDO: ${{ inputs.redo }}
+          SAMPLE: ${{ inputs.sample == 'true' && '1' || '0' }}
           BGM_FILE: ${{ inputs.bgm }}
           BGM_URL: ${{ inputs.bgm_url }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          VOICE_URLS_FILE: tools/story/voice_urls.json
+          VOICE_URLS_FILE: ${{ inputs.name == 'delhi1' && 'tools/story/voice_urls.json' || format('tools/story/{0}_voice.json', inputs.name) }}
           GEMINI_STYLE: "a gifted Tamil storyteller performing a dramatic true historical story for a big audience, deeply expressive with real emotion, a varied pace and pitch that follows the story, natural pauses between sentences, never flat, never robotic, never reading a list"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: story
           path: out/story/*.mp4
-      - name: Keep pictures, video and a few sample frames on the side branch story-out
+      - name: Keep pictures, video and a few sample frames on the story's side branch (story-out for delhi1, story-<name> for the others)
         if: always()
         run: |
+          BR=$([ "${{ inputs.name }}" = "delhi1" ] && echo story-out || echo "story-${{ inputs.name }}")
           mkdir -p keep/sq keep/old keep/frames
           cp out/story/sq/*.jpg keep/sq/ 2>/dev/null || true
           cp out/story/old/*.jpg keep/old/ 2>/dev/null || true
           cp out/story/*.mp4 out/story/report.json out/story/bgm_safe.mp3 keep/ 2>/dev/null || true
           for t in 5 40 120 200 300; do ffmpeg -loglevel error -y -ss $t -i out/story/${{ inputs.name }}.mp4 -frames:v 1 keep/frames/f_$t.jpg 2>/dev/null || true; done
+          for t in 5 8.4 15 24.4 31 36.9 44 52.9 58 61.9; do ffmpeg -loglevel error -y -ss $t -i out/story/${{ inputs.name }}_sample.mp4 -frames:v 1 keep/frames/s_$t.jpg 2>/dev/null || true; done
           cd keep
-          git init -q -b story-out
+          git init -q -b "$BR"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A && git commit -qm "story build"
-          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" story-out
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "$BR"
