@@ -6,7 +6,7 @@ tools/story/build.py runs this once per animation:
 
 anim.json = one entry of "anims" in the story file plus "steps": [seconds, ...], one per item. Every item appears at the
 start of its step and stays, so the animation moves in time with the voice. Kinds: timeline, list, table, route.
-Everything is drawn in a small box in the top right corner so the picture stays visible.
+The timeline keeps its original wide strip along the bottom; list, table and route are small boxes in the top right corner.
 Text only (no LaTeX needed)."""
 import json
 import os
@@ -24,6 +24,11 @@ def T(text, size, color=WHITE, weight=BOLD, max_w=None):
     if max_w and t.width > max_w:
         t.scale_to_fit_width(max_w)
     return t
+
+
+def panel(w, h, at):
+    return RoundedRectangle(corner_radius=0.25, width=w, height=h, stroke_color=GOLD, stroke_width=4,
+                            fill_color=INK, fill_opacity=0.8).move_to(at)
 
 
 PW = 3.9                     # width of the small box
@@ -59,26 +64,24 @@ class Overlay(Scene):
         t = T(text, 22, GOLD, max_w=PW - 0.4).move_to([box.get_center()[0], box.get_top()[1] - 0.4, 0])
         return t, box.get_top()[1] - 1.05
 
-    # ---- years one under the other, joined by a line ---------------------------------------------------
+    # ---- a line of years along the bottom ------------------------------------------------------------
     def k_timeline(self):
         items = D["items"]
-        gap = 1.15
-        box = corner(0.45 + gap * len(items))
-        x = box.get_left()[0] + 0.45
-        y0 = box.get_top()[1] - 0.6
-        prev = None
+        y = -2.55
+        box = panel(13.2, 2.3, [0, y, 0])
+        n = len(items)
+        xs = [0.0] if n == 1 else [-3.6 + 7.2 * i / (n - 1) for i in range(n)]
+        x_prev = -6.0
         for i, (year, label) in enumerate(items):
-            p = [x, y0 - gap * i, 0]
-            dot = Dot(p, radius=0.11, color=WHITE)
-            yr = T(year, 32, GOLD).next_to(dot, RIGHT, buff=0.25)
-            lb = T(label, 22, WHITE, max_w=PW - 1.1).next_to(yr, DOWN, buff=0.1).align_to(yr, LEFT)
-            anims = [FadeIn(dot, scale=2), FadeIn(yr, shift=RIGHT * 0.2), FadeIn(lb, shift=RIGHT * 0.2)]
-            if prev is not None:
-                anims.insert(0, Create(Line(prev, p, color=GOLD, stroke_width=5)))
-            else:
+            seg = Line([x_prev, y, 0], [xs[i], y, 0], color=GOLD, stroke_width=6)
+            dot = Dot([xs[i], y, 0], radius=0.14, color=WHITE)
+            yr = T(year, 44, GOLD).next_to(dot, UP, buff=0.18)
+            lb = T(label, 30, WHITE, max_w=5.6).next_to(dot, DOWN, buff=0.2)
+            anims = [Create(seg), FadeIn(dot, scale=2), FadeIn(yr, shift=UP * 0.2), FadeIn(lb, shift=DOWN * 0.2)]
+            if i == 0:
                 anims.insert(0, FadeIn(box))
             self.step(i, *anims)
-            prev = p
+            x_prev = xs[i]
 
     # ---- a list that grows -----------------------------------------------------------------------------
     def k_list(self):
