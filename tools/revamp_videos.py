@@ -28,8 +28,23 @@ def kind_of(title, desc):
     return ""
 
 
+def seconds_of(iso):
+    """'PT6M12S' -> 372. Unknown or missing -> 0."""
+    m = re.fullmatch(r"P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?", iso or "")
+    if not m:
+        return 0
+    d, h, mi, sec = (int(x or 0) for x in m.groups())
+    return d * 86400 + h * 3600 + mi * 60 + sec
+
+
+def is_short(v):
+    """A Short is at most 3 minutes. If YouTube gives no length (still processing), the video is left alone to be safe."""
+    secs = seconds_of((v.get("contentDetails") or {}).get("duration"))
+    return 0 < secs <= 180
+
+
 def auto_thumbnails(yt, videos):
-    """Sets the new vertical thumbnail on EVERY video of the channel, a few per run. YouTube limits custom thumbnails (HTTP 429
+    """Sets the new vertical thumbnail on every Short of the channel (never on Long videos), a few per run. YouTube limits custom thumbnails (HTTP 429
     after about 9), so this stops at the first refusal and continues in the next run. Progress is kept in thumbs_done.json."""
     import json
     from shorts_helpers import clean_title
@@ -94,8 +109,13 @@ def main():
             break
     videos = []
     for i in range(0, len(ids), 50):
-        videos += yt.videos().list(part="snippet", id=",".join(ids[i:i + 50])).execute().get("items", [])
+        videos += yt.videos().list(part="snippet,contentDetails", id=",".join(ids[i:i + 50])).execute().get("items", [])
     P.log(f"{len(videos)} videos on the channel")
+    # Long videos (story videos etc.) have their own hand-made thumbnail, title and description: this script only touches Shorts.
+    longs = [v for v in videos if not is_short(v)]
+    videos = [v for v in videos if is_short(v)]
+    if longs:
+        P.log(f"left alone (not Shorts): {len(longs)} -> " + ",".join(v["id"] for v in longs))
 
     if (os.environ.get("THUMB_AUTO") or "0") == "1":
         auto_thumbnails(yt, videos)
