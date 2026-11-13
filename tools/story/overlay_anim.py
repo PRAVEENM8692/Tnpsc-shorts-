@@ -6,6 +6,7 @@ tools/story/build.py runs this once per animation:
 
 anim.json = one entry of "anims" in the story file plus "steps": [seconds, ...], one per item. Every item appears at the
 start of its step and stays, so the animation moves in time with the voice. Kinds: timeline, list, table, route.
+Everything is drawn in a small box in the top right corner so the picture stays visible.
 Text only (no LaTeX needed)."""
 import json
 import os
@@ -25,9 +26,14 @@ def T(text, size, color=WHITE, weight=BOLD, max_w=None):
     return t
 
 
-def panel(w, h, at):
-    return RoundedRectangle(corner_radius=0.25, width=w, height=h, stroke_color=GOLD, stroke_width=4,
-                            fill_color=INK, fill_opacity=0.8).move_to(at)
+PW = 3.9                     # width of the small box
+RIGHT_X, TOP_Y = 6.95, 3.85   # the box sits in the top right corner, mostly over the blurred side of the picture
+
+
+def corner(h, w=PW):
+    """The small dark box in the top right corner."""
+    return RoundedRectangle(corner_radius=0.2, width=w, height=h, stroke_color=GOLD, stroke_width=3,
+                            fill_color=INK, fill_opacity=0.82).move_to([RIGHT_X - w / 2, TOP_Y - h / 2, 0])
 
 
 class Overlay(Scene):
@@ -46,88 +52,89 @@ class Overlay(Scene):
     def construct(self):
         getattr(self, "k_" + D["kind"])()
 
-    # ---- a line of years along the bottom ------------------------------------------------------------
+    def head(self, box, text):
+        """Title line inside the box; returns (title or None, y of the first row)."""
+        if not text:
+            return None, box.get_top()[1] - 0.55
+        t = T(text, 22, GOLD, max_w=PW - 0.4).move_to([box.get_center()[0], box.get_top()[1] - 0.4, 0])
+        return t, box.get_top()[1] - 1.05
+
+    # ---- years one under the other, joined by a line ---------------------------------------------------
     def k_timeline(self):
         items = D["items"]
-        y = -2.55
-        box = panel(13.2, 2.3, [0, y, 0])
-        n = len(items)
-        xs = [0.0] if n == 1 else [-3.6 + 7.2 * i / (n - 1) for i in range(n)]
-        x_prev = -6.0
+        gap = 1.15
+        box = corner(0.45 + gap * len(items))
+        x = box.get_left()[0] + 0.45
+        y0 = box.get_top()[1] - 0.6
+        prev = None
         for i, (year, label) in enumerate(items):
-            seg = Line([x_prev, y, 0], [xs[i], y, 0], color=GOLD, stroke_width=6)
-            dot = Dot([xs[i], y, 0], radius=0.14, color=WHITE)
-            yr = T(year, 44, GOLD).next_to(dot, UP, buff=0.18)
-            lb = T(label, 30, WHITE, max_w=5.6).next_to(dot, DOWN, buff=0.2)
-            anims = [Create(seg), FadeIn(dot, scale=2), FadeIn(yr, shift=UP * 0.2), FadeIn(lb, shift=DOWN * 0.2)]
-            if i == 0:
+            p = [x, y0 - gap * i, 0]
+            dot = Dot(p, radius=0.11, color=WHITE)
+            yr = T(year, 32, GOLD).next_to(dot, RIGHT, buff=0.25)
+            lb = T(label, 22, WHITE, max_w=PW - 1.1).next_to(yr, DOWN, buff=0.1).align_to(yr, LEFT)
+            anims = [FadeIn(dot, scale=2), FadeIn(yr, shift=RIGHT * 0.2), FadeIn(lb, shift=RIGHT * 0.2)]
+            if prev is not None:
+                anims.insert(0, Create(Line(prev, p, color=GOLD, stroke_width=5)))
+            else:
                 anims.insert(0, FadeIn(box))
             self.step(i, *anims)
-            x_prev = xs[i]
+            prev = p
 
-    # ---- a list that grows, on the right side ----------------------------------------------------------
+    # ---- a list that grows -----------------------------------------------------------------------------
     def k_list(self):
         items = D["items"]
-        box = panel(5.3, 1.5 + 0.95 * len(items), [4.2, 0.2, 0])
-        title = T(D.get("title", ""), 30, GOLD, max_w=4.8).move_to(box.get_top() + DOWN * 0.55)
-        top = title.get_bottom()[1] - 0.75
+        gap = 0.62
+        box = corner((1.25 if D.get("title") else 0.7) + gap * len(items))
+        title, y0 = self.head(box, D.get("title"))
+        left = box.get_left()[0] + 0.3
         for i, (year, name) in enumerate(items):
-            yr = T(year, 36, GOLD)
-            nm = T(name, 34, WHITE, max_w=2.9)
-            row = VGroup(yr, nm).arrange(RIGHT, buff=0.35).move_to([4.2, top - 0.95 * i, 0])
-            row.align_to(box.get_left() + RIGHT * 0.45, LEFT)
-            anims = [FadeIn(row, shift=LEFT * 0.4)]
+            yr = T(year, 26, GOLD)
+            nm = T(name, 26, WHITE, max_w=PW - 1.9)
+            row = VGroup(yr, nm).arrange(RIGHT, buff=0.25).move_to([0, y0 - gap * i, 0]).align_to([left, 0, 0], LEFT)
+            anims = [FadeIn(row, shift=LEFT * 0.3)]
             if i == 0:
-                anims = [FadeIn(box), FadeIn(title)] + anims
+                anims = [FadeIn(box)] + ([FadeIn(title)] if title else []) + anims
             self.step(i, *anims)
 
-    # ---- a two-column table that fills row by row, on the left side ----------------------------------
+    # ---- two columns that fill row by row ---------------------------------------------------------------
     def k_table(self):
         items = D["items"]
-        cx = -3.9
-        box = panel(6.1, 2.3 + 0.95 * len(items), [cx, 0.2, 0])
-        title = T(D.get("title", ""), 32, GOLD, max_w=5.6).move_to(box.get_top() + DOWN * 0.55)
-        h1, h2 = D.get("head", ["", ""])
-        head_y = title.get_bottom()[1] - 0.6
-        ha = T(h1, 26, "#CFD3FF").move_to([cx - 1.5, head_y, 0])
-        hb = T(h2, 26, "#CFD3FF").move_to([cx + 1.6, head_y, 0])
-        rule = Line([cx - 2.8, head_y - 0.35, 0], [cx + 2.8, head_y - 0.35, 0], color=GOLD, stroke_width=3)
+        gap = 0.62
+        box = corner((1.25 if D.get("title") else 0.7) + gap * len(items))
+        title, y0 = self.head(box, D.get("title"))
+        left, right = box.get_left()[0] + 0.3, box.get_right()[0] - 0.3
         for i, (a, b) in enumerate(items):
-            ry = head_y - 0.95 * (i + 1)
-            ta = T(a, 30, WHITE, max_w=2.9).move_to([cx - 1.5, ry, 0])
-            tb = T(b, 30, GOLD, max_w=2.5).move_to([cx + 1.6, ry, 0])
-            anims = [FadeIn(ta, shift=RIGHT * 0.3), FadeIn(tb, shift=RIGHT * 0.3)]
+            ta = T(a, 24, WHITE, max_w=PW - 2.0).move_to([0, y0 - gap * i, 0]).align_to([left, 0, 0], LEFT)
+            tb = T(b, 20, GOLD, max_w=1.3).move_to([0, y0 - gap * i, 0]).align_to([right, 0, 0], RIGHT)
+            anims = [FadeIn(ta, shift=RIGHT * 0.2), FadeIn(tb, shift=RIGHT * 0.2)]
             if i == 0:
-                anims = [FadeIn(box), FadeIn(title), FadeIn(ha), FadeIn(hb), Create(rule)] + anims
+                anims = [FadeIn(box)] + ([FadeIn(title)] if title else []) + anims
             self.step(i, *anims)
 
-    # ---- a north-to-south route (places placed by latitude / longitude; a diagram, not a map) ---------
+    # ---- a north-to-south route: places one under the other, shifted a little east or west (a diagram, not a map) ----
     def k_route(self):
         items = D["items"]
-        cx = 3.9
-        box = panel(6.2, 7.3, [cx, 0, 0])
-        title = T(D.get("title", ""), 26, GOLD, max_w=5.7).move_to(box.get_top() + DOWN * 0.45)
-        name0, lon0, lat0 = D["start"]
-        lats = [lat0] + [it[3] for it in items]
-        top, bot = 2.45, -3.1                     # the y range used for the places
-        k = (top - bot) / (max(lats) - min(lats))
+        gap = 0.72
+        box = corner(1.3 + gap * (len(items) + 1))
+        title, y0 = self.head(box, D.get("title"))
+        left = box.get_left()[0] + 0.45
+        name0, lon0, _lat0 = D["start"]
+        lons = [lon0] + [it[2] for it in items]
 
-        def pos(lon, lat):
-            return [cx + 0.15 + (lon - 77.5) * 0.2, bot + (lat - min(lats)) * k, 0]
+        def px(lon):
+            return left + (lon - min(lons)) * 0.09
 
-        p_prev = pos(lon0, lat0)
-        d0 = Dot(p_prev, radius=0.13, color=WHITE)
-        l0 = T(name0, 30, WHITE).next_to(d0, RIGHT, buff=0.2)
-        north = T("வடக்கு", 20, "#CFD3FF", weight=NORMAL).move_to(box.get_corner(UL) + RIGHT * 0.8 + DOWN * 1.15)
-        south = T("தெற்கு", 20, "#CFD3FF", weight=NORMAL).move_to(box.get_corner(DL) + RIGHT * 0.8 + UP * 0.35)
-        for i, (year, name, lon, lat, side) in enumerate(items):
-            p = pos(lon, lat)
-            seg = Arrow(p_prev, p, buff=0.16, color=RED, stroke_width=7, max_tip_length_to_length_ratio=0.12)
-            dot = Dot(p, radius=0.12, color=GOLD)
-            lab = VGroup(T(name, 26, WHITE, max_w=2.3), T(year, 26, GOLD)).arrange(DOWN, buff=0.06)
-            lab.next_to(dot, LEFT if side == "L" else RIGHT, buff=0.3)
+        p_prev = [px(lon0), y0, 0]
+        d0 = Dot(p_prev, radius=0.1, color=WHITE)
+        l0 = T(name0, 24, WHITE).next_to(d0, RIGHT, buff=0.22)
+        for i, (year, name, lon, _lat, _side) in enumerate(items):
+            p = [px(lon), y0 - gap * (i + 1), 0]
+            seg = Arrow(p_prev, p, buff=0.13, color=RED, stroke_width=5, max_tip_length_to_length_ratio=0.25)
+            dot = Dot(p, radius=0.1, color=GOLD)
+            lab = VGroup(T(name, 22, WHITE, max_w=PW - 2.2), T(year, 22, GOLD)).arrange(RIGHT, buff=0.18)
+            lab.move_to([0, p[1], 0]).align_to([left + 0.75, 0, 0], LEFT)
             anims = [GrowArrow(seg), FadeIn(dot, scale=2), FadeIn(lab)]
             if i == 0:
-                anims = [FadeIn(box), FadeIn(title), FadeIn(north), FadeIn(south), FadeIn(d0), FadeIn(l0)] + anims
+                anims = [FadeIn(box)] + ([FadeIn(title)] if title else []) + [FadeIn(d0), FadeIn(l0)] + anims
             self.step(i, *anims)
             p_prev = p
