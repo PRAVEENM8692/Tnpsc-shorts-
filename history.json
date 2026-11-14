@@ -120,7 +120,6 @@
   "https://timesofindia.indiatimes.com/education/news/aissms-ioit-organises-international-conference-on-sdg-driven-innovation-and-excellence-awards-2026/articleshow/135454796.cms"
  ],
  "titles": [
-  "Tamil Nadu: TNPSC தேர்வுக்காக தமிழ்நாடு அரசு முக்கிய அறிவிப்புகள் – 5 நினைவில் கொள்ள வேண்டியவை",
   "Science, sports & world: ISRO NVS-03: விண்வெளி சாதனைகள் – TNPSC க்கு 5 நினைவில் கொள்ள வேண்டியவை",
   "Science, sports & world: விண்வெளி, தொழில்நுட்பம், சூழல் – TNPSC க்கு 5 முக்கிய உண்மைகள்",
   "Tamil Nadu: TNPSC தேர்வுக்கு 5 முக்கிய அரசு அறிவிப்புகள் – 02 நவம்பர் 2026",
@@ -199,17 +198,10 @@
   "Aptitude C: Reasoning: எண் ஜோடி Odd One Out – ஷார்ட்கட்",
   "India government schemes: TNPSC: இந்தியா மத்திய திட்டங்கள் – வேலை & திறன்",
   "Aptitude A: ரயில் வேகம் ஷார்ட்கட் – 90 km/h",
-  "Aptitude C: Reasoning: கடிகாரம் கோணம் ஷார்ட்கட்"
+  "Aptitude C: Reasoning: கடிகாரம் கோணம் ஷார்ட்கட்",
+  "Syllabus lesson B: TNPSC: பிரதமர் மற்றும் அமைச்சரவை முக்கியம்"
  ],
  "done": {
-  "20261111": [
-   1,
-   2,
-   3,
-   4,
-   5,
-   6
-  ],
   "20261112": [
    1,
    3,
@@ -219,6 +211,9 @@
    2,
    3,
    4
+  ],
+  "20261114": [
+   7
   ]
  },
  "tries": {
@@ -446,7 +441,12 @@
   "ஆபிரிக்க சோலார் வசதி: இந்தியா Africa Solar Facility‑க்கு ₹225 கோடி (USD 25 மில்லியன்) முதலீடு செய்தது.",
   "VISTAR‑ன் அநியமித்தத் துறை தரவு: VISTAR திட்டம் அநியமித்தத் துறையின் தரவுகளை சேகரித்து, வேலைவாய்ப்பைத் துல்லியமாகக் கணக்கிட உதவும்.",
   "140m ரயில் 160m நிலையம் 12s-ல் கடக்கும் வேகம்?",
-  "5:24 மணிக்கு மணி‑நிமிடக் கை கோணம்?"
+  "5:24 மணிக்கு மணி‑நிமிடக் கை கோணம்?",
+  "அமைச்சரவை மற்றும் பிரதமர் நியமனம்: President பிரதமரை நியமித்து, பிரதமர் ஆலோசனைப்படி மற்ற மந்திரிகளை நியமிக்கிறார்.",
+  "மந்திரிகள் எண்ணிக்கை வரம்பு: மொத்த மந்திரிகள் (பிரதமர் உட்பட) லோக் சபையின் 15% ஐ விட அதிகமாக இருக்கக் கூடாது.",
+  "ஆலோசனை கட்டுப்பாடு: 1976 amendment-ல் பிரதமர் ஆலோசனை President-க்கு கட்டாயம், 1978 amendment-ல் ஒருமுறை திரும்பப் பெறலாம்.",
+  "லோக் சபைக்கு பொறுப்பு: அமைச்சரவை கூட்டாக லோக் சபைக்கு பொறுப்பாகும்; முழு நாடாளுமன்றத்திற்கு அல்ல.",
+  "ராஜினாமா அல்லது மரணம்: பிரதமர் ராஜினாமா அல்லது மரணம் ஆனால், முழு அமைச்சரவை தானாகவே வீழ்ச்சி பெறும்."
  ],
  "lessons": [
   "Harappan civilisation",
@@ -462,6 +462,7 @@
   "Newton's laws of motion",
   "GDP, GNP and national income",
   "Tamil Nadu government departments and schemes",
-  "Governor: powers and responsibilities"
+  "Governor: powers and responsibilities",
+  "Prime Minister and Council of Ministers"
  ]
 }
