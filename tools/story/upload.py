@@ -28,6 +28,8 @@ def pic(n):   # picture n from the story-out branch (whole square one if it exis
 
 if NAME == "delhi1":
     LEFT, RIGHT, BIG, SUB = pic(3), pic(17), "அடிமை ➜ அரசன்!", "டெல்லி சுல்தானியம் | பகுதி 1"
+elif NAME == "delhi3":   # the scholar-king (left, grey) and the long march of a whole city (right)
+    LEFT, RIGHT, BIG, SUB = pic(1), pic(25), "மேதையா? முட்டாளா?", "டெல்லி சுல்தானியம் | பகுதி 3"
 else:   # delhi2: the gentle old king (left, grey) and the man who killed him (right)
     LEFT, RIGHT, BIG, SUB = pic(11), pic(6), "மாமனாரையே கொன்றான்!", "டெல்லி சுல்தானியம் | பகுதி 2"
 BOY, KING = LEFT, RIGHT
@@ -102,7 +104,28 @@ DESC2 = """தன்னை நம்பிய மாமனாரையே கொ
 #TNPSC #DelhiSultanate #டெல்லிசுல்தானியம் #KhaljiDynasty #அலாவுதீன்கில்ஜி #மாலிக்கபூர் #TNPSCHistory #TamilHistory #TNPSCBites"""
 TAGS2 = ["TNPSC", "Delhi Sultanate", "டெல்லி சுல்தானியம்", "கில்ஜி வம்சம்", "அலாவுதீன் கில்ஜி", "ஜலாலுதீன் கில்ஜி", "மாலிக் கபூர்",
          "Khalji dynasty", "Alauddin Khalji", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
-TITLE, DESC, TAGS = (TITLE1, DESC1, TAGS1) if NAME == "delhi1" else (TITLE2, DESC2, TAGS2)
+TITLE3 = "தலைநகரையே தூக்கிச் சென்ற அரசன்! மேதையா? முட்டாளா? | டெல்லி சுல்தானியம் பகுதி 3 | TNPSC"
+DESC3 = """பெரிய அறிவாளி. ஆனால் வரலாறு அவனை முட்டாள் என்கிறது. தலைநகரையே ஆயிரம் கிலோமீட்டர் தூரத்துக்குத் தூக்கிச் சென்றான். வெள்ளிக்குப் பதிலாக செம்பு நாணயம் வெளியிட்டான். அவன் காலத்தில்தான் தெற்கே மதுரை சுல்தானியம், விஜயநகரம், பாமனி அரசுகள் பிறந்தன. அவன் மேதையா? முட்டாளா?
+
+டெல்லி சுல்தானியத்தின் மூன்றாம் அத்தியாயமான துக்ளக் வம்சத்தின் முழுக் கதை, 6 நிமிடத்தில்:
+• கியாசுதீன் துக்ளக் - 1320, துக்ளகாபாத், மரக் கூடாரம் இடிந்து மரணம்
+• முகமது பின் துக்ளக் - தோவாப் வரி 1326, தலைநகர் தௌலதாபாத் 1327, செப்பு நாணயம் 1329
+• இபன் பதூதா 1333, மதுரை சுல்தானியம் 1334, விஜயநகரம் 1336, பாமனி 1347
+• பிரோஸ் ஷா துக்ளக் - கால்வாய்கள், ஃபிரோசாபாத், திவான்-இ-கைராத்
+• தைமூர் படையெடுப்பு 1398, வம்சத்தின் முடிவு 1413
+
+எல்லோரும் ரசிக்கக்கூடிய கதை. TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ளது. வீடியோவின் இறுதியில் 5 முக்கியத் தேர்வுக் குறிப்புகள் உள்ளன.
+
+முந்தைய பகுதிகள்: அடிமை வம்சம் (பகுதி 1), கில்ஜி வம்சம் (பகுதி 2). அடுத்த பகுதி: சையது, லோடி வம்சங்கள், பாபர். தவறவிடாமல் இருக்க TNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள், LIKE செய்யுங்கள்.
+
+உங்கள் கருத்து: முகமது பின் துக்ளக் மேதையா? முட்டாளா? கீழே கமெண்டில் சொல்லுங்கள்!
+
+குறிப்பு: இந்த வீடியோவில் உள்ள படங்களும் குரலும் AI மூலம் உருவாக்கப்பட்டவை. வரலாற்றுத் தகவல்கள் பொதுவான பாடநூல் அறிவின்படி எழுதப்பட்டவை; தேர்வுக்குப் படிக்கும்போது உங்கள் பாடநூலுடன் ஒப்பிட்டுப் பார்க்கவும்.
+
+#TNPSC #DelhiSultanate #டெல்லிசுல்தானியம் #TughlaqDynasty #முகமதுபின்துக்ளக் #இபன்பதூதா #TNPSCHistory #TamilHistory #TNPSCBites"""
+TAGS3 = ["TNPSC", "Delhi Sultanate", "டெல்லி சுல்தானியம்", "துக்ளக் வம்சம்", "முகமது பின் துக்ளக்", "பிரோஸ் ஷா துக்ளக்", "இபன் பதூதா",
+         "Tughlaq dynasty", "Muhammad bin Tughluq", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
+TITLE, DESC, TAGS = {"delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3)}.get(NAME, (TITLE2, DESC2, TAGS2))
 
 if os.environ.get("UPLOAD") == "1":
     vid = P.upload(VIDEO, TITLE, DESC, TAGS, thumb=thumb)
