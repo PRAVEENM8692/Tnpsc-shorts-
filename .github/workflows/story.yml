@@ -32,7 +32,7 @@ jobs:
           python-version: "3.12"
       - name: Install ffmpeg and Tamil fonts
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg fonts-noto-core fonts-dejavu-core
-      - run: pip install -r requirements.txt playwright
+      - run: pip install -r requirements.txt playwright gradio_client
       - name: Install Manim (for the animations drawn over the pictures)
         continue-on-error: true   # if this fails, plain text boxes are shown instead of the animations
         run: |
@@ -49,6 +49,7 @@ jobs:
           BGM_URL: ${{ inputs.bgm_url }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           VOICE_URLS_FILE: ${{ inputs.name == 'delhi1' && 'tools/story/voice_urls.json' || format('tools/story/{0}_voice.json', inputs.name) }}

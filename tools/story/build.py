@@ -39,10 +39,44 @@ def restore_cached():
                 f.write_bytes(r.stdout)
 
 
+_HF = {"client": None, "dead": False}
+CF_DEAD = {"v": False}   # set when Cloudflare says the free allocation is used up: stop asking it for the rest of the run
+
+
+def draw_hf(prompt, dst):
+    """Free Hugging Face Space FLUX.1 schnell at 1280x720 (used when Cloudflare's free allocation is used up)."""
+    if _HF["dead"]:
+        return False
+    import shutil
+    try:
+        if _HF["client"] is None:
+            from gradio_client import Client
+            tok = os.environ.get("HF_TOKEN") or None
+            try:
+                _HF["client"] = Client("black-forest-labs/FLUX.1-schnell", token=tok) if tok else Client("black-forest-labs/FLUX.1-schnell")
+            except TypeError:
+                _HF["client"] = Client("black-forest-labs/FLUX.1-schnell", hf_token=tok)
+        res = _HF["client"].predict(prompt=prompt[:1800], seed=0, randomize_seed=True, width=1280, height=720,
+                                    num_inference_steps=4, api_name="/infer")
+        img = res[0] if isinstance(res, (list, tuple)) else res
+        if isinstance(img, dict):
+            img = img.get("path") or img.get("url")
+        from PIL import Image
+        Image.open(img).convert("RGB").save(dst, quality=90)
+        return True
+    except Exception as e:
+        log(f"Hugging Face picture failed: {str(e)[:200]}")
+        if any(w in str(e).lower() for w in ("quota", "gpu", "limit")):
+            _HF["dead"] = True
+        return False
+
+
 def draw169(prompt, dst):
     """Cloudflare FLUX.2 klein 4B: lets us ask for 16:9 (1280x720) directly, so no side fill is needed. False when it fails."""
     from PIL import Image
     import uuid
+    if CF_DEAD["v"]:
+        return False
     url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ID}/ai/run/@cf/black-forest-labs/flux-2-klein-4b"
     b = uuid.uuid4().hex
     parts = b"".join(f'--{b}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode()
@@ -57,7 +91,10 @@ def draw169(prompt, dst):
         im.save(dst, quality=90)
         return True
     except urllib.error.HTTPError as e:
-        log(f"16:9 picture failed: HTTP {e.code}: {e.read()[:200]!r}")
+        body = e.read()[:300]
+        log(f"16:9 picture failed: HTTP {e.code}: {body[:120]!r}")
+        if e.code == 429 and b"daily free allocation" in body:
+            CF_DEAD["v"] = True
     except Exception as e:
         log(f"16:9 picture failed: {e}")
     return False
@@ -65,6 +102,8 @@ def draw169(prompt, dst):
 
 def draw(prompt, dst):
     from PIL import Image
+    if CF_DEAD["v"]:
+        return False
     url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ID}/ai/run/@cf/black-forest-labs/flux-1-schnell"
     last = None
     for n in range(4):
@@ -76,6 +115,9 @@ def draw(prompt, dst):
             return True
         except urllib.error.HTTPError as e:
             last = f"HTTP {e.code}: {e.read()[:300]!r}"
+            if e.code == 429 and "daily free allocation" in last:
+                CF_DEAD["v"] = True
+                break
         except Exception as e:
             last = str(e)
         time.sleep(4 * (n + 1))
@@ -92,7 +134,8 @@ def make_pictures():
         if f.exists() or (redo and s["n"] not in redo):
             continue
         wide = NAME not in ("delhi1", "delhi2") and os.environ.get("PIC_169", "1") == "1"   # new parts: draw 16:9 directly
-        if fails < 3 and CF_ID and CF_TOKEN and ((wide and draw169(STYLE + s["scene"] + END, f)) or draw(STYLE + s["scene"] + FRAME + END, f)):
+        if fails < 3 and CF_ID and CF_TOKEN and ((wide and draw169(STYLE + s["scene"] + END, f)) or draw(STYLE + s["scene"] + FRAME + END, f)
+                                              or (wide and draw_hf(STYLE + s["scene"] + END, f))):
             fails = 0
             log(f"picture {s['n']:02d} drawn")
         else:
