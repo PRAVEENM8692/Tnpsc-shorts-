@@ -39,6 +39,30 @@ def restore_cached():
                 f.write_bytes(r.stdout)
 
 
+def draw169(prompt, dst):
+    """Cloudflare FLUX.2 klein 4B: lets us ask for 16:9 (1280x720) directly, so no side fill is needed. False when it fails."""
+    from PIL import Image
+    import uuid
+    url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ID}/ai/run/@cf/black-forest-labs/flux-2-klein-4b"
+    b = uuid.uuid4().hex
+    parts = b"".join(f'--{b}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode()
+                     for k, v in (("prompt", prompt[:2000]), ("width", 1280), ("height", 720)))
+    try:
+        req = urllib.request.Request(url, parts + f"--{b}--\r\n".encode(), {"Authorization": f"Bearer {CF_TOKEN}",
+                                     "Content-Type": f"multipart/form-data; boundary={b}"})
+        raw = base64.b64decode(json.load(urllib.request.urlopen(req, timeout=180))["result"]["image"])
+        im = Image.open(io.BytesIO(raw)).convert("RGB")
+        if im.size[0] < 2 * im.size[1] // 1.2:   # not a wide picture: treat as failure
+            return False
+        im.save(dst, quality=90)
+        return True
+    except urllib.error.HTTPError as e:
+        log(f"16:9 picture failed: HTTP {e.code}: {e.read()[:200]!r}")
+    except Exception as e:
+        log(f"16:9 picture failed: {e}")
+    return False
+
+
 def draw(prompt, dst):
     from PIL import Image
     url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ID}/ai/run/@cf/black-forest-labs/flux-1-schnell"
@@ -67,7 +91,8 @@ def make_pictures():
         f = IMG / f"{s['n']:02d}.jpg"
         if f.exists() or (redo and s["n"] not in redo):
             continue
-        if fails < 3 and CF_ID and CF_TOKEN and draw(STYLE + s["scene"] + FRAME + END, f):
+        wide = NAME not in ("delhi1", "delhi2") and os.environ.get("PIC_169", "1") == "1"   # new parts: draw 16:9 directly
+        if fails < 3 and CF_ID and CF_TOKEN and ((wide and draw169(STYLE + s["scene"] + END, f)) or draw(STYLE + s["scene"] + FRAME + END, f)):
             fails = 0
             log(f"picture {s['n']:02d} drawn")
         else:
