@@ -30,6 +30,8 @@ if NAME == "delhi1":
     LEFT, RIGHT, BIG, SUB = pic(3), pic(17), "அடிமை ➜ அரசன்!", "டெல்லி சுல்தானியம் | பகுதி 1"
 elif NAME == "delhi3":   # the scholar-king (left, grey) and the long march of a whole city (right)
     LEFT, RIGHT, BIG, SUB = pic(1), pic(25), "மேதையா? முட்டாளா?", "டெல்லி சுல்தானியம் | பகுதி 3"
+elif NAME == "delhi4":   # the proud last sultan (left, grey) and the man who ended the sultanate (right)
+    LEFT, RIGHT, BIG, SUB = pic(45), pic(37), "ஒரே நாளில் முடிந்த சுல்தானியம்!", "டெல்லி சுல்தானியம் | பகுதி 4"
 else:   # delhi2: the gentle old king (left, grey) and the man who killed him (right)
     LEFT, RIGHT, BIG, SUB = pic(11), pic(6), "மாமனாரையே கொன்றான்!", "டெல்லி சுல்தானியம் | பகுதி 2"
 BOY, KING = LEFT, RIGHT
@@ -125,7 +127,28 @@ DESC3 = """பெரிய அறிவாளி. ஆனால் வரலா�
 #TNPSC #DelhiSultanate #டெல்லிசுல்தானியம் #TughlaqDynasty #முகமதுபின்துக்ளக் #இபன்பதூதா #TNPSCHistory #TamilHistory #TNPSCBites"""
 TAGS3 = ["TNPSC", "Delhi Sultanate", "டெல்லி சுல்தானியம்", "துக்ளக் வம்சம்", "முகமது பின் துக்ளக்", "பிரோஸ் ஷா துக்ளக்", "இபன் பதூதா",
          "Tughlaq dynasty", "Muhammad bin Tughluq", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
-TITLE, DESC, TAGS = {"delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3)}.get(NAME, (TITLE2, DESC2, TAGS2))
+TITLE4 = "ஒரே நாளில் முடிந்த சுல்தானியம்! பானிப்பட் 1526 | டெல்லி சுல்தானியம் பகுதி 4 | TNPSC"
+DESC4 = """320 ஆண்டுகள் இந்தியாவை ஆண்ட டெல்லி சுல்தானியம், 1526 ஏப்ரல் 21-ஆம் தேதி ஒரே போரில் முடிவுக்கு வந்தது. ஒரு லட்சம் வீரர்களும் நூற்றுக்கணக்கான யானைகளும் இருந்தும், ஏன் இப்ராகிம் லோடி தோற்றான்? வெறும் 12 ஆயிரம் வீரர்களோடு வந்த பாபர் எப்படி வென்றான்?
+
+டெல்லி சுல்தானியத்தின் நான்காம் மற்றும் கடைசி அத்தியாயம், சுமார் 5 நிமிடத்தில்:
+• சையது வம்சம் - கிசர் கான் 1414, சோம்பேறி அரசன் ஆலம் ஷா, "டெல்லியிலிருந்து பாலம் வரை" பழமொழி
+• லோடி வம்சம் - பகலோல் லோடி 1451, சிக்கந்தர் லோடி, ஆக்ரா நகரம் 1504, கஸ்-இ-சிக்கந்தரி
+• இப்ராகிம் லோடி - தௌலத் கான் லோடி பாபரை அழைத்தது
+• முதல் பானிப்பட் போர் 1526 - பீரங்கிகள், துப்பாக்கிகள், மிரண்ட யானைகள்
+
+எல்லோரும் ரசிக்கக்கூடிய கதை. TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ளது. வீடியோவின் இறுதியில் 5 முக்கியத் தேர்வுக் குறிப்புகள் உள்ளன.
+
+முந்தைய பகுதிகள்: அடிமை வம்சம், கில்ஜி வம்சம், துக்ளக் வம்சம். அடுத்த தொடர்: தமிழ்நாட்டின் வரலாறு. தவறவிடாமல் இருக்க TNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள், LIKE செய்யுங்கள்.
+
+உங்கள் கருத்து: டெல்லி சுல்தானியத்தின் ஐந்து வம்சங்களில் உங்களுக்குப் பிடித்தது எது? கீழே கமெண்டில் சொல்லுங்கள்!
+
+குறிப்பு: இந்த வீடியோவில் உள்ள படங்களும் குரலும் AI மூலம் உருவாக்கப்பட்டவை. வரலாற்றுத் தகவல்கள் பொதுவான பாடநூல் அறிவின்படி எழுதப்பட்டவை; தேர்வுக்குப் படிக்கும்போது உங்கள் பாடநூலுடன் ஒப்பிட்டுப் பார்க்கவும்.
+
+#TNPSC #DelhiSultanate #டெல்லிசுல்தானியம் #FirstBattleOfPanipat #பானிப்பட் #பாபர் #TNPSCHistory #TamilHistory #TNPSCBites"""
+TAGS4 = ["TNPSC", "Delhi Sultanate", "டெல்லி சுல்தானியம்", "சையது வம்சம்", "லோடி வம்சம்", "இப்ராகிம் லோடி", "பாபர்",
+         "முதல் பானிப்பட் போர்", "First Battle of Panipat", "Lodi dynasty", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
+TITLE, DESC, TAGS = {"delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
+                     "delhi4": (TITLE4, DESC4, TAGS4)}.get(NAME, (TITLE2, DESC2, TAGS2))
 
 if os.environ.get("UPLOAD") == "1":
     vid = P.upload(VIDEO, TITLE, DESC, TAGS, thumb=thumb)
