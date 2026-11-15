@@ -31,7 +31,7 @@ if NAME == "delhi1":
 elif NAME == "delhi3":   # the scholar-king (left, grey) and the long march of a whole city (right)
     LEFT, RIGHT, BIG, SUB = pic(1), pic(25), "மேதையா? முட்டாளா?", "டெல்லி சுல்தானியம் | பகுதி 3"
 elif NAME == "delhi4":   # the proud last sultan (left, grey) and the man who ended the sultanate (right)
-    LEFT, RIGHT, BIG, SUB = pic(45), pic(37), "ஒரே நாளில் முடிந்த சுல்தானியம்!", "டெல்லி சுல்தானியம் | பகுதி 4"
+    LEFT, RIGHT, BIG, SUB = pic(45), pic(43), "ஒரே நாளில் முடிந்தது!", "டெல்லி சுல்தானியம் | பகுதி 4"
 else:   # delhi2: the gentle old king (left, grey) and the man who killed him (right)
     LEFT, RIGHT, BIG, SUB = pic(11), pic(6), "மாமனாரையே கொன்றான்!", "டெல்லி சுல்தானியம் | பகுதி 2"
 BOY, KING = LEFT, RIGHT
@@ -53,6 +53,25 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 </style><body><div class="l"></div><div class="r"></div><div class="shade"></div>
 <div class="b">TNPSC</div><div class="q">&#10140;</div>
 <div class="t">{BIG}</div><div class="s">{SUB}</div></body></html>"""
+HTML2 = f"""<html><style>
+body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-family:'Noto Sans Tamil',sans-serif;background:#111}}
+.bg{{position:absolute;inset:0;background:url({RIGHT}) center/cover;filter:saturate(1.25) contrast(1.1)}}
+.vig{{position:absolute;inset:0;background:radial-gradient(ellipse at 60% 40%,transparent 35%,rgba(0,0,0,.65) 100%)}}
+.rib{{position:absolute;left:0;right:0;bottom:0;height:250px;background:linear-gradient(transparent,rgba(0,0,0,.92) 45%)}}
+.yr{{position:absolute;left:34px;top:26px;font-family:'DejaVu Sans',sans-serif;font-size:190px;font-weight:900;color:#ffd21f;line-height:1;
+ text-shadow:7px 7px 0 #b3121b,-4px -4px 0 #000,4px -4px 0 #000,-4px 4px 0 #000,0 14px 26px rgba(0,0,0,.8)}}
+.in{{position:absolute;right:46px;top:34px;width:290px;height:290px;border-radius:50%;background:url({LEFT}) center/cover;border:9px solid #e11d1d;
+ box-shadow:0 0 0 6px #fff,0 12px 30px rgba(0,0,0,.7);filter:grayscale(.9) contrast(1.15)}}
+.cr{{position:absolute;right:56px;top:304px;width:270px;text-align:center;background:#e11d1d;color:#fff;font-size:34px;font-weight:900;padding:4px 0;border-radius:10px;border:4px solid #fff}}
+.t{{position:absolute;left:30px;right:30px;bottom:74px;text-align:left;font-size:104px;font-weight:900;color:#fff;line-height:1.1;
+ text-shadow:5px 5px 0 #000,-5px 5px 0 #000,5px -5px 0 #000,-5px -5px 0 #000}}
+.s{{position:absolute;left:30px;bottom:18px;font-size:44px;font-weight:800;color:#ffd21f;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
+.b{{position:absolute;right:30px;bottom:22px;background:#e11d1d;color:#fff;font-size:40px;font-weight:900;padding:4px 22px;border-radius:12px;border:4px solid #fff;font-family:'DejaVu Sans',sans-serif}}
+</style><body><div class="bg"></div><div class="vig"></div><div class="rib"></div>
+<div class="yr">1526</div><div class="in"></div><div class="cr">கடைசி சுல்தான்</div>
+<div class="t">{BIG}</div><div class="s">{SUB}</div><div class="b">TNPSC</div></body></html>"""
+if NAME == "delhi4":   # part 4 uses a different thumbnail layout (full picture, big year, round inset) so the channel does not look like one template
+    HTML = HTML2
 thumb = OUT / "thumb.jpg"
 from playwright.sync_api import sync_playwright
 with sync_playwright() as pw:
