@@ -18,6 +18,25 @@ subprocess.run(["git", "fetch", "-q", "origin", BRANCH], check=True)
 VIDEO.write_bytes(subprocess.run(["git", "show", f"FETCH_HEAD:{NAME}.mp4"], check=True, capture_output=True).stdout)
 
 
+def upload_shorts(vid):
+    # Owner's rule (2026-11-17): when a Long video is uploaded, its Shorts go up with it (same privacy), no separate approval.
+    import json
+    shorts = json.loads(Path(f"tools/story/{NAME}.json").read_text(encoding="utf-8")).get("shorts", []) if Path(f"tools/story/{NAME}.json").exists() else []
+    for k, (a, b, hook, topic) in enumerate(shorts, 1):
+        try:
+            out = OUT / f"{NAME}_short{k}.mp4"
+            subprocess.run([sys.executable, "tools/story/shorts_cut.py", str(VIDEO), NAME, str(a), str(b), hook, str(out)], check=True)
+            sdesc = f"{topic} - {hook}\n\nமுழு வீடியோ: https://youtube.com/watch?v={vid}\n\nTNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள்.\n\n#Shorts #TNPSC #தமிழ்நாட்டுவரலாறு #TNPSCBites"
+            sid = P.upload(out, f"{hook} | {topic} #Shorts", sdesc, ["TNPSC", "TNPSC Bites", "Tamil Nadu history", topic, "Shorts"])
+            (OUT / "uploaded.txt").write_text(((OUT / "uploaded.txt").read_text() if (OUT / "uploaded.txt").exists() else "") + f"\nshort{k}: https://youtube.com/shorts/{sid}")
+        except Exception as e:   # a failed Short never undoes the Long video
+            P.log(f"short {k} skipped: {e}")
+
+if os.environ.get("SHORTS_ONLY_ID"):   # Long video already on YouTube: only cut and upload its Shorts
+    upload_shorts(os.environ["SHORTS_ONLY_ID"].strip())
+    sys.exit(0)
+
+
 def pic(n):   # picture n from the story-out branch (whole square one if it exists, else the first cropped one)
     for folder in ("sq", "old", "img"):
         r = subprocess.run(["git", "show", f"FETCH_HEAD:{folder}/{n:02d}.jpg"], capture_output=True)
@@ -260,18 +279,7 @@ if os.environ.get("UPLOAD") == "1":
     (OUT / "uploaded.txt").write_text(f"https://youtube.com/watch?v={vid}")
     if vid:
         P.add_to_playlists(vid, [PLAYLIST])
-        # Owner's rule (2026-11-17): when a Long video is uploaded, its Shorts go up with it (same privacy), no separate approval.
-        import json
-        shorts = json.loads(Path(f"tools/story/{NAME}.json").read_text(encoding="utf-8")).get("shorts", []) if Path(f"tools/story/{NAME}.json").exists() else []
-        for k, (a, b, hook, topic) in enumerate(shorts, 1):
-            try:
-                out = OUT / f"{NAME}_short{k}.mp4"
-                subprocess.run([sys.executable, "tools/story/shorts_cut.py", str(VIDEO), NAME, str(a), str(b), hook, str(out)], check=True)
-                sdesc = f"{topic} - {hook}\n\nமுழு வீடியோ: https://youtube.com/watch?v={vid}\n\nTNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள்.\n\n#Shorts #TNPSC #தமிழ்நாட்டுவரலாறு #TNPSCBites"
-                sid = P.upload(out, f"{hook} | {topic} #Shorts", sdesc, ["TNPSC", "TNPSC Bites", "Tamil Nadu history", topic, "Shorts"])
-                (OUT / "uploaded.txt").write_text((OUT / "uploaded.txt").read_text() + f"\nshort{k}: https://youtube.com/shorts/{sid}")
-            except Exception as e:   # a failed Short never undoes the Long video
-                P.log(f"short {k} skipped: {e}")
+        upload_shorts(vid)
     P.log(f"DONE https://youtube.com/watch?v={vid}")
 else:
     P.log("preview only: nothing uploaded (UPLOAD is not 1)")

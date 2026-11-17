@@ -11,6 +11,9 @@ on:
       playlist_only_id:
         description: "Only put this already-uploaded video (its YouTube id) into the Long videos playlist; nothing else is done"
         default: ""
+      shorts_only_id:
+        description: "YouTube id of an already-uploaded Long video: only cut and upload its Shorts"
+        default: ""
 permissions:
   contents: write
 jobs:
@@ -30,13 +33,14 @@ jobs:
         env:
           NAME: ${{ inputs.name }}
           UPLOAD: ${{ inputs.upload == 'true' && '1' || '0' }}
+          SHORTS_ONLY_ID: ${{ inputs.shorts_only_id }}
           PLAYLIST_ONLY_ID: ${{ inputs.playlist_only_id }}
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
           YT_PRIVACY: ${{ vars.YT_PRIVACY }}
       - name: Keep the thumbnail on the side branch story-thumb so it can be viewed
-        if: always() && inputs.playlist_only_id == ''
+        if: always() && inputs.playlist_only_id == '' && inputs.shorts_only_id == ''
         run: |
           mkdir keep && cp out/story/thumb.jpg keep/ 2>/dev/null || true
           cp out/story/uploaded.txt keep/ 2>/dev/null || true
