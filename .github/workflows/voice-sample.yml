@@ -1,0 +1,53 @@
+name: voice-sample
+# Run by hand only: makes one short Tamil sample per Gemini voice so the owner can pick one. Uploads nothing to YouTube.
+# The mp3 files are kept on the side branch voice-samples.
+on:
+  workflow_dispatch:
+    inputs:
+      voices:
+        description: "Gemini voice names, comma separated"
+        default: "Charon,Orus,Iapetus,Sadaltager,Fenrir"
+permissions:
+  contents: write
+jobs:
+  samples:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - run: pip install -r requirements.txt
+      - name: Make the samples
+        run: |
+          mkdir -p vs
+          python - <<'PY'
+          import os, sys
+          sys.path.insert(0, ".")
+          import pipeline as P
+          TEXT = ("ஒரு காலத்துல தமிழ்நாட்டை ஆண்ட வம்சம், தங்களோட கல்வெட்டுகளையே கிட்டத்தட்ட விட்டுவைக்கல. "
+                  "அவங்களைப் பத்தி நமக்குத் தெரிஞ்சது, அவங்க எதிரிகள் எழுதினதுதான். யாரு அவங்க? "
+                  "அவங்க காலத்தை ஏன் இருண்ட காலம்னு சொன்னாங்க? தமிழ்நாட்டு வரலாறு, பகுதி 2.")
+          for v in [x.strip() for x in os.environ["VOICES_IN"].split(",") if x.strip()]:
+              os.environ["GEMINI_VOICE"] = v
+              try:
+                  P.make_voice_gemini(TEXT, f"vs/{v}.mp3")
+                  print("ok", v)
+              except Exception as e:
+                  print("FAILED", v, e)
+          PY
+        env:
+          VOICES_IN: ${{ inputs.voices }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_STYLE: "a gifted Tamil storyteller performing a dramatic true historical story for a big audience, deeply expressive with real emotion, a varied pace and pitch that follows the story, natural pauses between sentences, never flat, never robotic, never reading a list"
+      - name: Keep the samples on the side branch voice-samples
+        run: |
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git checkout --orphan voice-samples
+          git rm -rf . -q || true
+          mv vs/* . 2>/dev/null || true
+          git add *.mp3
+          git commit -qm "voice samples"
+          git push -f origin voice-samples
