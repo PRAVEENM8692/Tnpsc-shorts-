@@ -7,7 +7,7 @@ sys.path.insert(0, ".")
 import pipeline as P
 
 NAME = os.environ.get("NAME") or "delhi1"
-PLAYLIST = "TNPSC வரலாறு கதைகள் | Long Videos"   # every Long story video goes into this one playlist (made when missing)
+PLAYLIST = "தமிழ்நாட்டு வரலாறு கதைகள் | Long Videos" if os.environ.get("NAME", "").startswith("tn") else "TNPSC வரலாறு கதைகள் | Long Videos"   # every Long story video goes into this one playlist (made when missing)
 if os.environ.get("PLAYLIST_ONLY_ID"):   # a video that is already on YouTube: only put it into the playlist, nothing else
     P.add_to_playlists(os.environ["PLAYLIST_ONLY_ID"].strip(), [PLAYLIST])
     sys.exit(0)
@@ -32,6 +32,9 @@ elif NAME == "delhi3":   # the scholar-king (left, grey) and the long march of a
     LEFT, RIGHT, BIG, SUB = pic(1), pic(25), "மேதையா? முட்டாளா?", "டெல்லி சுல்தானியம் | பகுதி 3"
 elif NAME == "delhi4":   # the proud last sultan (left, grey) and the man who ended the sultanate (right)
     LEFT, RIGHT, BIG, SUB = pic(45), pic(43), "ஒரே நாளில் முடிந்தது!", "டெல்லி சுல்தானியம் | பகுதி 4"
+elif NAME == "tn1":   # three kings, three panels: Chera bow, Chola tiger, Pandya fish
+    LEFT, RIGHT, BIG, SUB = pic(6), pic(8), "மூவேந்தர்?", "தமிழ்நாட்டு வரலாறு | பகுதி 1"
+    MID = pic(7)
 else:   # delhi2: the gentle old king (left, grey) and the man who killed him (right)
     LEFT, RIGHT, BIG, SUB = pic(11), pic(6), "மாமனாரையே கொன்றான்!", "டெல்லி சுல்தானியம் | பகுதி 2"
 BOY, KING = LEFT, RIGHT
@@ -70,6 +73,28 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 </style><body><div class="bg"></div><div class="vig"></div><div class="rib"></div>
 <div class="yr">1526</div><div class="in"></div><div class="cr">கடைசி சுல்தான்</div>
 <div class="t">{BIG}</div><div class="s">{SUB}</div><div class="b">TNPSC</div></body></html>"""
+HTML3 = f"""<html><style>
+body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-family:'Noto Sans Tamil',sans-serif;background:#111}}
+.p{{position:absolute;top:0;height:720px;width:440px;background-size:cover;background-position:center;filter:saturate(1.3) contrast(1.08)}}
+.p1{{left:0;background-image:url({LEFT if NAME == 'tn1' else ''});box-shadow:inset 0 0 0 0 #000}}
+.p2{{left:420px;background-image:url({MID if NAME == 'tn1' else ''})}}
+.p3{{left:840px;background-image:url({RIGHT})}}
+.tint1{{position:absolute;left:0;top:0;width:440px;height:720px;background:linear-gradient(transparent 45%,rgba(20,120,50,.75))}}
+.tint2{{position:absolute;left:420px;top:0;width:440px;height:720px;background:linear-gradient(transparent 45%,rgba(190,25,25,.75))}}
+.tint3{{position:absolute;left:840px;top:0;width:440px;height:720px;background:linear-gradient(transparent 45%,rgba(20,70,190,.75))}}
+.d1,.d2{{position:absolute;top:0;width:14px;height:720px;background:#fff;transform:skewX(-6deg)}}
+.d1{{left:426px}}.d2{{left:846px}}
+.n{{position:absolute;bottom:128px;width:440px;text-align:center;font-size:70px;font-weight:900;color:#fff;text-shadow:4px 4px 0 #000,-4px 4px 0 #000,4px -4px 0 #000,-4px -4px 0 #000}}
+.t{{position:absolute;left:0;right:0;top:22px;text-align:center;font-size:130px;font-weight:900;color:#ffd21f;line-height:1.1;
+ text-shadow:6px 6px 0 #000,-6px 6px 0 #000,6px -6px 0 #000,-6px -6px 0 #000,0 10px 24px rgba(0,0,0,.8)}}
+.s{{position:absolute;left:0;right:0;bottom:22px;text-align:center;font-size:46px;font-weight:800;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
+.b{{position:absolute;left:24px;bottom:24px;background:#e11d1d;color:#fff;font-size:38px;font-weight:900;padding:4px 20px;border-radius:12px;border:4px solid #fff;font-family:'DejaVu Sans',sans-serif}}
+</style><body><div class="p p1"></div><div class="p p2"></div><div class="p p3"></div><div class="tint1"></div><div class="tint2"></div><div class="tint3"></div>
+<div class="d1"></div><div class="d2"></div>
+<div class="n" style="left:0">சேரன்</div><div class="n" style="left:420px">சோழன்</div><div class="n" style="left:840px">பாண்டியன்</div>
+<div class="t">{BIG}</div><div class="s">{SUB}</div></body></html>"""
+if NAME == "tn1":
+    HTML = HTML3
 if NAME == "delhi4":   # part 4 uses a different thumbnail layout (full picture, big year, round inset) so the channel does not look like one template
     HTML = HTML2
 thumb = OUT / "thumb.jpg"
@@ -166,7 +191,28 @@ DESC4 = """320 ஆண்டுகள் இந்தியாவை ஆண்ட
 #TNPSC #DelhiSultanate #டெல்லிசுல்தானியம் #FirstBattleOfPanipat #பானிப்பட் #பாபர் #TNPSCHistory #TamilHistory #TNPSCBites"""
 TAGS4 = ["TNPSC", "Delhi Sultanate", "டெல்லி சுல்தானியம்", "சையது வம்சம்", "லோடி வம்சம்", "இப்ராகிம் லோடி", "பாபர்",
          "முதல் பானிப்பட் போர்", "First Battle of Panipat", "Lodi dynasty", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
-TITLE, DESC, TAGS = {"delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
+TITLETN1 = "2000 வருஷம் முன் கட்டிய அணை, இன்றும் ஓடுது! | தமிழ்நாட்டு வரலாறு பகுதி 1 | TNPSC"
+DESCTN1 = """தமிழ்நாட்டு வரலாறு, பகுதி 1: சங்க காலம். 2000 வருஷத்துக்கு முன் கரிகால சோழன் கட்டிய கல்லணை இன்றும் தண்ணீர் பாய்ச்சுகிறது. சேரர், சோழர், பாண்டியர் என்ற மூவேந்தர் யார்? சங்க காலத்தின் முழுக் கதை, சுமார் 5 நிமிடத்தில்.
+
+இந்த வீடியோவில்:
+• மூவேந்தர் அடையாளம் - வில், புலி, மீன்; பனம்பூ, ஆத்திப்பூ, வேப்பம்பூ
+• சங்கம் மற்றும் சங்க நூல்கள் - தொல்காப்பியம், எட்டுத்தொகை, பத்துப்பாட்டு
+• கரிகால சோழன் - வெண்ணிப் போர், கல்லணை, பூம்புகார்
+• சிலப்பதிகாரம் - கண்ணகி, நெடுஞ்செழியன், செங்குட்டுவன்
+• ரோமானிய வணிகம் - முசிறி, கொற்கை, பூம்புகார், அரிக்கமேடு
+
+எல்லோரும் ரசிக்கக்கூடிய கதை. TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ளது. வீடியோவின் இறுதியில் 5 முக்கியத் தேர்வுக் குறிப்புகள் உள்ளன.
+
+அடுத்த பகுதி: களப்பிரர் மற்றும் பல்லவர். தவறவிடாமல் இருக்க TNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள், LIKE செய்யுங்கள்.
+
+உங்கள் கருத்து: சேரன், சோழன், பாண்டியன் மூவரில் உங்களுக்குப் பிடித்தவர் யார்? கீழே கமெண்டில் சொல்லுங்கள்!
+
+குறிப்பு: இந்த வீடியோவில் உள்ள படங்களும் குரலும் AI மூலம் உருவாக்கப்பட்டவை. சங்க காலத்தின் ஆண்டுகள் வரலாற்றாசிரியர்களிடையே சற்று மாறுபடும். கண்ணகி கதை இலக்கிய மரபு. தேர்வுக்குப் படிக்கும்போது உங்கள் பாடநூலுடன் ஒப்பிட்டுப் பார்க்கவும்.
+
+#TNPSC #தமிழ்நாட்டுவரலாறு #சங்ககாலம் #கல்லணை #கரிகாலசோழன் #சிலப்பதிகாரம் #TNPSCHistory #TamilHistory #TNPSCBites"""
+TAGSTN1 = ["TNPSC", "தமிழ்நாட்டு வரலாறு", "சங்க காலம்", "மூவேந்தர்", "கரிகால சோழன்", "கல்லணை", "சிலப்பதிகாரம்", "கண்ணகி",
+           "Sangam age", "Tamil Nadu history", "Kallanai", "Karikala Chola", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
+TITLE, DESC, TAGS = {"tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
                      "delhi4": (TITLE4, DESC4, TAGS4)}.get(NAME, (TITLE2, DESC2, TAGS2))
 
 if os.environ.get("UPLOAD") == "1":

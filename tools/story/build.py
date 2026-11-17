@@ -411,7 +411,7 @@ def main():
         log(f"safe background music: {P.duration(bgm):.0f} s (looped to fit the video)")
     elif os.environ.get("BGM_FILE"):
         bgm = Path(os.environ["BGM_FILE"])
-    elif NAME.startswith("delhi") and Path("assets/story_bgm_delhi.mp3").exists():
+    elif NAME.startswith(("delhi", "tn")) and Path("assets/story_bgm_delhi.mp3").exists():
         bgm = Path("assets/story_bgm_delhi.mp3")   # the licence-safe track of the Delhi Sultanate series
     else:
         bgm = P.pick_bgm()
