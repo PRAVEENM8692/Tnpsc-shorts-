@@ -35,6 +35,10 @@ elif NAME == "delhi4":   # the proud last sultan (left, grey) and the man who en
 elif NAME == "tn1":   # three kings, three panels: Chera bow, Chola tiger, Pandya fish
     LEFT, RIGHT, BIG, SUB = pic(6), pic(8), "மூவேந்தர்?", "தமிழ்நாட்டு வரலாறு | பகுதி 1"
     MID = pic(7)
+elif NAME == "tn2":   # half dark, half light: the mysterious Kalabhras (left) and the Mamallapuram monuments (right)
+    import json as _json
+    _t = _json.loads(Path("tools/story/tn2.json").read_text(encoding="utf-8"))["thumb"]
+    LEFT, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), "இருண்ட காலமா?", "தமிழ்நாட்டு வரலாறு | பகுதி 2"
 else:   # delhi2: the gentle old king (left, grey) and the man who killed him (right)
     LEFT, RIGHT, BIG, SUB = pic(11), pic(6), "மாமனாரையே கொன்றான்!", "டெல்லி சுல்தானியம் | பகுதி 2"
 BOY, KING = LEFT, RIGHT
@@ -93,6 +97,21 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 <div class="d1"></div><div class="d2"></div>
 <div class="n" style="left:0">சேரன்</div><div class="n" style="left:420px">சோழன்</div><div class="n" style="left:840px">பாண்டியன்</div>
 <div class="t">{BIG}</div><div class="s">{SUB}</div></body></html>"""
+HTML4 = f"""<html><style>
+body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-family:'Noto Sans Tamil',sans-serif;background:#000}}
+.l{{position:absolute;left:0;top:0;width:800px;height:720px;background:url({LEFT}) center/cover;filter:grayscale(.9) brightness(.55) contrast(1.25);clip-path:polygon(0 0,100% 0,62% 100%,0 100%)}}
+.r{{position:absolute;right:0;top:0;width:800px;height:720px;background:url({RIGHT}) center/cover;filter:saturate(1.45) brightness(1.12) contrast(1.08);clip-path:polygon(38% 0,100% 0,100% 100%,0 100%)}}
+.glow{{position:absolute;left:560px;top:0;width:120px;height:720px;background:linear-gradient(90deg,transparent,rgba(255,225,120,.9),transparent);transform:skewX(-9deg);filter:blur(10px)}}
+.shade{{position:absolute;left:0;right:0;bottom:0;height:300px;background:linear-gradient(transparent,rgba(0,0,0,.9))}}
+.q{{position:absolute;left:46px;top:30px;font-family:'DejaVu Sans',sans-serif;font-size:300px;font-weight:900;color:#ff3030;line-height:1;text-shadow:6px 6px 0 #000,0 0 40px rgba(255,40,40,.7)}}
+.t{{position:absolute;left:0;right:0;bottom:84px;text-align:center;font-size:122px;font-weight:900;color:#ffd21f;line-height:1.1;
+ text-shadow:6px 6px 0 #000,-6px 6px 0 #000,6px -6px 0 #000,-6px -6px 0 #000,0 10px 24px rgba(0,0,0,.8)}}
+.s{{position:absolute;left:0;right:0;bottom:22px;text-align:center;font-size:44px;font-weight:800;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
+.b{{position:absolute;right:26px;top:24px;background:#e11d1d;color:#fff;font-size:42px;font-weight:900;padding:5px 24px;border-radius:12px;border:4px solid #fff;font-family:'DejaVu Sans',sans-serif}}
+</style><body><div class="l"></div><div class="r"></div><div class="glow"></div><div class="shade"></div>
+<div class="q">?</div><div class="b">TNPSC</div><div class="t">{BIG}</div><div class="s">{SUB}</div></body></html>"""
+if NAME == "tn2":
+    HTML = HTML4
 if NAME == "tn1":
     HTML = HTML3
 if NAME == "delhi4":   # part 4 uses a different thumbnail layout (full picture, big year, round inset) so the channel does not look like one template
@@ -212,7 +231,28 @@ DESCTN1 = """தமிழ்நாட்டு வரலாறு, பகுத�
 #TNPSC #தமிழ்நாட்டுவரலாறு #சங்ககாலம் #கல்லணை #கரிகாலசோழன் #சிலப்பதிகாரம் #TNPSCHistory #TamilHistory #TNPSCBites"""
 TAGSTN1 = ["TNPSC", "தமிழ்நாட்டு வரலாறு", "சங்க காலம்", "மூவேந்தர்", "கரிகால சோழன்", "கல்லணை", "சிலப்பதிகாரம்", "கண்ணகி",
            "Sangam age", "Tamil Nadu history", "Kallanai", "Karikala Chola", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
-TITLE, DESC, TAGS = {"tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
+TITLETN2 = "தமிழகத்தின் இருண்ட காலம் உண்மையா? களப்பிரர் முதல் பல்லவர் வரை | தமிழ்நாட்டு வரலாறு பகுதி 2 | TNPSC"
+DESCTN2 = """தமிழ்நாட்டு வரலாறு, பகுதி 2: களப்பிரர் மற்றும் பல்லவர். தங்கள் கல்வெட்டுகளையே கிட்டத்தட்ட விட்டுவைக்காத ஒரு வம்சம் தமிழகத்தை ஆண்டது. அவர்களைப் பற்றி நமக்குத் தெரிந்தது எதிரிகள் எழுதியதுதான். இருண்ட காலம் என்று சொல்லப்படுவது உண்மையா? பிறகு வந்த பல்லவர் மாமல்லபுரத்தை எப்படிப் படைத்தார்கள்? சுமார் 4 நிமிடத்தில் முழுக் கதை.
+
+இந்த வீடியோவில்:
+• களப்பிரர் - வேள்விக்குடிச் செப்பேடு, இருண்ட காலம் உண்மையா?
+• அந்தக் காலத்தின் நூல்கள் - பதினெண் கீழ்க்கணக்கு, புத்ததத்தர், வஜ்ரநந்தி
+• பல்லவர் - சிம்மவிஷ்ணு, காஞ்சிபுரம்
+• மகேந்திரவர்மன் - மத்தவிலாசப் பிரகசனம், குடைவரைக் கோயில், மண்டகப்பட்டுக் கல்வெட்டு
+• நரசிம்மவர்மன் மாமல்லன் - வாதாபி வெற்றி 642, மாமல்லபுரம், பஞ்சரதம், கடற்கரைக் கோயில், யுனெஸ்கோ 1984
+
+எல்லோரும் ரசிக்கக்கூடிய கதை. TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ளது. வீடியோவின் இறுதியில் 5 முக்கியத் தேர்வுக் குறிப்புகள் உள்ளன.
+
+முந்தைய பகுதி: சங்க காலம். அடுத்த பகுதி: சோழர்களின் எழுச்சி. தவறவிடாமல் இருக்க TNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள், LIKE செய்யுங்கள்.
+
+உங்கள் கருத்து: மகாபலிபுரத்தை நேரில் பார்த்திருக்கிறீர்களா? கீழே கமெண்டில் சொல்லுங்கள்!
+
+குறிப்பு: இந்த வீடியோவில் உள்ள படங்களும் குரலும் AI மூலம் உருவாக்கப்பட்டவை. களப்பிரர் காலம், திருக்குறள் காலம் ஆகியவை வரலாற்றாசிரியர்களிடையே விவாதத்திற்கு உரியவை. தேர்வுக்குப் படிக்கும்போது உங்கள் பாடநூலுடன் ஒப்பிட்டுப் பார்க்கவும்.
+
+#TNPSC #தமிழ்நாட்டுவரலாறு #களப்பிரர் #பல்லவர் #மாமல்லபுரம் #TNPSCHistory #TamilHistory #TNPSCBites"""
+TAGSTN2 = ["TNPSC", "தமிழ்நாட்டு வரலாறு", "களப்பிரர்", "பல்லவர்", "மகேந்திரவர்மன்", "நரசிம்மவர்மன்", "மாமல்லபுரம்", "இருண்ட காலம்",
+           "Kalabhras", "Pallavas", "Mamallapuram", "Tamil Nadu history", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
+TITLE, DESC, TAGS = {"tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
                      "delhi4": (TITLE4, DESC4, TAGS4)}.get(NAME, (TITLE2, DESC2, TAGS2))
 
 if os.environ.get("UPLOAD") == "1":
