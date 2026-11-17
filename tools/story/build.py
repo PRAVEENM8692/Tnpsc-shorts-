@@ -347,6 +347,9 @@ def main():
         P.PART_STYLE[f"g{i}"] = feel   # pipeline.py adds this to the base style for that part
     voice = OUT / "voice.mp3"
     os.environ.setdefault("VOICES", "Charon")
+    # owner's choice (2026-11-17): story videos use only Iapetus and Sadaltager, alternating by part number (even part = Iapetus, odd = Sadaltager)
+    _m = re.search(r"(\d+)$", NAME)
+    os.environ.setdefault("GEMINI_VOICE", "Iapetus" if (_m and int(_m.group(1)) % 2 == 0) else "Sadaltager")
     urls_file = os.environ.get("VOICE_URLS_FILE") or f"tools/story/{NAME}_voice.json"
     if urls_file and Path(urls_file).exists():
         # ready-made narration (one mp3 link per part, same voice for the whole video) instead of the speech engines
