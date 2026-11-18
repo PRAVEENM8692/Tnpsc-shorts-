@@ -40,7 +40,7 @@ CSS = """body{margin:0;width:1080px;height:1920px;background:transparent;font-fa
  text-shadow:4px 4px 0 #000,-4px 4px 0 #000,4px -4px 0 #000,-4px -4px 0 #000}
 .f{position:absolute;left:60px;right:60px;bottom:50px;text-align:center;font-size:44px;font-weight:900;color:#fff;background:#d81818;
  border:5px solid #fff;border-radius:26px;padding:14px 10px;line-height:1.3}"""
-pages = [("hook", f'<div class="t">{hook}</div>')]
+pages = [("hook", "")]   # owner 2026-11-18: no title text on the Short (it showed up as the auto thumbnail); the hook is only the YouTube title
 for k in range(a, b + 1):
     pages.append((f"c{k}", f'<div class="c">{shots[k - 1]["nar"]}</div>'))
 pages.append(("foot", f'<div class="f">முழு வீடியோ பாருங்கள்<br>தமிழ்நாட்டு வரலாறு பகுதி {part} | TNPSC Bites</div>'))

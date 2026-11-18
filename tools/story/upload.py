@@ -8,6 +8,17 @@ import pipeline as P
 
 NAME = os.environ.get("NAME") or "delhi1"
 PLAYLIST = "தமிழ்நாட்டு வரலாறு கதைகள் | Long Videos" if os.environ.get("NAME", "").startswith("tn") else "TNPSC வரலாறு கதைகள் | Long Videos"   # every Long story video goes into this one playlist (made when missing)
+if os.environ.get("DELETE_IDS"):   # remove the listed videos from the channel (owner asked)
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+    yt = build("youtube", "v3", credentials=Credentials(None, refresh_token=P.env("YT_REFRESH_TOKEN"), token_uri="https://oauth2.googleapis.com/token",
+               client_id=P.env("YT_CLIENT_ID"), client_secret=P.env("YT_CLIENT_SECRET"), scopes=["https://www.googleapis.com/auth/youtube.force-ssl"]))
+    for v in os.environ["DELETE_IDS"].split(","):
+        try:
+            yt.videos().delete(id=v.strip()).execute(); P.log(f"deleted {v.strip()}")
+        except Exception as e:
+            P.log(f"delete FAILED {v.strip()}: {str(e)[:150]}")
+    sys.exit(0)
 if os.environ.get("PLAYLIST_ONLY_ID"):   # a video that is already on YouTube: only put it into the playlist, nothing else
     P.add_to_playlists(os.environ["PLAYLIST_ONLY_ID"].strip(), [PLAYLIST])
     sys.exit(0)
