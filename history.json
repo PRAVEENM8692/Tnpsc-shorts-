@@ -120,7 +120,6 @@
   "https://timesofindia.indiatimes.com/education/news/aissms-ioit-organises-international-conference-on-sdg-driven-innovation-and-excellence-awards-2026/articleshow/135454796.cms"
  ],
  "titles": [
-  "India & economy: நண்பர்களே! இந்திய அரசியல்-அரசு முக்கிய உண்மைகள் – 5️⃣",
   "Aptitude A: டிரெயின் நீளம் கணக்கிட ஷார்ட்கட் டிரிக் – கோயம்புத்தூர் உதாரணம்",
   "Science, sports & world: ISRO மற்றும் FICCI செய்திகள் – TNPSC க்கு 5 முக்கிய உண்மைகள்",
   "Aptitude B: பாட்டும் ஓட்டமும் வேகம் – 45 விநாடி ஷார்ட்கட் டிரிக்",
@@ -199,7 +198,8 @@
   "Aptitude A: Time & Work ஷார்ட்கட் – 12 & 20 நாட்கள்",
   "Aptitude C: Reasoning: Direction Sense – தொடக்கப் புள்ளியிலிருந்து தூரம்",
   "Syllabus lesson A: TNPSC: நாடாளுமன்றம் – மக்களவை & மாநிலங்களவை",
-  "Aptitude A: Simple Interest ஷார்ட்கட் – 3 மடங்கு எப்போது?"
+  "Aptitude A: Simple Interest ஷார்ட்கட் – 3 மடங்கு எப்போது?",
+  "Aptitude C: Reasoning: Coding‑Decoding ஷார்ட்கட் – DOG → GOAL"
  ],
  "done": {
   "20261116": [
@@ -214,7 +214,8 @@
   ],
   "20261118": [
    6,
-   3
+   3,
+   4
   ]
  },
  "tries": {
@@ -476,7 +477,8 @@
   "மாநிலங்களவை விவரங்கள்: மாநிலங்களவை அதிகபட்சம் 250 உறுப்பினர்கள், 6 வருட காலம், குறைந்த வயது 30.",
   "மசோதா விதி: மணி மசோதா மட்டும் மக்களவையில் தொடங்கும், மாநிலங்களவை 14 நாட்களில் திருப்பி அனுப்ப வேண்டும்.",
   "இணை கூட்டம்: இணை கூட்டம் குடியரசுத் தலைவர் அழைத்து, ஸ்பீக்கர் தலைமையிலாக நடத்தப்படும்.",
-  "₹100 5 வருடங்களில் 2 மடங்கு, 3 மடங்கு எப்போது?"
+  "₹100 5 வருடங்களில் 2 மடங்கு, 3 மடங்கு எப்போது?",
+  "DOG = 26 என்றால் GOAL = ?"
  ],
  "lessons": [
   "Harappan civilisation",
