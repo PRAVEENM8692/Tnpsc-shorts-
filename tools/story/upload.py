@@ -69,6 +69,10 @@ elif NAME == "tn2":   # half dark, half light: the mysterious Kalabhras (left) a
     import json as _json
     _t = _json.loads(Path("tools/story/tn2.json").read_text(encoding="utf-8"))["thumb"]
     LEFT, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), "இருண்ட காலமா?", "தமிழ்நாட்டு வரலாறு | பகுதி 2"
+elif NAME == "tn3":   # tn3: whole temple picture behind, king in a tilted gold frame on the right, big "no crane?" question on the left
+    import json as _json
+    _t = _json.loads(Path("tools/story/tn3.json").read_text(encoding="utf-8"))["thumb"]
+    LEFT, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), "கிரேன் இல்லாமல்?", "தமிழ்நாட்டு வரலாறு | பகுதி 3"
 else:   # delhi2: the gentle old king (left, grey) and the man who killed him (right)
     LEFT, RIGHT, BIG, SUB = pic(11), pic(6), "மாமனாரையே கொன்றான்!", "டெல்லி சுல்தானியம் | பகுதி 2"
 BOY, KING = LEFT, RIGHT
@@ -140,6 +144,20 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 .b{{position:absolute;right:26px;top:24px;background:#e11d1d;color:#fff;font-size:42px;font-weight:900;padding:5px 24px;border-radius:12px;border:4px solid #fff;font-family:'DejaVu Sans',sans-serif}}
 </style><body><div class="l"></div><div class="r"></div><div class="glow"></div><div class="shade"></div>
 <div class="q">?</div><div class="b">TNPSC</div><div class="t">{BIG}</div><div class="s">{SUB}</div></body></html>"""
+HTML5 = f"""<html><style>
+body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-family:'Noto Sans Tamil',sans-serif;background:#000}}
+.bg{{position:absolute;inset:0;background:url({LEFT}) center/cover;filter:saturate(1.3) brightness(.7) contrast(1.15)}}
+.fade{{position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.88) 0%,rgba(0,0,0,.55) 48%,rgba(0,0,0,0) 75%)}}
+.k{{position:absolute;right:46px;top:70px;width:470px;height:560px;background:url({RIGHT}) center/cover;border:10px solid #ffd21f;border-radius:18px;transform:rotate(4deg);box-shadow:0 0 50px rgba(255,200,40,.6),12px 14px 0 rgba(0,0,0,.6);filter:saturate(1.2) contrast(1.05)}}
+.t1,.t2{{position:absolute;left:44px;font-size:150px;font-weight:900;line-height:1.05;text-shadow:7px 7px 0 #000,-7px 7px 0 #000,7px -7px 0 #000,-7px -7px 0 #000}}
+.t1{{top:150px;color:#fff}} .t2{{top:315px;color:#ffd21f}}
+.h{{position:absolute;left:44px;bottom:112px;background:#e11d1d;color:#fff;font-size:62px;font-weight:900;padding:6px 30px;border-radius:14px;border:5px solid #fff}}
+.s{{position:absolute;left:44px;bottom:36px;font-size:44px;font-weight:800;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
+.b{{position:absolute;left:44px;top:26px;background:#e11d1d;color:#fff;font-size:42px;font-weight:900;padding:5px 24px;border-radius:12px;border:4px solid #fff;font-family:'DejaVu Sans',sans-serif}}
+</style><body><div class="bg"></div><div class="fade"></div><div class="k"></div><div class="b">TNPSC</div>
+<div class="t1">கிரேன்</div><div class="t2">இல்லாமல்?</div><div class="h">216 அடி கோபுரம்!</div><div class="s">{SUB}</div></body></html>"""
+if NAME == "tn3":
+    HTML = HTML5
 if NAME == "tn2":
     HTML = HTML4
 if NAME == "tn1":
@@ -282,7 +300,28 @@ DESCTN2 = """தமிழ்நாட்டு வரலாறு, பகுத�
 #TNPSC #தமிழ்நாட்டுவரலாறு #களப்பிரர் #பல்லவர் #மாமல்லபுரம் #TNPSCHistory #TamilHistory #TNPSCBites"""
 TAGSTN2 = ["TNPSC", "தமிழ்நாட்டு வரலாறு", "களப்பிரர்", "பல்லவர்", "மகேந்திரவர்மன்", "நரசிம்மவர்மன்", "மாமல்லபுரம்", "இருண்ட காலம்",
            "Kalabhras", "Pallavas", "Mamallapuram", "Tamil Nadu history", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
-TITLE, DESC, TAGS = {"tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
+TITLETN3 = "ராஜராஜ சோழன் எப்படி அரசனானான்? பிற்காலச் சோழர் | தமிழ்நாட்டு வரலாறு பகுதி 3 | TNPSC"
+DESCTN3 = """தமிழ்நாட்டு வரலாறு, பகுதி 3: பிற்காலச் சோழர்கள். 1,000 ஆண்டுகளுக்கு முன், கிரேன் இல்லாத காலத்தில் 216 அடி உயரக் கோபுரம் எப்படி எழுந்தது? காவிரிக் கரையில் ஒரு சின்ன அரசாக எழுந்த சோழர், இராஜராஜன் காலத்தில் எப்படிப் பேரரசானார்கள்? சுமார் 5 நிமிடத்தில் முழுக் கதை.
+
+இந்த வீடியோவில்:
+• விஜயாலயன், ஆதித்த சோழன் - திருப்புறம்பியம் போர், பல்லவர் முடிவு
+• முதலாம் பராந்தகன் - மதுரை கொண்டான், தக்கோலம் போர் 949
+• உத்தரமேரூர் கல்வெட்டு - குடவோலை முறைத் தேர்தல்
+• ஆதித்த கரிகாலன் மர்மம், செம்பியன் மாதேவி
+• இராஜராஜ சோழன் - நில அளவை, காந்தளூர்ச் சாலை, இலங்கை வெற்றி, தேவாரம் மீட்பு
+• தஞ்சாவூர் பெரிய கோயில் - 1003 முதல் 1010, யுனெஸ்கோ 1987
+
+TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ளது. வீடியோவின் இறுதியில் 5 முக்கியத் தேர்வுக் குறிப்புகள் உள்ளன.
+
+முந்தைய பகுதி: களப்பிரர், பல்லவர். அடுத்த பகுதி: இராஜேந்திர சோழன். தவறவிடாமல் இருக்க TNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள், LIKE செய்யுங்கள்.
+
+உங்கள் கருத்து: தஞ்சாவூர் பெரிய கோயிலை நேரில் பார்த்திருக்கிறீர்களா? கீழே கமெண்டில் சொல்லுங்கள்!
+
+குறிப்பு: இந்த வீடியோவில் உள்ள படங்களும் குரலும் AI மூலம் உருவாக்கப்பட்டவை. சில தகவல்கள் (80 டன் கல், சாரப்பள்ளம், தேவாரம் மீட்புக் கதை) மரபுச் செய்திகள். தேர்வுக்குப் படிக்கும்போது உங்கள் பாடநூலுடன் ஒப்பிட்டுப் பார்க்கவும்.
+
+#TNPSC #தமிழ்நாட்டுவரலாறு #சோழர் #இராஜராஜசோழன் #தஞ்சைபெரியகோயில் #TNPSCHistory #TNPSCBites"""
+TAGSTN3 = ["TNPSC", "தமிழ்நாட்டு வரலாறு", "சோழர்", "இராஜராஜ சோழன்", "தஞ்சை பெரிய கோயில்", "குடவோலை", "பொன்னியின் செல்வன்", "Cholas", "Rajaraja Chola", "Brihadisvara temple", "Tamil Nadu history", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
+TITLE, DESC, TAGS = {"tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
                      "delhi4": (TITLE4, DESC4, TAGS4)}.get(NAME, (TITLE2, DESC2, TAGS2))
 
 if os.environ.get("UPLOAD") == "1":
