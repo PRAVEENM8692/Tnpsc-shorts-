@@ -88,6 +88,10 @@ elif NAME == "tn3":   # tn3: whole temple picture behind, king in a tilted gold 
     import json as _json
     _t = _json.loads(Path("tools/story/tn3.json").read_text(encoding="utf-8"))["thumb"]
     LEFT, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), "கிரேன் இல்லாமல்?", "தமிழ்நாட்டு வரலாறு | பகுதி 3"
+elif NAME == "tn4":   # tn4: two stacked wide pictures (the Ganga march above, the fleet below) split by a slanted red band with the headline
+    import json as _json
+    _t = _json.loads(Path("tools/story/tn4.json").read_text(encoding="utf-8"))["thumb"]
+    LEFT, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[2]), "கங்கை ➜ கடாரம்", "தமிழ்நாட்டு வரலாறு | பகுதி 4"
 else:   # delhi2: the gentle old king (left, grey) and the man who killed him (right)
     LEFT, RIGHT, BIG, SUB = pic(11), pic(6), "மாமனாரையே கொன்றான்!", "டெல்லி சுல்தானியம் | பகுதி 2"
 BOY, KING = LEFT, RIGHT
@@ -173,6 +177,18 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 <div class="t1">கிரேன்</div><div class="t2">இல்லாமல்?</div><div class="h">216 அடி கோபுரம்!</div><div class="s">{SUB}</div></body></html>"""
 if NAME == "tn3":
     HTML = HTML5
+HTML6 = f"""<html><style>
+body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-family:'Noto Sans Tamil',sans-serif;background:#000}}
+.a{{position:absolute;left:0;top:0;width:1280px;height:430px;background:url({LEFT}) center/cover;filter:saturate(1.35) contrast(1.1);clip-path:polygon(0 0,100% 0,100% 62%,0 100%)}}
+.c{{position:absolute;left:0;bottom:0;width:1280px;height:430px;background:url({RIGHT}) center/cover;filter:saturate(1.4) contrast(1.1);clip-path:polygon(0 38%,100% 0,100% 100%,0 100%)}}
+.band{{position:absolute;left:-40px;right:-40px;top:268px;height:176px;background:#d91414;transform:rotate(-5deg);border-top:8px solid #fff;border-bottom:8px solid #fff;box-shadow:0 14px 40px rgba(0,0,0,.7)}}
+.t{{position:absolute;left:0;right:0;top:282px;text-align:center;font-size:132px;font-weight:900;color:#ffe14a;line-height:1.15;transform:rotate(-5deg);
+ text-shadow:6px 6px 0 #000,-6px 6px 0 #000,6px -6px 0 #000,-6px -6px 0 #000}}
+.s{{position:absolute;left:0;right:0;bottom:20px;text-align:center;font-size:46px;font-weight:800;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
+.b{{position:absolute;left:26px;top:22px;background:#e11d1d;color:#fff;font-size:42px;font-weight:900;padding:5px 24px;border-radius:12px;border:4px solid #fff;font-family:'DejaVu Sans',sans-serif}}
+</style><body><div class="a"></div><div class="c"></div><div class="band"></div><div class="t">{BIG}</div><div class="b">TNPSC</div><div class="s">{SUB}</div></body></html>"""
+if NAME == "tn4":
+    HTML = HTML6
 if NAME == "tn2":
     HTML = HTML4
 if NAME == "tn1":
@@ -336,7 +352,27 @@ TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ள�
 
 #TNPSC #தமிழ்நாட்டுவரலாறு #சோழர் #இராஜராஜசோழன் #தஞ்சைபெரியகோயில் #TNPSCHistory #TNPSCBites"""
 TAGSTN3 = ["TNPSC", "தமிழ்நாட்டு வரலாறு", "சோழர்", "இராஜராஜ சோழன்", "தஞ்சை பெரிய கோயில்", "குடவோலை", "பொன்னியின் செல்வன்", "Cholas", "Rajaraja Chola", "Brihadisvara temple", "Tamil Nadu history", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
-TITLE, DESC, TAGS = {"tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
+TITLETN4 = "கங்கையையும் கடலையும் வென்ற மன்னன்! இராஜேந்திர சோழன் | தமிழ்நாட்டு வரலாறு பகுதி 4 | TNPSC"
+DESCTN4 = """தமிழ்நாட்டு வரலாறு, பகுதி 4: இராஜேந்திர சோழன். தோற்ற அரசர்களின் தலையில் கங்கை நீர்க் குடங்களை சுமக்க வைத்த படை, கடல் கடந்து கடாரத்தை வென்ற கடற்படை. சுமார் 5 நிமிடத்தில் முழுக் கதை.
+
+இந்த வீடியோவில்:
+• இலங்கை முழுவதும் வெற்றி, ஐந்தாம் மகிந்தன் சிறை
+• கங்கைப் படையெடுப்பு (சுமார் 1021): கலிங்கம், வங்காளம், மகிபாலன்
+• கங்கைகொண்ட சோழபுரம், சோழ கங்கம் ஏரி, கங்கைகொண்ட சோழீஸ்வரம் (யுனெஸ்கோ 2004)
+• கடாரப் படையெடுப்பு (சுமார் 1025): ஸ்ரீவிஜயம், 14 இடங்கள்
+• சீனாவுக்குச் சோழர் தூதுக்குழு (1015)
+
+TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ளது. வீடியோவின் இறுதியில் 5 முக்கியத் தேர்வுக் குறிப்புகள் உள்ளன.
+
+முந்தைய பகுதி: பிற்காலச் சோழர்கள். அடுத்த பகுதி: பாண்டியர், நாயக்கர், மராட்டியர். தவறவிடாமல் இருக்க TNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள், LIKE செய்யுங்கள்.
+
+உங்கள் கருத்து: இராஜேந்திரனின் எந்த வெற்றி உங்களை மிகவும் வியக்க வைத்தது? கீழே கமெண்டில் சொல்லுங்கள்!
+
+குறிப்பு: இந்த வீடியோவில் உள்ள படங்களும் குரலும் AI மூலம் உருவாக்கப்பட்டவை. சில தகவல்கள் (கங்கை நீர்க் குடங்கள், சோழ கங்கம் ஏரி, ஸ்ரீவிஜயத் தடை) கல்வெட்டு மற்றும் மரபுச் செய்திகள். தேர்வுக்குப் படிக்கும்போது உங்கள் பாடநூலுடன் ஒப்பிட்டுப் பார்க்கவும்.
+
+#TNPSC #தமிழ்நாட்டுவரலாறு #இராஜேந்திரசோழன் #கங்கைகொண்டசோழபுரம் #கடாரம்கொண்டான் #TNPSCHistory #TNPSCBites"""
+TAGSTN4 = ["TNPSC", "தமிழ்நாட்டு வரலாறு", "இராஜேந்திர சோழன்", "கங்கை கொண்ட சோழன்", "கடாரம் கொண்டான்", "கங்கைகொண்ட சோழபுரம்", "சோழர்", "Rajendra Chola", "Gangaikonda Cholapuram", "Chola navy", "Tamil Nadu history", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
+TITLE, DESC, TAGS = {"tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
                      "delhi4": (TITLE4, DESC4, TAGS4)}.get(NAME, (TITLE2, DESC2, TAGS2))
 
 if os.environ.get("UPLOAD") == "1":
