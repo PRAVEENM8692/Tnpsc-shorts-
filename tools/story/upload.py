@@ -203,10 +203,10 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 .c{{width:200px;height:200px;border-radius:50%;border:9px solid #ffd21f;box-shadow:0 0 30px rgba(255,200,40,.6),8px 10px 0 rgba(0,0,0,.6);background-size:cover;background-position:center;position:relative}}
 .c span{{position:absolute;left:50%;bottom:-18px;transform:translateX(-50%);background:#d91414;color:#fff;font-size:34px;font-weight:900;padding:2px 18px;border-radius:10px;border:3px solid #fff;white-space:nowrap}}
 .b{{position:absolute;right:30px;top:24px;background:#e11d1d;color:#fff;font-size:42px;font-weight:900;padding:5px 24px;border-radius:12px;border:4px solid #fff;font-family:'DejaVu Sans',sans-serif}}
-.s{{position:absolute;right:30px;bottom:30px;font-size:44px;font-weight:800;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
+.s{{position:absolute;right:30px;bottom:34px;font-size:34px;font-weight:800;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
 </style><body><div class="bg"></div><div class="fade"></div><div class="b">TNPSC</div>
 <div class="t1">மதுரையை ஆண்ட</div><div class="t2">சுல்தான்?</div>
-<div class="row"><div class="c" style="background-image:url({LEFT})"><span>பாண்டியர்</span></div><div class="c" style="background-image:url({MID})"><span>நாயக்கர்</span></div><div class="c" style="background-image:url({RIGHT})"><span>மராட்டியர்</span></div></div>
+<div class="row"><div class="c" style="background-image:url({LEFT})"><span>மதுரா விஜயம்</span></div><div class="c" style="background-image:url({MID})"><span>நாயக்கர்</span></div><div class="c" style="background-image:url({RIGHT})"><span>மராட்டியர்</span></div></div>
 <div class="s">{SUB}</div></body></html>"""
 if NAME == "tn5":
     HTML = HTML7
