@@ -349,7 +349,7 @@ def main():
     os.environ.setdefault("VOICES", "Charon")
     # owner's choice (2026-11-17): story videos use only Iapetus or Sadaltager, picked at random per video (one voice for the whole video);
     # set GEMINI_VOICE to force one of them for a video
-    os.environ["GEMINI_VOICE"] = os.environ.get("GEMINI_VOICE") or random.choice(["Iapetus", "Sadaltager"])
+    os.environ["GEMINI_VOICE"] = os.environ.get("GEMINI_VOICE") or "Charon"   # owner 2026-11-19: Charon only for Long story videos
     urls_file = os.environ.get("VOICE_URLS_FILE") or f"tools/story/{NAME}_voice.json"
     if urls_file and Path(urls_file).exists():
         # ready-made narration (one mp3 link per part, same voice for the whole video) instead of the speech engines
