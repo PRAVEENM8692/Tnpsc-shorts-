@@ -197,15 +197,14 @@ HTML7 = f"""<html><style>
 body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-family:'Noto Sans Tamil',sans-serif;background:#000}}
 .bg{{position:absolute;inset:0;background:url({MID}) center/cover;filter:saturate(1.3) brightness(.75) contrast(1.15)}}
 .fade{{position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.9) 0%,rgba(0,0,0,.6) 50%,rgba(0,0,0,0) 85%)}}
-.t1,.t2{{position:absolute;left:46px;font-size:128px;font-weight:900;line-height:1.1;text-shadow:7px 7px 0 #000,-7px 7px 0 #000,7px -7px 0 #000,-7px -7px 0 #000}}
-.t1{{top:78px;color:#fff}} .t2{{top:226px;color:#ffd21f}}
-.row{{position:absolute;left:46px;bottom:42px;display:flex;gap:34px}}
-.c{{width:200px;height:200px;border-radius:50%;border:9px solid #ffd21f;box-shadow:0 0 30px rgba(255,200,40,.6),8px 10px 0 rgba(0,0,0,.6);background-size:cover;background-position:center;position:relative}}
-.c span{{position:absolute;left:50%;bottom:-18px;transform:translateX(-50%);background:#d91414;color:#fff;font-size:34px;font-weight:900;padding:2px 18px;border-radius:10px;border:3px solid #fff;white-space:nowrap}}
+.t{{position:absolute;left:46px;font-size:104px;font-weight:900;line-height:1.2;white-space:nowrap;text-shadow:6px 6px 0 #000,-6px 6px 0 #000,6px -6px 0 #000,-6px -6px 0 #000}}
+.row{{position:absolute;left:50px;bottom:78px;display:flex;gap:70px}}
+.c{{width:190px;height:190px;border-radius:50%;border:9px solid #ffd21f;box-shadow:0 0 30px rgba(255,200,40,.6),8px 10px 0 rgba(0,0,0,.6);background-size:cover;background-position:center;position:relative}}
+.c span{{position:absolute;left:50%;bottom:-20px;transform:translateX(-50%);background:#d91414;color:#fff;font-size:28px;font-weight:900;padding:2px 14px;border-radius:10px;border:3px solid #fff;white-space:nowrap}}
 .b{{position:absolute;right:30px;top:24px;background:#e11d1d;color:#fff;font-size:42px;font-weight:900;padding:5px 24px;border-radius:12px;border:4px solid #fff;font-family:'DejaVu Sans',sans-serif}}
-.s{{position:absolute;right:30px;bottom:34px;font-size:34px;font-weight:800;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
+.s{{position:absolute;right:30px;top:210px;font-size:34px;font-weight:800;white-space:nowrap;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
 </style><body><div class="bg"></div><div class="fade"></div><div class="b">TNPSC</div>
-<div class="t1">மதுரையை ஆண்ட</div><div class="t2">சுல்தான்?</div>
+<div class="t" style="top:30px;color:#fff">மதுரையை</div><div class="t" style="top:150px;color:#fff">ஆண்ட</div><div class="t" style="top:270px;color:#ffd21f">சுல்தான்?</div>
 <div class="row"><div class="c" style="background-image:url({LEFT})"><span>மதுரா விஜயம்</span></div><div class="c" style="background-image:url({MID})"><span>நாயக்கர்</span></div><div class="c" style="background-image:url({RIGHT})"><span>மராட்டியர்</span></div></div>
 <div class="s">{SUB}</div></body></html>"""
 if NAME == "tn5":
