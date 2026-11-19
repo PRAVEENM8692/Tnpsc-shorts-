@@ -92,6 +92,10 @@ elif NAME == "tn4":   # tn4: two stacked wide pictures (the Ganga march above, t
     import json as _json
     _t = _json.loads(Path("tools/story/tn4.json").read_text(encoding="utf-8"))["thumb"]
     LEFT, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[2]), "கங்கை ➜ கடாரம்", "தமிழ்நாட்டு வரலாறு | பகுதி 4"
+elif NAME == "tn5":   # tn5: one big palace picture, headline on the left, three round portraits (Pandyas, Nayaks, Marathas) in gold rings along the bottom
+    import json as _json
+    _t = _json.loads(Path("tools/story/tn5.json").read_text(encoding="utf-8"))["thumb"]
+    LEFT, MID, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), pic(_t[2]), "மதுரையை ஆண்ட சுல்தான்?", "தமிழ்நாட்டு வரலாறு | பகுதி 5"
 else:   # delhi2: the gentle old king (left, grey) and the man who killed him (right)
     LEFT, RIGHT, BIG, SUB = pic(11), pic(6), "மாமனாரையே கொன்றான்!", "டெல்லி சுல்தானியம் | பகுதி 2"
 BOY, KING = LEFT, RIGHT
@@ -189,6 +193,23 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 </style><body><div class="a"></div><div class="c"></div><div class="band"></div><div class="t">{BIG}</div><div class="b">TNPSC</div><div class="s">{SUB}</div></body></html>"""
 if NAME == "tn4":
     HTML = HTML6
+HTML7 = f"""<html><style>
+body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-family:'Noto Sans Tamil',sans-serif;background:#000}}
+.bg{{position:absolute;inset:0;background:url({MID}) center/cover;filter:saturate(1.3) brightness(.75) contrast(1.15)}}
+.fade{{position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.9) 0%,rgba(0,0,0,.6) 50%,rgba(0,0,0,0) 85%)}}
+.t1,.t2{{position:absolute;left:46px;font-size:128px;font-weight:900;line-height:1.1;text-shadow:7px 7px 0 #000,-7px 7px 0 #000,7px -7px 0 #000,-7px -7px 0 #000}}
+.t1{{top:78px;color:#fff}} .t2{{top:226px;color:#ffd21f}}
+.row{{position:absolute;left:46px;bottom:42px;display:flex;gap:34px}}
+.c{{width:200px;height:200px;border-radius:50%;border:9px solid #ffd21f;box-shadow:0 0 30px rgba(255,200,40,.6),8px 10px 0 rgba(0,0,0,.6);background-size:cover;background-position:center;position:relative}}
+.c span{{position:absolute;left:50%;bottom:-18px;transform:translateX(-50%);background:#d91414;color:#fff;font-size:34px;font-weight:900;padding:2px 18px;border-radius:10px;border:3px solid #fff;white-space:nowrap}}
+.b{{position:absolute;right:30px;top:24px;background:#e11d1d;color:#fff;font-size:42px;font-weight:900;padding:5px 24px;border-radius:12px;border:4px solid #fff;font-family:'DejaVu Sans',sans-serif}}
+.s{{position:absolute;right:30px;bottom:30px;font-size:44px;font-weight:800;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
+</style><body><div class="bg"></div><div class="fade"></div><div class="b">TNPSC</div>
+<div class="t1">மதுரையை ஆண்ட</div><div class="t2">சுல்தான்?</div>
+<div class="row"><div class="c" style="background-image:url({LEFT})"><span>பாண்டியர்</span></div><div class="c" style="background-image:url({MID})"><span>நாயக்கர்</span></div><div class="c" style="background-image:url({RIGHT})"><span>மராட்டியர்</span></div></div>
+<div class="s">{SUB}</div></body></html>"""
+if NAME == "tn5":
+    HTML = HTML7
 if NAME == "tn2":
     HTML = HTML4
 if NAME == "tn1":
@@ -372,7 +393,28 @@ TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ள�
 
 #TNPSC #தமிழ்நாட்டுவரலாறு #இராஜேந்திரசோழன் #கங்கைகொண்டசோழபுரம் #கடாரம்கொண்டான் #TNPSCHistory #TNPSCBites"""
 TAGSTN4 = ["TNPSC", "தமிழ்நாட்டு வரலாறு", "இராஜேந்திர சோழன்", "கங்கை கொண்ட சோழன்", "கடாரம் கொண்டான்", "கங்கைகொண்ட சோழபுரம்", "சோழர்", "Rajendra Chola", "Gangaikonda Cholapuram", "Chola navy", "Tamil Nadu history", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
-TITLE, DESC, TAGS = {"tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
+TITLETN5 = "மதுரையை ஆண்ட சுல்தான்கள்! பாண்டியர், நாயக்கர், மராட்டியர் | தமிழ்நாட்டு வரலாறு பகுதி 5 | TNPSC"
+DESCTN5 = """தமிழ்நாட்டு வரலாறு, பகுதி 5: பாண்டியர், நாயக்கர், மராட்டியர். டெல்லி சுல்தானியத்திலிருந்து பிரிந்த மதுரை சுல்தானியம் எப்படி உருவானது? அதை ஒரு பெண் எழுதிய காவியம் எப்படிப் பதிவு செய்தது? சுமார் 5 நிமிடத்தில் முழுக் கதை.
+
+இந்த வீடியோவில்:
+• கொப்பம் போர் 1054, பாண்டியர் எழுச்சி, மார்கோ போலோ வருகை
+• மாலிக் கபூர் தாக்குதல் 1311, மதுரை சுல்தானியம் 1334, இபின் பட்டூட்டா
+• குமார கம்பணன் வெற்றி, கங்காதேவியின் மதுரா விஜயம்
+• விஸ்வநாத நாயக்கர், பாளையக்காரர் முறை, தலைக்கோட்டைப் போர் 1565
+• திருமலை நாயக்கர் அரண்மனை (1636), சரஸ்வதி மகால் நூலகம்
+• தஞ்சை மராட்டியர்: ஏகோஜி 1674, செஞ்சிக் கோட்டை, இரண்டாம் சரபோஜி
+
+TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ளது. வீடியோவின் இறுதியில் 5 முக்கியத் தேர்வுக் குறிப்புகள் உள்ளன.
+
+முந்தைய பகுதி: இராஜேந்திர சோழன். அடுத்த பகுதி: ஐரோப்பியர் முதல் சுதந்திரப் போராட்டம் வரை. தவறவிடாமல் இருக்க TNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள், LIKE செய்யுங்கள்.
+
+உங்கள் கருத்து: திருமலை நாயக்கர் அரண்மனையை நேரில் பார்த்திருக்கிறீர்களா? கீழே கமெண்டில் சொல்லுங்கள்!
+
+குறிப்பு: இந்த வீடியோவில் உள்ள படங்களும் குரலும் AI மூலம் உருவாக்கப்பட்டவை. சில தகவல்கள் (இபின் பட்டூட்டா விவரிப்பு, ஐரோப்பியக் கட்டடக் கலைஞர் தாக்கம், பாளையக்காரர் முறையை உருவாக்கியவர், தடுப்பூசி ஊக்குவிப்பு) மரபுச் செய்திகள். தேர்வுக்குப் படிக்கும்போது உங்கள் பாடநூலுடன் ஒப்பிட்டுப் பார்க்கவும்.
+
+#TNPSC #தமிழ்நாட்டுவரலாறு #மதுரைசுல்தானியம் #நாயக்கர் #மராட்டியர் #TNPSCHistory #TNPSCBites"""
+TAGSTN5 = ["TNPSC", "தமிழ்நாட்டு வரலாறு", "மதுரை சுல்தானியம்", "நாயக்கர்", "திருமலை நாயக்கர்", "தஞ்சை மராட்டியர்", "இரண்டாம் சரபோஜி", "Madurai Sultanate", "Nayaks of Madurai", "Thanjavur Marathas", "Tamil Nadu history", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
+TITLE, DESC, TAGS = {"tn5": (TITLETN5, DESCTN5, TAGSTN5), "tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
                      "delhi4": (TITLE4, DESC4, TAGS4)}.get(NAME, (TITLE2, DESC2, TAGS2))
 
 if os.environ.get("UPLOAD") == "1":
