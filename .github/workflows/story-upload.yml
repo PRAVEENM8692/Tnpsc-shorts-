@@ -17,6 +17,9 @@ on:
       delete_ids:
         description: "Comma-separated YouTube ids to delete from the channel; nothing else is done"
         default: ""
+      short_thumb_fix:
+        description: "k:videoId,... - put a clean frame (no text) as the thumbnail of these cut Shorts"
+        default: ""
 permissions:
   contents: write
 jobs:
@@ -36,6 +39,7 @@ jobs:
         env:
           NAME: ${{ inputs.name }}
           UPLOAD: ${{ inputs.upload == 'true' && '1' || '0' }}
+          SHORT_THUMB_FIX: ${{ inputs.short_thumb_fix }}
           DELETE_IDS: ${{ inputs.delete_ids }}
           SHORTS_ONLY_ID: ${{ inputs.shorts_only_id }}
           PLAYLIST_ONLY_ID: ${{ inputs.playlist_only_id }}
@@ -44,7 +48,7 @@ jobs:
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
           YT_PRIVACY: ${{ vars.YT_PRIVACY }}
       - name: Keep the thumbnail on the side branch story-thumb so it can be viewed
-        if: always() && inputs.playlist_only_id == '' && inputs.shorts_only_id == '' && inputs.delete_ids == ''
+        if: always() && inputs.playlist_only_id == '' && inputs.shorts_only_id == '' && inputs.delete_ids == '' && inputs.short_thumb_fix == ''
         run: |
           mkdir keep && cp out/story/thumb.jpg keep/ 2>/dev/null || true
           cp out/story/uploaded.txt keep/ 2>/dev/null || true

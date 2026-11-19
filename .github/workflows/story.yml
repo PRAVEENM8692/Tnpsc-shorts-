@@ -4,6 +4,9 @@ name: story-video
 on:
   workflow_dispatch:
     inputs:
+      voice:
+        description: "Gemini voice for this video (empty = random Iapetus/Sadaltager)"
+        default: ""
       name:
         description: "story name (file tools/story/<name>.json)"
         default: "delhi1"
@@ -53,6 +56,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           VOICE_URLS_FILE: ${{ inputs.name == 'delhi1' && 'tools/story/voice_urls.json' || format('tools/story/{0}_voice.json', inputs.name) }}
+          GEMINI_VOICE: ${{ inputs.voice }}
           GEMINI_STYLE: "a gifted Tamil storyteller performing a dramatic true historical story for a big audience, deeply expressive with real emotion, a varied pace and pitch that follows the story, natural pauses between sentences, never flat, never robotic, never reading a list"
       - uses: actions/upload-artifact@v4
         if: always()

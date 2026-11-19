@@ -114,6 +114,11 @@ def main():
     # Long videos (story videos etc.) have their own hand-made thumbnail, title and description: this script only touches Shorts.
     longs = [v for v in videos if not is_short(v)]
     videos = [v for v in videos if is_short(v)]
+    # Owner's rule (2026-11-19): Shorts cut from a Long video (their description links the full video) get NO rollout thumbnail and no rewrite.
+    cut = [v for v in videos if "முழு வீடியோ: https://youtube.com/watch?v=" in (v["snippet"].get("description") or "")]
+    if cut:
+        P.log(f"left alone (cut from Long videos): {len(cut)}")
+    videos = [v for v in videos if v not in cut]
     if longs:
         P.log(f"left alone (not Shorts): {len(longs)} -> " + ",".join(v["id"] for v in longs))
 

@@ -1,5 +1,6 @@
 """Makes the thumbnail for a finished story video and (UPLOAD=1) uploads the video to YouTube with title, description,
 tags and the thumbnail. The video comes from the story's side branch (story-out for delhi1, story-<name> for the others). Privacy follows the YT_PRIVACY setting like the Shorts."""
+import json
 import base64, os, subprocess, sys
 from pathlib import Path
 
@@ -8,6 +9,20 @@ import pipeline as P
 
 NAME = os.environ.get("NAME") or "delhi1"
 PLAYLIST = "தமிழ்நாட்டு வரலாறு கதைகள் | Long Videos" if os.environ.get("NAME", "").startswith("tn") else "TNPSC வரலாறு கதைகள் | Long Videos"   # every Long story video goes into this one playlist (made when missing)
+if os.environ.get("SHORT_THUMB_FIX"):   # "k:videoId,..." - replace a rollout thumbnail on a Short with a clean frame of the Short itself (no text)
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+    import seo_meta
+    yt = build("youtube", "v3", credentials=Credentials(None, refresh_token=P.env("YT_REFRESH_TOKEN"), token_uri="https://oauth2.googleapis.com/token",
+               client_id=P.env("YT_CLIENT_ID"), client_secret=P.env("YT_CLIENT_SECRET"), scopes=["https://www.googleapis.com/auth/youtube.force-ssl"]))
+    _sh = json.loads(Path(f"tools/story/{NAME}.json").read_text(encoding="utf-8"))["shorts"]
+    for item in os.environ["SHORT_THUMB_FIX"].split(","):
+        k, vid_ = item.split(":"); a, b, hook, topic = _sh[int(k) - 1]
+        out = OUT / f"{NAME}_fix{k}.mp4"; jpg = OUT / f"{NAME}_fix{k}.jpg"
+        subprocess.run([sys.executable, "tools/story/shorts_cut.py", str(VIDEO), NAME, str(a), str(b), hook, str(out)], check=True)
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-ss", "1.0", "-i", str(out), "-frames:v", "1", "-q:v", "2", str(jpg)], check=True)
+        P.log(f"clean thumbnail for {vid_}: {seo_meta.set_thumbnail(yt, vid_, jpg)}")
+    sys.exit(0)
 if os.environ.get("DELETE_IDS"):   # remove the listed videos from the channel (owner asked)
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
