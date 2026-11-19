@@ -416,7 +416,14 @@ TAGSTN5 = ["TNPSC", "தமிழ்நாட்டு வரலாறு", "ம
 TITLE, DESC, TAGS = {"tn5": (TITLETN5, DESCTN5, TAGSTN5), "tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
                      "delhi4": (TITLE4, DESC4, TAGS4)}.get(NAME, (TITLE2, DESC2, TAGS2))
 
-if os.environ.get("UPLOAD") == "1":
+if os.environ.get("THUMB_ONLY_ID"):   # video already on YouTube: only replace its thumbnail with the one just made
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+    import seo_meta
+    yt = build("youtube", "v3", credentials=Credentials(None, refresh_token=P.env("YT_REFRESH_TOKEN"), token_uri="https://oauth2.googleapis.com/token",
+               client_id=P.env("YT_CLIENT_ID"), client_secret=P.env("YT_CLIENT_SECRET"), scopes=["https://www.googleapis.com/auth/youtube.force-ssl"]))
+    P.log(f"thumbnail replaced on {os.environ['THUMB_ONLY_ID']}: {seo_meta.set_thumbnail(yt, os.environ['THUMB_ONLY_ID'].strip(), thumb)}")
+elif os.environ.get("UPLOAD") == "1":
     vid = P.upload(VIDEO, TITLE, DESC, TAGS, thumb=thumb)
     (OUT / "uploaded.txt").write_text(f"https://youtube.com/watch?v={vid}")
     if vid:

@@ -20,6 +20,9 @@ on:
       short_thumb_fix:
         description: "k:videoId,... - put a clean frame (no text) as the thumbnail of these cut Shorts"
         default: ""
+      thumb_only_id:
+        description: "YouTube id of a video already uploaded: only replace its thumbnail"
+        default: ""
 permissions:
   contents: write
 jobs:
@@ -39,6 +42,7 @@ jobs:
         env:
           NAME: ${{ inputs.name }}
           UPLOAD: ${{ inputs.upload == 'true' && '1' || '0' }}
+          THUMB_ONLY_ID: ${{ inputs.thumb_only_id }}
           SHORT_THUMB_FIX: ${{ inputs.short_thumb_fix }}
           DELETE_IDS: ${{ inputs.delete_ids }}
           SHORTS_ONLY_ID: ${{ inputs.shorts_only_id }}
