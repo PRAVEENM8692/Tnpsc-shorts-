@@ -221,7 +221,7 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 .f span,.k span{{position:absolute;left:0;right:0;bottom:0;background:#d91414;color:#fff;font-size:30px;font-weight:900;text-align:center;white-space:nowrap;padding:2px 0}}
 .k{{position:absolute;left:520px;top:340px;width:230px;height:230px;border-radius:50%;border:10px solid #ffd21f;box-shadow:0 0 34px rgba(255,200,40,.7),8px 10px 0 rgba(0,0,0,.65);background-size:cover;background-position:center;overflow:hidden}}
 .k span{{font-size:26px}}
-.b{{position:absolute;left:24px;top:30px;background:#111;color:#ffd21f;font-size:36px;font-weight:900;padding:4px 18px;border-radius:12px;border:4px solid #ffd21f;font-family:'DejaVu Sans',sans-serif}}
+.b{{position:absolute;left:24px;bottom:22px;background:#111;color:#ffd21f;font-size:36px;font-weight:900;padding:4px 18px;border-radius:12px;border:4px solid #ffd21f;font-family:'DejaVu Sans',sans-serif}}
 .s{{position:absolute;left:0;right:0;bottom:16px;text-align:center;font-size:40px;font-weight:800;white-space:nowrap;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
 </style><body><div class="band"></div><div class="t">{BIG}</div><div class="b">TNPSC</div>
 <div class="f" style="left:50px;transform:rotate(-3deg);background-image:url({LEFT})"><span>வேலு நாச்சியார்</span></div>
