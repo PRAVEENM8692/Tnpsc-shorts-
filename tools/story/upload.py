@@ -96,6 +96,10 @@ elif NAME == "tn5":   # tn5: one big palace picture, headline on the left, three
     import json as _json
     _t = _json.loads(Path("tools/story/tn5.json").read_text(encoding="utf-8"))["thumb"]
     LEFT, MID, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), pic(_t[2]), "மதுரையை ஆண்ட சுல்தான்?", "தமிழ்நாட்டு வரலாறு | பகுதி 5"
+elif NAME == "tn6":   # tn6: red headline band on top, two tilted white-framed pictures (Velu Nachiyar, Kattabomman), V.O.C. in a round badge between them
+    import json as _json
+    _t = _json.loads(Path("tools/story/tn6.json").read_text(encoding="utf-8"))["thumb"]
+    LEFT, MID, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), pic(_t[2]), "தூக்குமேடை வரை?", "தமிழ்நாட்டு வரலாறு | பகுதி 6 | இறுதி"
 else:   # delhi2: the gentle old king (left, grey) and the man who killed him (right)
     LEFT, RIGHT, BIG, SUB = pic(11), pic(6), "மாமனாரையே கொன்றான்!", "டெல்லி சுல்தானியம் | பகுதி 2"
 BOY, KING = LEFT, RIGHT
@@ -209,6 +213,23 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 <div class="s">{SUB}</div></body></html>"""
 if NAME == "tn5":
     HTML = HTML7
+HTML8 = f"""<html><style>
+body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-family:'Noto Sans Tamil',sans-serif;background:radial-gradient(circle at 50% 60%,#5a0b0b,#150000)}}
+.band{{position:absolute;left:0;right:0;top:0;height:150px;background:#d91414;border-bottom:7px solid #fff}}
+.t{{position:absolute;left:0;right:0;top:6px;text-align:center;font-size:96px;font-weight:900;line-height:1.35;white-space:nowrap;color:#fff;text-shadow:6px 6px 0 #000,-6px 6px 0 #000,6px -6px 0 #000,-6px -6px 0 #000}}
+.f{{position:absolute;top:190px;width:500px;height:340px;border:9px solid #fff;background-size:cover;background-position:center;box-shadow:10px 12px 0 rgba(0,0,0,.65)}}
+.f span,.k span{{position:absolute;left:0;right:0;bottom:0;background:#d91414;color:#fff;font-size:30px;font-weight:900;text-align:center;white-space:nowrap;padding:2px 0}}
+.k{{position:absolute;left:520px;top:340px;width:230px;height:230px;border-radius:50%;border:10px solid #ffd21f;box-shadow:0 0 34px rgba(255,200,40,.7),8px 10px 0 rgba(0,0,0,.65);background-size:cover;background-position:center;overflow:hidden}}
+.k span{{font-size:26px}}
+.b{{position:absolute;left:24px;top:30px;background:#111;color:#ffd21f;font-size:36px;font-weight:900;padding:4px 18px;border-radius:12px;border:4px solid #ffd21f;font-family:'DejaVu Sans',sans-serif}}
+.s{{position:absolute;left:0;right:0;bottom:16px;text-align:center;font-size:40px;font-weight:800;white-space:nowrap;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
+</style><body><div class="band"></div><div class="t">{BIG}</div><div class="b">TNPSC</div>
+<div class="f" style="left:50px;transform:rotate(-3deg);background-image:url({LEFT})"><span>வேலு நாச்சியார்</span></div>
+<div class="f" style="right:50px;transform:rotate(3deg);background-image:url({MID})"><span>கட்டபொம்மன்</span></div>
+<div class="k" style="background-image:url({RIGHT})"><span>வ.உ.சி</span></div>
+<div class="s">{SUB}</div></body></html>"""
+if NAME == "tn6":
+    HTML = HTML8
 if NAME == "tn2":
     HTML = HTML4
 if NAME == "tn1":
@@ -413,7 +434,27 @@ TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ள�
 
 #TNPSC #தமிழ்நாட்டுவரலாறு #மதுரைசுல்தானியம் #நாயக்கர் #மராட்டியர் #TNPSCHistory #TNPSCBites"""
 TAGSTN5 = ["TNPSC", "தமிழ்நாட்டு வரலாறு", "மதுரை சுல்தானியம்", "நாயக்கர்", "திருமலை நாயக்கர்", "தஞ்சை மராட்டியர்", "இரண்டாம் சரபோஜி", "Madurai Sultanate", "Nayaks of Madurai", "Thanjavur Marathas", "Tamil Nadu history", "TNPSC history", "Tamil history story", "TNPSC Group 4", "TNPSC Bites"]
-TITLE, DESC, TAGS = {"tn5": (TITLETN5, DESCTN5, TAGSTN5), "tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
+TITLETN6 = "தூக்குமேடை வரை சென்ற வீரர்கள்! ஐரோப்பியர் முதல் சுதந்திரம் வரை | தமிழ்நாட்டு வரலாறு பகுதி 6 | TNPSC"
+DESCTN6 = """தமிழ்நாட்டு வரலாறு, பகுதி 6 (இறுதி): ஐரோப்பியர் வருகை முதல் சுதந்திரப் போராட்டம் வரை. வேலு நாச்சியார், குயிலி, கட்டபொம்மன், மருது சகோதரர்கள், வ.உ.சி, பாரதியார் எனத் தூக்குமேடை வரை சென்ற வீரர்களின் முழுக் கதை, சுமார் 5 நிமிடத்தில்.
+
+இந்த வீடியோவில்:
+• போர்த்துகீசியர், டச்சு, டேனிஷ், ஆங்கிலேயர், பிரெஞ்சுக்காரர் வருகை (1522 முதல் 1674 வரை)
+• கர்நாடகப் போர்கள் 1746-1763, ஆற்காடு 1751, வந்தவாசி 1760
+• பூலித்தேவன், வேலு நாச்சியார் (1780), குயிலி, கட்டபொம்மன் (1799), மருது சகோதரர்கள் (1801)
+• வேலூர் சிப்பாய் கிளர்ச்சி 1806
+• வ.உ.சி, வாஞ்சிநாதன், ராஜாஜியின் உப்பு சத்தியாகிரகம், சுதந்திரம் 1947
+
+TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ளது. வீடியோவின் இறுதியில் 5 முக்கியத் தேர்வுக் குறிப்புகள் உள்ளன.
+
+முந்தைய பகுதி: பாண்டியர், நாயக்கர், மராட்டியர். இது இந்தத் தொடரின் இறுதிப் பகுதி. தவறவிடாமல் இருக்க TNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள், LIKE செய்யுங்கள்.
+
+உங்கள் கருத்து: உங்களுக்குப் பிடித்த தமிழ்நாட்டு விடுதலை வீரர் யார்? கீழே கமெண்டில் சொல்லுங்கள்!
+
+குறிப்பு: இந்த வீடியோவில் உள்ள படங்களும் குரலும் AI மூலம் உருவாக்கப்பட்டவை. சில தகவல்கள் (தமிழ் அச்சுப் பெருமை, வேலு நாச்சியார் மற்றும் குயிலி விவரங்கள், பூலித்தேவன் முதல் எதிர்ப்பு) மரபுச் செய்திகள். தேர்வுக்குப் படிக்கும்போது உங்கள் பாடநூலையும் சரிபார்த்துக் கொள்ளுங்கள்.
+
+#TNPSC #தமிழ்நாட்டுவரலாறு #கட்டபொம்மன் #வேலுநாச்சியார் #வஉசி #TNPSCHistory #TNPSCBites"""
+TAGSTN6 = ["TNPSC", "தமிழ்நாட்டு வரலாறு", "கட்டபொம்மன்", "வேலு நாச்சியார்", "குயிலி", "வ.உ.சிதம்பரம் பிள்ளை", "மருது சகோதரர்கள்", "வேலூர் சிப்பாய் கிளர்ச்சி", "Kattabomman", "Velu Nachiyar", "VOC Chidambaram Pillai", "Tamil Nadu freedom struggle", "Tamil Nadu history", "TNPSC history", "TNPSC Group 4", "TNPSC Bites"]
+TITLE, DESC, TAGS = {"tn6": (TITLETN6, DESCTN6, TAGSTN6), "tn5": (TITLETN5, DESCTN5, TAGSTN5), "tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
                      "delhi4": (TITLE4, DESC4, TAGS4)}.get(NAME, (TITLE2, DESC2, TAGS2))
 
 if os.environ.get("THUMB_ONLY_ID"):   # video already on YouTube: only replace its thumbnail with the one just made
