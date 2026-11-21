@@ -2,9 +2,9 @@ name: daily-tnpsc-short
 
 on:
   schedule:
-    # Wakes up every 30 minutes from 07:37 to 22:37 IST. plan.py picks the video that is due,
-    # so a late or skipped GitHub run is caught up automatically.
-    - cron: "7,37 2-17 * * *"
+    # Wakes up every 30 minutes only while a video can be due: 10:37-15:37 IST (the 10:30 and 13:00 videos) and
+    # 20:37-22:37 IST (the 21:00 video). plan.py picks the video that is due, so a late or skipped GitHub run is caught up.
+    - cron: "7,37 5-9,15-17 * * *"
   workflow_dispatch:
     inputs:
       upload:
@@ -46,7 +46,7 @@ jobs:
           cache-dependency-path: requirements.txt
       - name: Install ffmpeg and Tamil fonts
         if: steps.plan.outputs.slot != ''
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg fonts-noto-core fonts-dejavu-core && fc-list | grep -i "noto sans tamil" | head -2
+        run: (sudo apt-get install -y --no-install-recommends ffmpeg fonts-noto-core fonts-dejavu-core || (sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg fonts-noto-core fonts-dejavu-core)) && fc-list | grep -i "noto sans tamil" | head -2
       - run: pip install -r requirements.txt
         if: steps.plan.outputs.slot != ''
       - name: Install Manim (only for the animated aptitude videos)

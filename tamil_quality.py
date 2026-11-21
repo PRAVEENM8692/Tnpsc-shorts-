@@ -160,9 +160,17 @@ def sanitize(text):
     return re.sub(r"\s+", " ", " ".join(out)).strip()
 
 
+# Standard exam words that are normally kept in English; they must not make a good Tamil sentence "not Tamil enough".
+_EN_OK = {w.lower() for w in (
+    "TNPSC UPSC GST GDP RBI ISRO DRDO NITI SEBI FIR IPC CBI NASA UNESCO BCCI IPL ISRO SC ST OBC PM CM MLA MP "
+    "Part Parts Article Articles Schedule Section Sections Act Bill Court Courts High Supreme Chief Justice Judge Judges "
+    "President Vice Prime Minister Governor Parliament Lok Sabha Rajya Constitution Fundamental Rights Duties Directive "
+    "Principles Collegium Commission Committee Union State Council Policy Scheme Mission Yojana Vs Quiz").split()}
+
+
 def tamil_ratio(text):
     tam = len(_TAMIL_LETTER.findall(text))
-    lat = sum(len(w) for w in _LATIN_WORD.findall(text))
+    lat = sum(len(w) for w in _LATIN_WORD.findall(text) if w.lower() not in _EN_OK)
     return tam / (tam + lat) if (tam + lat) else 0.0
 
 
