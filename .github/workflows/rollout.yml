@@ -10,7 +10,7 @@ on:
     inputs:
       thumb_max:
         description: "How many thumbnails to set in this run (YouTube usually refuses after a few)"
-        default: "7"
+        default: "10"
       desc_max:
         description: "How many old descriptions to bring to the current format in this run (50 quota units each)"
         default: "20"
