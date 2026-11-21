@@ -120,7 +120,6 @@
   "https://timesofindia.indiatimes.com/education/news/aissms-ioit-organises-international-conference-on-sdg-driven-innovation-and-excellence-awards-2026/articleshow/135454796.cms"
  ],
  "titles": [
-  "Tamil Nadu: TNPSC தேர்வுக்கு 5 முக்கிய தமிழ்நாடு அரசு செய்திகள் – 04 நவம்பர் 2026",
   "Aptitude A: மென்சுரேஷன் ஷார்ட்கட்: பகுதி அளவு % மாற்றம் – 15%↑ & 12%↓",
   "Science, sports & world: உலகம் முழுவதும் முக்கிய அறிவுகள் – 5️⃣",
   "Aptitude B: Divisibility Rule 11 ஷார்ட்கட் – 5-இலக்க எண் x கண்டறி!",
@@ -199,14 +198,10 @@
   "Aptitude C: தர்க்கம்: எண் ஒப்புமை ஷார்ட்கட் – 6:35 :: 8:?",
   "India government schemes: TNPSC: மத்திய வேலை திட்டங்கள்",
   "Aptitude A: HCF மற்றும் LCM ஷார்ட்கட் – 5:6 விகிதம்",
-  "Aptitude C: Reasoning: Alphabet Series – Shortcut Trick"
+  "Aptitude C: Reasoning: Alphabet Series – Shortcut Trick",
+  "Syllabus lesson B: TNPSC: உச்ச நீதிமன்றம் மற்றும் உயர் நீதிமன்றம்"
  ],
  "done": {
-  "20261118": [
-   6,
-   3,
-   4
-  ],
   "20261119": [
    1,
    3,
@@ -216,6 +211,9 @@
    2,
    3,
    4
+  ],
+  "20261121": [
+   7
   ]
  },
  "tries": {
@@ -492,7 +490,12 @@
   "இப்போதுவரை கடன்கள்: இப்போதுவரை திட்டம் 2.75 லட்சம் தொழில்முனைவோருக்கு கடன்களை வழங்கியுள்ளது.",
   "முன்னுரிமை குழுக்கள்: இந்த திட்டம் பெண்கள், SC, ST குழுக்களை முதன்மையாக ஆதரிக்கிறது.",
   "விகிதம் 5:6, HCF=3 என்றால் LCM?",
-  "10வது எழுத்தை கண்டுபிடித்து, 3வது வலப்பக்கம் செல்லும் எழுத்து?"
+  "10வது எழுத்தை கண்டுபிடித்து, 3வது வலப்பக்கம் செல்லும் எழுத்து?",
+  "உச்ச நீதிமன்றம் தொடக்கம்: உச்ச நீதிமன்றம் 28 ஜனவரி 1950 அன்று தொடங்கியது.",
+  "நீதிபதிகளின் வயது வரம்பு: உச்ச நீதிமன்ற நீதிபதிகள் 65 வயது வரை, உயர் நீதிமன்ற நீதிபதிகள் 62 வரை பணியாற்றலாம்.",
+  "நீதிபதிகளை நீக்கல் முறை: நீதிபதிகளை குடியரசுத் தலைவர், நாடாளுமன்றம் சிறப்பு பெரும்பான்மை வாக்கு மூலம் நீக்கலாம்.",
+  "நீதிமன்றங்களின் அதிகாரம்: உச்ச நீதிமன்றம் Article 131 இல் மத்திய-மாநில இடையிலான விவகாரங்கள், Article 143 இல் ஆலோசனை அதிகாரம் கொண்டது.",
+  "உயர் நீதிமன்றங்கள் மற்றும் சம்பளம்: இந்தியா 25 உயர் நீதிமன்றங்கள்; நீதிபதிகளின் ஊதியம் மாநில நிதியில், ஓய்வூதியம் மத்திய நிதியில் செலுத்தப்படும்."
  ],
  "lessons": [
   "Harappan civilisation",
@@ -511,6 +514,7 @@
   "Governor: powers and responsibilities",
   "Prime Minister and Council of Ministers",
   "Mughal emperors: Babur and Humayun",
-  "Parliament: Lok Sabha and Rajya Sabha"
+  "Parliament: Lok Sabha and Rajya Sabha",
+  "Supreme Court and High Courts"
  ]
 }
