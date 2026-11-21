@@ -120,7 +120,6 @@
   "https://timesofindia.indiatimes.com/education/news/aissms-ioit-organises-international-conference-on-sdg-driven-innovation-and-excellence-awards-2026/articleshow/135454796.cms"
  ],
  "titles": [
-  "Science, sports & world: உலகம் முழுவதும் முக்கிய அறிவுகள் – 5️⃣",
   "Aptitude B: Divisibility Rule 11 ஷார்ட்கட் – 5-இலக்க எண் x கண்டறி!",
   "Syllabus lesson B: ஹரப்பா நாகரிகம் 5 ரொம்ப எளிய புள்ளிகள்",
   "Tamil Nadu: தமிழ்நாடு அரசு முக்கிய 5 செய்திகள் – TNPSC ஃபாஸ்ட் ரிவ்யூ",
@@ -199,7 +198,8 @@
   "Aptitude A: HCF மற்றும் LCM ஷார்ட்கட் – 5:6 விகிதம்",
   "Aptitude C: Reasoning: Alphabet Series – Shortcut Trick",
   "Syllabus lesson B: TNPSC: உச்ச நீதிமன்றம் மற்றும் உயர் நீதிமன்றம்",
-  "Aptitude A: எண் தொடர் ஷார்ட்கட் – அடுத்தது என்ன?"
+  "Aptitude A: எண் தொடர் ஷார்ட்கட் – அடுத்தது என்ன?",
+  "Aptitude C: Reasoning: Seating Arrangement – இடம் கண்டுபிடி ஷார்ட்கட்"
  ],
  "done": {
   "20261119": [
@@ -214,7 +214,8 @@
   ],
   "20261121": [
    7,
-   3
+   3,
+   4
   ]
  },
  "tries": {
@@ -497,7 +498,8 @@
   "நீதிபதிகளை நீக்கல் முறை: நீதிபதிகளை குடியரசுத் தலைவர், நாடாளுமன்றம் சிறப்பு பெரும்பான்மை வாக்கு மூலம் நீக்கலாம்.",
   "நீதிமன்றங்களின் அதிகாரம்: உச்ச நீதிமன்றம் Article 131 இல் மத்திய-மாநில இடையிலான விவகாரங்கள், Article 143 இல் ஆலோசனை அதிகாரம் கொண்டது.",
   "உயர் நீதிமன்றங்கள் மற்றும் சம்பளம்: இந்தியா 25 உயர் நீதிமன்றங்கள்; நீதிபதிகளின் ஊதியம் மாநில நிதியில், ஓய்வூதியம் மத்திய நிதியில் செலுத்தப்படும்.",
-  "3, 8, 15, 24, 35, ?"
+  "3, 8, 15, 24, 35, ?",
+  "40 பேர் வரிசையில் சாமி 7வது இடது பக்கம், வலது பக்கம் எது?"
  ],
  "lessons": [
   "Harappan civilisation",
