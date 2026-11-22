@@ -120,7 +120,6 @@
   "https://timesofindia.indiatimes.com/education/news/aissms-ioit-organises-international-conference-on-sdg-driven-innovation-and-excellence-awards-2026/articleshow/135454796.cms"
  ],
  "titles": [
-  "Aptitude B: Divisibility Rule 11 ஷார்ட்கட் – 5-இலக்க எண் x கண்டறி!",
   "Syllabus lesson B: ஹரப்பா நாகரிகம் 5 ரொம்ப எளிய புள்ளிகள்",
   "Tamil Nadu: தமிழ்நாடு அரசு முக்கிய 5 செய்திகள் – TNPSC ஃபாஸ்ட் ரிவ்யூ",
   "Aptitude A: BODMAS ஷார்ட்கட் டிரிக்: 15 விநாடி எளிய கணக்கு!",
@@ -199,14 +198,10 @@
   "Aptitude C: Reasoning: Alphabet Series – Shortcut Trick",
   "Syllabus lesson B: TNPSC: உச்ச நீதிமன்றம் மற்றும் உயர் நீதிமன்றம்",
   "Aptitude A: எண் தொடர் ஷார்ட்கட் – அடுத்தது என்ன?",
-  "Aptitude C: Reasoning: Seating Arrangement – இடம் கண்டுபிடி ஷார்ட்கட்"
+  "Aptitude C: Reasoning: Seating Arrangement – இடம் கண்டுபிடி ஷார்ட்கட்",
+  "Syllabus lesson A: TNPSC: ஷா ஜஹானும் ஆரங்கஜீப் வரலாறு"
  ],
  "done": {
-  "20261119": [
-   1,
-   3,
-   4
-  ],
   "20261120": [
    2,
    3,
@@ -216,6 +211,9 @@
    7,
    3,
    4
+  ],
+  "20261122": [
+   6
   ]
  },
  "tries": {
@@ -499,7 +497,12 @@
   "நீதிமன்றங்களின் அதிகாரம்: உச்ச நீதிமன்றம் Article 131 இல் மத்திய-மாநில இடையிலான விவகாரங்கள், Article 143 இல் ஆலோசனை அதிகாரம் கொண்டது.",
   "உயர் நீதிமன்றங்கள் மற்றும் சம்பளம்: இந்தியா 25 உயர் நீதிமன்றங்கள்; நீதிபதிகளின் ஊதியம் மாநில நிதியில், ஓய்வூதியம் மத்திய நிதியில் செலுத்தப்படும்.",
   "3, 8, 15, 24, 35, ?",
-  "40 பேர் வரிசையில் சாமி 7வது இடது பக்கம், வலது பக்கம் எது?"
+  "40 பேர் வரிசையில் சாமி 7வது இடது பக்கம், வலது பக்கம் எது?",
+  "ஷா ஜஹான் சிங்காசனம்: ஷா ஜஹான் 1628ல் அகராவில் சிங்காசனம் ஏறினார்.",
+  "தெல்லியில் தலைநகரம்: 1638ல் ஷா ஜஹான் அகராவிலிருந்து டெல்லிக்கு தலைநகரம் மாற்றினார்.",
+  "தாஜ் மஹால் & ரெட் ஃபோர்ட்: ஷா ஜஹான் 1632‑1653ல் தாஜ் மஹால், ரெட் ஃபோர்ட், ஜமா மச்ஜித், பீக்காக் த்ரோன் கட்டினார்.",
+  "ஆரங்கஜீப் சீர்திருத்தம்: 1679ல் ஆரங்கஜீப் ஜிஜ்யா மீண்டும் விதித்து, இசை, நவ்ரோஸ், ஜரோகா தர்ஷன் நிறுத்தினார்.",
+  "பீஜாபுர்‑கோல்கொண்டா கைப்பற்றல்: ஆரங்கஜீப் 1686‑1687ல் பீஜாபுர் மற்றும் கோல்கொண்டா நேரடியாக கைப்பற்றினார்."
  ],
  "lessons": [
   "Harappan civilisation",
@@ -519,6 +522,7 @@
   "Prime Minister and Council of Ministers",
   "Mughal emperors: Babur and Humayun",
   "Parliament: Lok Sabha and Rajya Sabha",
-  "Supreme Court and High Courts"
+  "Supreme Court and High Courts",
+  "Shah Jahan and Aurangzeb"
  ]
 }
