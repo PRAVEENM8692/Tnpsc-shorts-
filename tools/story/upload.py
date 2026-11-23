@@ -8,7 +8,8 @@ sys.path.insert(0, ".")
 import pipeline as P
 
 NAME = os.environ.get("NAME") or "delhi1"
-PLAYLIST = "தமிழ்நாட்டு வரலாறு கதைகள் | Long Videos" if os.environ.get("NAME", "").startswith("tn") else "TNPSC வரலாறு கதைகள் | Long Videos"   # every Long story video goes into this one playlist (made when missing)
+PLAYLIST = ("தமிழ்நாட்டு வரலாறு கதைகள் | Long Videos" if os.environ.get("NAME", "").startswith("tn")
+            else "இந்திய அரசியலமைப்பு கதைகள் | Long Videos" if os.environ.get("NAME", "").startswith("con") else "TNPSC வரலாறு கதைகள் | Long Videos")   # every Long story video goes into this one playlist (made when missing)
 if os.environ.get("DELETE_IDS"):   # remove the listed videos from the channel (owner asked)
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
@@ -100,6 +101,10 @@ elif NAME == "tn6":   # tn6: red headline band on top, two tilted white-framed p
     import json as _json
     _t = _json.loads(Path("tools/story/tn6.json").read_text(encoding="utf-8"))["thumb"]
     LEFT, MID, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), pic(_t[2]), "தூக்குமேடை வரை?", "தமிழ்நாட்டு வரலாறு | பகுதி 6 | இறுதி"
+elif NAME == "con1":   # con1: big framed portrait on the left, three-line headline on the right, round pen picture, navy background
+    import json as _json
+    _t = _json.loads(Path("tools/story/con1.json").read_text(encoding="utf-8"))["thumb"]
+    LEFT, MID, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), pic(_t[2]), "", "இந்திய அரசியலமைப்பு | பகுதி 1"
 else:   # delhi2: the gentle old king (left, grey) and the man who killed him (right)
     LEFT, RIGHT, BIG, SUB = pic(11), pic(6), "மாமனாரையே கொன்றான்!", "டெல்லி சுல்தானியம் | பகுதி 2"
 BOY, KING = LEFT, RIGHT
@@ -230,6 +235,23 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 <div class="s">{SUB}</div></body></html>"""
 if NAME == "tn6":
     HTML = HTML8
+HTML9 = f"""<html><style>
+body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-family:'Noto Sans Tamil',sans-serif;background:linear-gradient(135deg,#071a45,#0d2f7a 55%,#071a45)}}
+.p{{position:absolute;left:36px;top:60px;width:560px;height:560px;border:10px solid #ffd21f;background-size:cover;background-position:center;transform:rotate(-2deg);box-shadow:12px 14px 0 rgba(0,0,0,.6)}}
+.l{{position:absolute;left:36px;top:60px;width:560px;height:560px;transform:rotate(-2deg);display:flex;align-items:flex-end}}
+.l span{{width:100%;background:#d91414;color:#fff;font-size:34px;font-weight:900;text-align:center;white-space:nowrap;padding:2px 0;margin:10px}}
+.t{{position:absolute;left:640px;font-size:112px;font-weight:900;line-height:1.3;white-space:nowrap;color:#fff;text-shadow:6px 6px 0 #000,-6px 6px 0 #000,6px -6px 0 #000,-6px -6px 0 #000}}
+.r{{position:absolute;left:775px;top:405px;width:260px;height:260px;border-radius:50%;border:10px solid #fff;background-size:cover;background-position:center;box-shadow:8px 10px 0 rgba(0,0,0,.6)}}
+.n{{position:absolute;left:1015px;top:445px;width:236px;text-align:center;font-size:30px;font-weight:900;white-space:nowrap;color:#ffd21f;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
+.b{{position:absolute;right:26px;top:22px;background:#111;color:#ffd21f;font-size:34px;font-weight:900;padding:4px 16px;border-radius:12px;border:4px solid #ffd21f;font-family:'DejaVu Sans',sans-serif}}
+.s{{position:absolute;left:640px;right:20px;bottom:18px;text-align:center;font-size:36px;font-weight:800;white-space:nowrap;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
+</style><body>
+<div class="p" style="background-image:url({LEFT})"></div><div class="l"><span>அம்பேத்கர் தலைமையில்</span></div>
+<div class="t" style="top:70px">உலகின்</div><div class="t" style="top:195px">நீளமான</div><div class="t" style="top:320px;color:#ffd21f">புத்தகம்!</div>
+<div class="r" style="background-image:url({MID})"></div><div class="n">கையால் எழுதியது</div><div class="b">TNPSC</div>
+<div class="s">{SUB}</div></body></html>"""
+if NAME == "con1":
+    HTML = HTML9
 if NAME == "tn2":
     HTML = HTML4
 if NAME == "tn1":
@@ -454,7 +476,27 @@ TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ள�
 
 #TNPSC #தமிழ்நாட்டுவரலாறு #கட்டபொம்மன் #வேலுநாச்சியார் #வஉசி #TNPSCHistory #TNPSCBites"""
 TAGSTN6 = ["TNPSC", "தமிழ்நாட்டு வரலாறு", "கட்டபொம்மன்", "வேலு நாச்சியார்", "குயிலி", "வ.உ.சிதம்பரம் பிள்ளை", "மருது சகோதரர்கள்", "வேலூர் சிப்பாய் கிளர்ச்சி", "Kattabomman", "Velu Nachiyar", "VOC Chidambaram Pillai", "Tamil Nadu freedom struggle", "Tamil Nadu history", "TNPSC history", "TNPSC Group 4", "TNPSC Bites"]
-TITLE, DESC, TAGS = {"tn6": (TITLETN6, DESCTN6, TAGSTN6), "tn5": (TITLETN5, DESCTN5, TAGSTN5), "tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
+TITLECON1 = "உலகின் மிக நீளமான புத்தகம்! இந்திய அரசியலமைப்பு உருவான கதை | பகுதி 1 | TNPSC"
+DESCCON1 = """இந்திய அரசியலமைப்பு உருவான கதை, பகுதி 1: அரசியல் நிர்ணய சபை முதல் 1950 ஜனவரி 26 வரை. 2 ஆண்டு 11 மாதம் 18 நாள் எடுத்து எழுதிய உலகின் மிக நீளமான எழுதப்பட்ட அரசியலமைப்பின் கதை, சுமார் 5 நிமிடத்தில்.
+
+இந்த வீடியோவில்:
+• கேபினட் மிஷன் 1946, அரசியல் நிர்ணய சபையின் முதல் கூட்டம் (9.12.1946)
+• வரைவுக்குழு (29.8.1947), தலைவர் அம்பேத்கர், சென்னை மாகாணத்தின் மூன்று உறுப்பினர்கள்
+• ஏற்பு 26.11.1949, நடைமுறை 26.1.1950, ஏன் அந்த நாள்?
+• கையால் எழுதிய அசல் அரசியலமைப்பு: பிரேம் பிஹாரி நாராயண் ரைசாடா, நந்தலால் போஸ்
+• சம்பகம் துரைராஜன் வழக்கு 1951, முதல் அரசியலமைப்புத் திருத்தம், சரி 15(4)
+
+TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ளது. வீடியோவின் இறுதியில் 5 முக்கியத் தேர்வுக் குறிப்புகள் உள்ளன.
+
+இது 5 பகுதித் தொடர். அடுத்த பகுதி: முகவுரை மற்றும் அடிப்படை உரிமைகள். தவறவிடாமல் இருக்க TNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள், LIKE செய்யுங்கள்.
+
+உங்கள் கருத்து: அரசியலமைப்பில் உங்களுக்குப் பிடித்த சரி எது? கீழே கமெண்டில் சொல்லுங்கள்!
+
+குறிப்பு: இந்த வீடியோவில் உள்ள படங்களும் குரலும் AI மூலம் உருவாக்கப்பட்டவை. படங்கள் கற்பனை ஓவியங்கள், உண்மையான முகங்கள் அல்ல. தேர்வுக்குப் படிக்கும்போது உங்கள் பாடநூலையும் சரிபார்த்துக் கொள்ளுங்கள்.
+
+#TNPSC #இந்தியஅரசியலமைப்பு #TNPSCPolity #அம்பேத்கர் #IndianConstitution #TNPSCBites"""
+TAGSCON1 = ["TNPSC", "இந்திய அரசியலமைப்பு", "அரசியல் நிர்ணய சபை", "அம்பேத்கர்", "சம்பகம் துரைராஜன் வழக்கு", "அரசியலமைப்பு தினம்", "Indian Constitution", "Constituent Assembly", "Ambedkar", "TNPSC Polity", "Indian Polity in Tamil", "TNPSC Group 4", "TNPSC Group 2", "TNPSC Bites"]
+TITLE, DESC, TAGS = {"con1": (TITLECON1, DESCCON1, TAGSCON1), "tn6": (TITLETN6, DESCTN6, TAGSTN6), "tn5": (TITLETN5, DESCTN5, TAGSTN5), "tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
                      "delhi4": (TITLE4, DESC4, TAGS4)}.get(NAME, (TITLE2, DESC2, TAGS2))
 
 if os.environ.get("THUMB_ONLY_ID"):   # video already on YouTube: only replace its thumbnail with the one just made
