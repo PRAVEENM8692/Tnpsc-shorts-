@@ -240,14 +240,14 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 .p{{position:absolute;left:36px;top:60px;width:560px;height:560px;border:10px solid #ffd21f;background-size:cover;background-position:center;transform:rotate(-2deg);box-shadow:12px 14px 0 rgba(0,0,0,.6)}}
 .l{{position:absolute;left:36px;top:60px;width:560px;height:560px;transform:rotate(-2deg);display:flex;align-items:flex-end}}
 .l span{{width:100%;background:#d91414;color:#fff;font-size:34px;font-weight:900;text-align:center;white-space:nowrap;padding:2px 0;margin:10px}}
-.t{{position:absolute;left:640px;font-size:112px;font-weight:900;line-height:1.3;white-space:nowrap;color:#fff;text-shadow:6px 6px 0 #000,-6px 6px 0 #000,6px -6px 0 #000,-6px -6px 0 #000}}
-.r{{position:absolute;left:775px;top:405px;width:260px;height:260px;border-radius:50%;border:10px solid #fff;background-size:cover;background-position:center;box-shadow:8px 10px 0 rgba(0,0,0,.6)}}
-.n{{position:absolute;left:1015px;top:445px;width:236px;text-align:center;font-size:30px;font-weight:900;white-space:nowrap;color:#ffd21f;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
+.t{{position:absolute;left:640px;font-size:104px;font-weight:900;line-height:1.3;white-space:nowrap;color:#fff;text-shadow:6px 6px 0 #000,-6px 6px 0 #000,6px -6px 0 #000,-6px -6px 0 #000}}
+.r{{position:absolute;left:790px;top:445px;width:210px;height:210px;border-radius:50%;border:10px solid #fff;background-size:cover;background-position:center;box-shadow:8px 10px 0 rgba(0,0,0,.6)}}
+.n{{position:absolute;left:765px;top:600px;width:260px;text-align:center;font-size:27px;font-weight:900;white-space:nowrap;color:#fff;background:#d91414;border-radius:8px;padding:2px 0}}
 .b{{position:absolute;right:26px;top:22px;background:#111;color:#ffd21f;font-size:34px;font-weight:900;padding:4px 16px;border-radius:12px;border:4px solid #ffd21f;font-family:'DejaVu Sans',sans-serif}}
-.s{{position:absolute;left:640px;right:20px;bottom:18px;text-align:center;font-size:36px;font-weight:800;white-space:nowrap;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
+.s{{position:absolute;left:620px;right:10px;bottom:12px;text-align:center;font-size:28px;font-weight:800;white-space:nowrap;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
 </style><body>
 <div class="p" style="background-image:url({LEFT})"></div><div class="l"><span>அம்பேத்கர் தலைமையில்</span></div>
-<div class="t" style="top:70px">உலகின்</div><div class="t" style="top:195px">நீளமான</div><div class="t" style="top:320px;color:#ffd21f">புத்தகம்!</div>
+<div class="t" style="top:60px">உலகின்</div><div class="t" style="top:180px">நீளமான</div><div class="t" style="top:300px;color:#ffd21f">புத்தகம்!</div>
 <div class="r" style="background-image:url({MID})"></div><div class="n">கையால் எழுதியது</div><div class="b">TNPSC</div>
 <div class="s">{SUB}</div></body></html>"""
 if NAME == "con1":
