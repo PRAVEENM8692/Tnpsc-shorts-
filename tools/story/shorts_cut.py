@@ -71,6 +71,13 @@ for k in range(a, b + 1):
     s0, s1 = starts[k - 1] - t0, ends[k - 1] - t0
     add(1 + (k - a) + 1, f"between(t,{s0:.3f},{s1:.3f})", n); n += 1
 add(len(names), f"gte(t,{max(length - 5, 0):.3f})", n)                          # footer strip in the last 5 seconds
+# owner 2026-11-23: animated LIKE / SUBSCRIBE at the bottom - one by one in the middle, together again at the end (above the footer strip)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cta
+cta_ass = tmp / "cta.ass"
+cta.make_ass(cta_ass, 1080, 1920, length, y=1650, mid=(length * 0.40, 4.2) if length >= 20 else None, end=(max(length - 4.6, 1), 4.6), tamil=False)
+fc += f";[{last}]ass={cta_ass}[vc]"
+last = "vc"
 subprocess.run(["ffmpeg", "-y", *inputs, "-filter_complex", fc, "-map", f"[{last}]", "-map", "0:a",
                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
                 "-t", f"{length:.3f}", "-movflags", "+faststart", str(out)], check=True, capture_output=True)

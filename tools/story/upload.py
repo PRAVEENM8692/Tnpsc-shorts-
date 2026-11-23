@@ -1,7 +1,7 @@
 """Makes the thumbnail for a finished story video and (UPLOAD=1) uploads the video to YouTube with title, description,
 tags and the thumbnail. The video comes from the story's side branch (story-out for delhi1, story-<name> for the others). Privacy follows the YT_PRIVACY setting like the Shorts."""
 import json
-import base64, os, subprocess, sys
+import base64, os, re, subprocess, sys
 from pathlib import Path
 
 sys.path.insert(0, ".")
@@ -465,7 +465,14 @@ if os.environ.get("THUMB_ONLY_ID"):   # video already on YouTube: only replace i
                client_id=P.env("YT_CLIENT_ID"), client_secret=P.env("YT_CLIENT_SECRET"), scopes=["https://www.googleapis.com/auth/youtube.force-ssl"]))
     P.log(f"thumbnail replaced on {os.environ['THUMB_ONLY_ID']}: {seo_meta.set_thumbnail(yt, os.environ['THUMB_ONLY_ID'].strip(), thumb)}")
 elif os.environ.get("UPLOAD") == "1":
-    vid = P.upload(VIDEO, TITLE, DESC, TAGS, thumb=thumb)
+    UPLOAD_FILE = VIDEO
+    if not re.fullmatch(r"(delhi[1-4]|tn[1-6])", NAME):   # owner 2026-11-23: new videos get animated LIKE / SUBSCRIBE buttons (the Shorts are cut from the clean file)
+        sys.path.insert(0, "tools/story")
+        import cta
+        UPLOAD_FILE = OUT / f"{NAME}_cta.mp4"
+        cta.long_video(VIDEO, UPLOAD_FILE, P.duration(VIDEO))
+        P.log(f"LIKE / SUBSCRIBE animation added: {UPLOAD_FILE.stat().st_size // 1024 // 1024} MB")
+    vid = P.upload(UPLOAD_FILE, TITLE, DESC, TAGS, thumb=thumb)
     (OUT / "uploaded.txt").write_text(f"https://youtube.com/watch?v={vid}")
     if vid:
         P.add_to_playlists(vid, [PLAYLIST])
