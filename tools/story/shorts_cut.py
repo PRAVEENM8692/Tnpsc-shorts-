@@ -6,7 +6,7 @@ usage: python tools/story/shorts_cut.py <video.mp4> <name> <first_shot> <last_sh
  - result: 1080x1920, the 16:9 picture in the middle over a blurred copy of itself, the hook on top, the spoken line as a
    caption under the picture, and a "full video" strip at the bottom. Voice and music are kept as they are.
 """
-import json, re, subprocess, sys, tempfile
+import json, os, re, subprocess, sys, tempfile
 from pathlib import Path
 
 video, name, a, b, hook, out = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5], Path(sys.argv[6])
@@ -25,10 +25,22 @@ ends = cuts + [dur]
 t0, t1 = starts[a - 1], ends[b - 1]
 length = t1 - t0
 print(f"shots {a}-{b}: {t0:.2f}s to {t1:.2f}s ({length:.1f}s)")
-if length > 58:
-    sys.exit("longer than 58 s: pick fewer shots")
+OUTRO_TEXT = "முழுமையான வீடியோவுக்கு ரிலேட்டட் லிங்கைப் பார்க்கவும்"   # owner 2026-11-24: spoken closing line, Shorts only (never in the long video)
+if length > 55:
+    sys.exit("longer than 55 s (plus the closing voice line must stay under 60 s): pick fewer shots")
 part = re.search(r"(\d+)$", name).group(1)
 tmp = Path(tempfile.mkdtemp())
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+os.environ.setdefault("GEMINI_VOICE", "Charon")
+import pipeline as P
+outro_wav = tmp / "outro.wav"
+P.make_voice(OUTRO_TEXT, str(outro_wav))
+odur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(outro_wav)],
+                            capture_output=True, text=True).stdout)
+OUTRO_AT = length + 0.25           # the line starts right after the cut ends; the last picture is held while it is spoken
+length = length + 0.25 + odur + 0.35
+if length > 60:
+    sys.exit(f"Short with the closing voice line would be {length:.1f}s (>60): pick fewer shots")
 
 def box(css, html):
     return f'<div style="{css}">{html}</div>'
@@ -53,12 +65,14 @@ with sync_playwright() as pw:
         pg.screenshot(path=str(tmp / f"{nm}.png"), omit_background=True)
     br.close()
 
-inputs = ["-ss", f"{t0:.3f}", "-t", f"{length:.3f}", "-i", video]
+inputs = ["-ss", f"{t0:.3f}", "-t", f"{OUTRO_AT:.3f}", "-i", video]
 names = ["hook"] + [f"c{k}" for k in range(a, b + 1)] + ["foot"]
 for nm in names:
     inputs += ["-i", str(tmp / f"{nm}.png")]
+inputs += ["-i", str(outro_wav)]
+AUDIO_IDX = len(names) + 1
 fc = ("[0:v]split[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=30:6,eq=brightness=-0.18[b];"
-      "[fg]scale=1080:-2[f];[b][f]overlay=0:(H-h)/2[v0]")
+      "[fg]scale=1080:-2[f];[b][f]overlay=0:(H-h)/2,tpad=stop_mode=clone:stop_duration=" + f"{length - OUTRO_AT:.3f}" + "[v0]")
 last = "v0"
 idx = 1
 def add(png_idx, en, i):
@@ -78,7 +92,9 @@ cta_ass = tmp / "cta.ass"
 cta.make_ass(cta_ass, 1080, 1920, length, y=1650, mid=(length * 0.40, 4.2) if length >= 20 else None, end=(max(length - 4.6, 1), 4.6), tamil=False)
 fc += f";[{last}]ass={cta_ass}[vc]"
 last = "vc"
-subprocess.run(["ffmpeg", "-y", *inputs, "-filter_complex", fc, "-map", f"[{last}]", "-map", "0:a",
+fc += (f";[0:a]apad=whole_dur={length:.3f}[a0];[{AUDIO_IDX}:a]adelay={int(OUTRO_AT * 1000)}|{int(OUTRO_AT * 1000)},apad=whole_dur={length:.3f}[a1];"
+       "[a0][a1]amix=inputs=2:normalize=0:duration=first[aout]")
+subprocess.run(["ffmpeg", "-y", *inputs, "-filter_complex", fc, "-map", f"[{last}]", "-map", "[aout]",
                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
                 "-t", f"{length:.3f}", "-movflags", "+faststart", str(out)], check=True, capture_output=True)
 print("short ready:", out, f"{out.stat().st_size // 1024} KB")

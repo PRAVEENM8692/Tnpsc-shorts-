@@ -51,6 +51,8 @@ jobs:
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
           YT_PRIVACY: ${{ vars.YT_PRIVACY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}   # Shorts closing voice line
+          GEMINI_VOICE: Charon
       - name: Keep the thumbnail on the side branch story-thumb so it can be viewed
         if: always() && inputs.playlist_only_id == '' && inputs.shorts_only_id == '' && inputs.delete_ids == '' && inputs.short_thumb_fix == ''
         run: |
