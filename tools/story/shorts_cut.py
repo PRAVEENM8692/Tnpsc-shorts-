@@ -50,12 +50,16 @@ CSS = """body{margin:0;width:1080px;height:1920px;background:transparent;font-fa
  text-shadow:5px 5px 0 #000,-5px 5px 0 #000,5px -5px 0 #000,-5px -5px 0 #000}
 .c{position:absolute;left:50px;right:50px;top:1300px;text-align:center;font-size:54px;font-weight:800;color:#fff;line-height:1.35;
  text-shadow:4px 4px 0 #000,-4px 4px 0 #000,4px -4px 0 #000,-4px -4px 0 #000}
+.card{position:absolute;left:0;top:0;width:1080px;height:1920px;background:linear-gradient(160deg,#0b1d3a 0%,#1b2f66 55%,#3b1560 100%)}
+.brand{position:absolute;left:0;right:0;top:170px;text-align:center;font-size:76px;font-weight:900;color:#ffd21f;letter-spacing:2px}
+.play{position:absolute;left:0;right:0;top:330px;text-align:center;font-size:150px;color:#fff;opacity:.9}
+.rule{position:absolute;left:140px;right:140px;top:560px;height:6px;border-radius:3px;background:#ffd21f;opacity:.8}
 .f{position:absolute;left:60px;right:60px;bottom:50px;text-align:center;font-size:44px;font-weight:900;color:#fff;background:#d81818;
  border:5px solid #fff;border-radius:26px;padding:14px 10px;line-height:1.3}"""
 pages = [("hook", "")]   # owner 2026-11-18: no title text on the Short (it showed up as the auto thumbnail); the hook is only the YouTube title
 for k in range(a, b + 1):
     pages.append((f"c{k}", f'<div class="c">{shots[k - 1]["nar"]}</div>'))
-pages.append(("foot", f'<div class="f">முழு வீடியோ பாருங்கள்<br>தமிழ்நாட்டு வரலாறு பகுதி {part} | TNPSC Bites</div>'))
+pages.append(("foot", '<div class="card"><div class="brand">TNPSC Bites</div><div class="play">▶</div><div class="rule"></div></div>'))   # closing card (opaque); the words and buttons are drawn on it by cta.end_card_ass
 from playwright.sync_api import sync_playwright
 with sync_playwright() as pw:
     br = pw.chromium.launch()
@@ -84,14 +88,20 @@ add(1, f"between(t,0,{length:.3f})", n); n += 1                                 
 for k in range(a, b + 1):
     s0, s1 = starts[k - 1] - t0, ends[k - 1] - t0
     add(1 + (k - a) + 1, f"between(t,{s0:.3f},{s1:.3f})", n); n += 1
-add(len(names), f"gte(t,{max(length - 5, 0):.3f})", n)                          # footer strip in the last 5 seconds
+add(len(names), f"gte(t,{OUTRO_AT - 0.1:.3f})", n)                              # the closing card while the last line is spoken
 # owner 2026-11-23: animated LIKE / SUBSCRIBE at the bottom - one by one in the middle, together again at the end (above the footer strip)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cta
 cta_ass = tmp / "cta.ass"
-cta.make_ass(cta_ass, 1080, 1920, length, y=1650, mid=(length * 0.40, 4.2) if length >= 20 else None, end=(max(length - 4.6, 1), 4.6), tamil=False)
+cta.make_ass(cta_ass, 1080, 1920, length, y=1650, mid=(length * 0.40, 4.2) if length >= 20 else None, end=None, tamil=False)   # the closing card carries its own buttons
 fc += f";[{last}]ass={cta_ass}[vc]"
 last = "vc"
+card_ass = tmp / "card.ass"
+cta.end_card_ass(card_ass, 1080, 1920, OUTRO_AT - 0.1, length - OUTRO_AT + 0.1,
+                 [["முழுமையான", "வீடியோவுக்கு"], ["ரிலேட்டட்", "லிங்கைப்"], ["பார்க்கவும்"]],
+                 OUTRO_AT, odur, y_text=900, ys=[1260, 1430, 1600])
+fc += f";[{last}]ass={card_ass}[vd]"
+last = "vd"
 fc += (f";[0:a]apad=whole_dur={length:.3f}[a0];[{AUDIO_IDX}:a]adelay={int(OUTRO_AT * 1000)}|{int(OUTRO_AT * 1000)},apad=whole_dur={length:.3f}[a1];"
        "[a0][a1]amix=inputs=2:normalize=0:duration=first[aout]")
 subprocess.run(["ffmpeg", "-y", *inputs, "-filter_complex", fc, "-map", f"[{last}]", "-map", "[aout]",

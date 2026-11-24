@@ -58,3 +58,39 @@ def long_video(src, dst, total):
     # bottom corners, so the small picture caption in the middle of the bottom edge stays readable
     make_ass(ass, 1280, 720, total, y=648, scale=0.55, mid=(total * 0.42, 4.5), end=(max(total - 7.5, 1), 7.0), tamil=False, lfrac=0.095, sfrac=0.885)
     burn(src, dst, ass)
+
+
+def end_card_ass(path, w, h, t0, dur, lines, speech_start, speech_dur, y_text, ys, bw=720, bh=130):
+    """Closing card of a Short (owner 2026-11-24): the spoken line is shown on the card and highlighted word by word while it is read
+    (karaoke); LIKE, SUBSCRIBE and COMMENT buttons pop in one by one under it. lines = list of lines (each a list of words)."""
+    font = os.environ.get("SUB_FONT") or "Noto Sans Tamil"
+    latin = os.environ.get("SUB_LATIN_FONT") or "DejaVu Sans"
+    head = (f"[Script Info]\nScriptType: v4.00+\nPlayResX: {w}\nPlayResY: {h}\nWrapStyle: 2\n\n[V4+ Styles]\n"
+            "Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,"
+            "ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding\n"
+            f"Style: Btn,{latin},64,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1\n"
+            f"Style: Rd,{font},84,&H0000D7FF,&H00FFFFFF,&H00000000,&H90000000,-1,0,0,0,100,100,0,0,1,6,2,5,0,0,0,1\n\n"
+            "[Events]\nFormat: Layer,Start,End,Style,MarginL,MarginR,MarginV,Effect,Text\n")
+    out = []
+    end = t0 + dur
+    words = [wd for ln in lines for wd in ln]
+    weight = [max(len(wd), 2) for wd in words]
+    cs_total = max(int(speech_dur * 100), len(words))
+    cs = [max(1, int(cs_total * x / sum(weight))) for x in weight]
+    # the line starts a little before the voice so the first word is not highlighted late
+    lead = max(int((speech_start - t0) * 100), 0)
+    parts, idx = [], 0
+    for ln in lines:
+        seg = []
+        for wd in ln:
+            seg.append(("{\\k%d}" % lead if idx == 0 else "") + ("{\\kf%d}" % cs[idx]) + wd)
+            idx += 1
+        parts.append(" ".join(seg))
+    out.append(f"Dialogue: 3,{ass_time(t0)},{ass_time(end)},Rd,0,0,0,,{{\\an5\\pos({w // 2},{y_text})\\fad(200,0)}}" + "\\N".join(parts))
+    cols = [(r"\1c&HE5881E&", "LIKE"), (r"\1c&H0000FF&", "SUBSCRIBE"), (r"\1c&H008CFF&", "COMMENT")]
+    pop = r"\fscx40\fscy40\t(0,350,\fscx108\fscy108)\t(350,500,\fscx100\fscy100)"
+    for i, ((col, label), y) in enumerate(zip(cols, ys)):
+        b0 = t0 + 0.6 + 0.45 * i
+        out.append(f"Dialogue: 1,{ass_time(b0)},{ass_time(end)},Btn,0,0,0,,{{\\an5\\pos({w // 2},{y})\\bord0\\shad0{col}\\fad(120,0){pop}\\p1}}{rrect(bw, bh, 34)}{{\\p0}}")
+        out.append(f"Dialogue: 2,{ass_time(b0)},{ass_time(end)},Btn,0,0,0,,{{\\an5\\pos({w // 2},{y})\\fad(120,0){pop}}}{label}")
+    Path(path).write_text(head + "\n".join(out) + "\n", encoding="utf-8")
