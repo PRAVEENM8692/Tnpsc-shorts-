@@ -20,6 +20,9 @@ on:
       short_thumb_fix:
         description: "k:videoId,... - put a clean frame (no text) as the thumbnail of these cut Shorts"
         default: ""
+      short_preview:
+        description: "k = test: cut Short number k to a file on the story-thumb branch (upload=false); nothing goes to YouTube"
+        default: ""
       thumb_only_id:
         description: "YouTube id of a video already uploaded: only replace its thumbnail"
         default: ""
@@ -44,6 +47,7 @@ jobs:
           UPLOAD: ${{ inputs.upload == 'true' && '1' || '0' }}
           THUMB_ONLY_ID: ${{ inputs.thumb_only_id }}
           SHORT_THUMB_FIX: ${{ inputs.short_thumb_fix }}
+          SHORT_PREVIEW: ${{ inputs.short_preview }}
           DELETE_IDS: ${{ inputs.delete_ids }}
           SHORTS_ONLY_ID: ${{ inputs.shorts_only_id }}
           PLAYLIST_ONLY_ID: ${{ inputs.playlist_only_id }}
@@ -58,6 +62,7 @@ jobs:
         run: |
           mkdir keep && cp out/story/thumb.jpg keep/ 2>/dev/null || true
           cp out/story/uploaded.txt keep/ 2>/dev/null || true
+          cp out/story/preview_short.mp4 keep/ 2>/dev/null || true
           cd keep
           git init -q -b story-thumb
           git config user.name "github-actions[bot]"

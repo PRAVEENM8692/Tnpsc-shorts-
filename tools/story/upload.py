@@ -522,3 +522,7 @@ elif os.environ.get("UPLOAD") == "1":
     P.log(f"DONE https://youtube.com/watch?v={vid}")
 else:
     P.log("preview only: nothing uploaded (UPLOAD is not 1)")
+    if os.environ.get("SHORT_PREVIEW"):   # test: cut Short k of this video to a file (kept on the story-thumb branch); nothing goes to YouTube
+        import json
+        a, b, hook, topic = json.loads(Path(f"tools/story/{NAME}.json").read_text(encoding="utf-8"))["shorts"][int(os.environ["SHORT_PREVIEW"]) - 1]
+        subprocess.run([sys.executable, "tools/story/shorts_cut.py", str(VIDEO), NAME, str(a), str(b), hook, str(OUT / "preview_short.mp4")], check=True)
