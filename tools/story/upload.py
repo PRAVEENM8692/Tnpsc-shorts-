@@ -262,7 +262,7 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 .k{{position:absolute;left:46px;top:400px;background:#ffd21f;color:#0a1a40;font-size:132px;font-weight:900;padding:0 34px;border-radius:22px;border:8px solid #fff;
  transform:rotate(-4deg);font-family:'DejaVu Sans',sans-serif;white-space:nowrap;box-shadow:10px 12px 0 rgba(0,0,0,.6)}}
 .r{{position:absolute;right:46px;top:34px;width:230px;height:230px;border-radius:50%;border:10px solid #fff;background-size:cover;background-position:center;box-shadow:8px 10px 0 rgba(0,0,0,.6)}}
-.n{{position:absolute;right:26px;top:268px;width:270px;text-align:center;font-size:26px;font-weight:900;white-space:nowrap;color:#fff;background:#d91414;border-radius:8px;padding:2px 0}}
+.n{{position:absolute;right:46px;top:268px;width:230px;text-align:center;font-size:24px;font-weight:900;white-space:nowrap;color:#fff;background:#d91414;border-radius:8px;padding:2px 0}}
 .b{{position:absolute;left:44px;top:26px;background:#111;color:#ffd21f;font-size:34px;font-weight:900;padding:4px 16px;border-radius:12px;border:4px solid #ffd21f;font-family:'DejaVu Sans',sans-serif}}
 .s{{position:absolute;left:44px;bottom:18px;font-size:30px;font-weight:800;white-space:nowrap;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
 </style><body>
@@ -270,7 +270,7 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 <div class="b">TNPSC</div>
 <div class="t" style="top:92px;font-size:104px;color:#fff">ஒரே ஒரு</div><div class="t" style="top:214px;font-size:150px;color:#ffd21f">ஓட்டு!</div>
 <div class="k">7 – 6</div>
-<div class="r" style="background-image:url({MID})"></div><div class="n">கேசவானந்த பாரதி வழக்கு</div>
+<div class="r" style="background-image:url({MID})"></div><div class="n">கேசவானந்த பாரதி</div>
 <div class="s">{SUB}</div></body></html>"""
 if NAME == "con2":
     HTML = HTML10
