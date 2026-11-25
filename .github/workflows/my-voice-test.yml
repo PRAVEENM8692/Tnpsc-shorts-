@@ -28,7 +28,7 @@ jobs:
           pip install -r requirements.txt
           pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
           pip install git+https://github.com/ai4bharat/IndicF5.git
-          pip install "transformers==4.50.0" soundfile numpy
+          pip install "transformers==4.50.0" soundfile numpy faster-whisper
       - name: Decrypt the reference voice
         env:
           MYVOICE_KEY: ${{ secrets.MYVOICE_KEY }}
@@ -39,12 +39,14 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          REF_TEXT_FILE: assets/myvoice/ref_text.enc
+          REF_TEXT_FILE: assets/myvoice/ref_text.enc   # optional: exact words of the reference; if missing, Whisper writes them
           MYVOICE_KEY: ${{ secrets.MYVOICE_KEY }}
           TEXT_1: ${{ github.event.inputs.text_1 }}
           TEXT_2: ${{ github.event.inputs.text_2 }}
         run: |
-          export REF_TEXT="$(openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in "$REF_TEXT_FILE" -pass env:MYVOICE_KEY)"
+          if [ -f "$REF_TEXT_FILE" ]; then
+            export REF_TEXT="$(openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in "$REF_TEXT_FILE" -pass env:MYVOICE_KEY)"
+          fi
           python tools/voice_clone/indicf5_test.py
       - uses: actions/upload-artifact@v4
         with:

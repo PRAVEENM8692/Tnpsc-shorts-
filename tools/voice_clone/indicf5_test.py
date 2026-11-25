@@ -18,7 +18,14 @@ sys.path.insert(0, ".")
 OUT = Path("out")
 OUT.mkdir(exist_ok=True)
 REF = "myvoice/ref.wav"
-REF_TEXT = os.environ["REF_TEXT"].strip()
+REF_TEXT = (os.environ.get("REF_TEXT") or "").strip()
+if not REF_TEXT:   # no typed text: let Whisper (large-v3, Tamil) write down what is said in the reference clip
+    from faster_whisper import WhisperModel
+    wm = WhisperModel("large-v3", device="cpu", compute_type="int8")
+    segs, _ = wm.transcribe(REF, language="ta", beam_size=5, vad_filter=False)
+    REF_TEXT = " ".join(s.text.strip() for s in segs).strip()
+    del wm
+print("reference text length:", len(REF_TEXT), "characters", flush=True)   # the words themselves are not printed (public logs)
 
 LINES = {
     "story": os.environ.get("TEXT_1") or (
