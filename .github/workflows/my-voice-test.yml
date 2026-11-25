@@ -28,7 +28,7 @@ jobs:
           pip install -r requirements.txt
           pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
           pip install git+https://github.com/ai4bharat/IndicF5.git
-          pip install "transformers==4.50.0" soundfile numpy faster-whisper
+          pip install "transformers==4.50.0" "datasets==3.6.0" soundfile numpy faster-whisper
       - name: Decrypt the reference voice
         env:
           MYVOICE_KEY: ${{ secrets.MYVOICE_KEY }}
