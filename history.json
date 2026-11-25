@@ -120,7 +120,6 @@
   "https://timesofindia.indiatimes.com/education/news/aissms-ioit-organises-international-conference-on-sdg-driven-innovation-and-excellence-awards-2026/articleshow/135454796.cms"
  ],
  "titles": [
-  "India & economy: TNPSC முக்கிய நடப்பு நிகழ்வுகள்: தேசிய & பாலிட்டி செய்திகள்!",
   "Aptitude A: TNPSC Percentage Shortcut | சதவீதம் எளிய ஷார்ட்கட் டிரிக்!",
   "Science, sports & world: TNPSC நடப்பு நிகழ்வுகள் | உலக & சுற்றுச்சூழல் முக்கிய தகவல்கள்",
   "Aptitude B: Ratio Shortcut – 23:5 & 2:3 இல் A+B+C = 71 | TNPSC Aptitude",
@@ -199,14 +198,10 @@
   "Aptitude C: Reasoning: கடிகாரம் கோணம் ஷார்ட்கட் – 5:20",
   "India government schemes: TNPSC: மத்திய அரசு கல்வி & மாணவர் கொள்கைகள்",
   "Aptitude A: மென்சுரேஷன் ஷார்ட்கட் – பாதை பகுதி",
-  "Aptitude C: Reasoning: குடும்பம் எத்தனை பேர்? ஷார்ட்கட்"
+  "Aptitude C: Reasoning: குடும்பம் எத்தனை பேர்? ஷார்ட்கட்",
+  "Syllabus lesson A: TNPSC: அடிப்படை உரிமைகள்"
  ],
  "done": {
-  "20261122": [
-   6,
-   3,
-   4
-  ],
   "20261123": [
    1,
    3,
@@ -216,6 +211,9 @@
    2,
    3,
    4
+  ],
+  "20261125": [
+   6
   ]
  },
  "tries": {
@@ -520,7 +518,12 @@
   "62வது ICC கூட்டம் கோச்சி: இந்தியா 62வது International Coconut Community கூட்டத்தை கோச்சி, கேரளா இல் நடத்துகிறது, வேளாண் கல்வி வாய்ப்புகள் அதிகரிக்கும்.",
   "பஞ்சாப் ஸ்டபிள்‑பர்னிங் அதிகரிப்பு: பஞ்சாப் 6,718 ஸ்டபிள்‑பர்னிங் நிகழ்வுகள் பதிவு செய்யப்பட்டுள்ளன, சுற்றுச்சூழல் கல்வி அவசியம்.",
   "15×10 புலம், 2 m பாதை, பகுதி?",
-  "கணவன், மனைவி, 4 மகன்கள், ஒவ்வொரு மகனுக்கும் 1 சகோதரி. மொத்தம்?"
+  "கணவன், மனைவி, 4 மகன்கள், ஒவ்வொரு மகனுக்கும் 1 சகோதரி. மொத்தம்?",
+  "Part III மற்றும் Bill of Rights: சட்டத்தின் Part III (Articles 12‑35) அமெரிக்க Bill of Rights‑லிருந்து எடுத்தது; இதை நீங்கள் அறிய வேண்டும்.",
+  "ஆறு வகை அடிப்படை உரிமைகள்: ஆறு வகை Fundamental Rights: Equality, Freedom, Exploitation, Religion, Cultural‑Educational, Remedies, எனவே தேர்வில் கேட்கலாம்.",
+  "Article 32 – Heart and Soul: Article 32 ‘Heart and Soul’ என்று Ambedkar கூறினார்; இது 5 writs‑ஐ வழங்குகிறது; இதை நீங்கள் நினைவில் வைத்துக்கொள்ளுங்கள்.",
+  "Article 17 – Untouchability: Article 17 அசுத்தமற்றவர்களை (untouchability) நீக்குகிறது; இது Protection of Civil Rights Act‑ல் அமல்படுத்தப்பட்டுள்ளது; முக்கியமான சட்டம்.",
+  "High Court vs Supreme Court jurisdiction: High Court‑ன் Article 226 writ jurisdiction, Article 32‑க்கு விட wider, இரு rights‑க்கும், அதனால் case‑களில் பயன்."
  ],
  "lessons": [
   "Harappan civilisation",
@@ -541,6 +544,7 @@
   "Mughal emperors: Babur and Humayun",
   "Parliament: Lok Sabha and Rajya Sabha",
   "Supreme Court and High Courts",
-  "Shah Jahan and Aurangzeb"
+  "Shah Jahan and Aurangzeb",
+  "Fundamental Rights"
  ]
 }
