@@ -1,0 +1,53 @@
+name: my-voice-test
+# Run by hand only: the owner's own voice as an AI voice (IndicF5, free, CPU). Uploads nothing to YouTube.
+# The reference recording is kept ENCRYPTED in assets/myvoice/ref.enc (this repo is public); the key is the MYVOICE_KEY secret.
+# Results are a workflow artifact kept for 1 day only.
+on:
+  workflow_dispatch:
+    inputs:
+      text_1:
+        description: "Tamil line 1 (empty = built-in story line)"
+        default: ""
+      text_2:
+        description: "Tamil line 2 (empty = built-in crime line)"
+        default: ""
+permissions:
+  contents: read
+jobs:
+  clone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - name: Install IndicF5 (CPU)
+        run: |
+          pip install -r requirements.txt
+          pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install git+https://github.com/ai4bharat/IndicF5.git
+          pip install "transformers==4.50.0" soundfile numpy
+      - name: Decrypt the reference voice
+        env:
+          MYVOICE_KEY: ${{ secrets.MYVOICE_KEY }}
+        run: |
+          mkdir -p myvoice
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in assets/myvoice/ref.enc -out myvoice/ref.wav -pass env:MYVOICE_KEY
+      - name: Make the samples
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          REF_TEXT_FILE: assets/myvoice/ref_text.enc
+          MYVOICE_KEY: ${{ secrets.MYVOICE_KEY }}
+          TEXT_1: ${{ github.event.inputs.text_1 }}
+          TEXT_2: ${{ github.event.inputs.text_2 }}
+        run: |
+          export REF_TEXT="$(openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in "$REF_TEXT_FILE" -pass env:MYVOICE_KEY)"
+          python tools/voice_clone/indicf5_test.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: my-voice-samples
+          path: out/*.mp3
+          retention-days: 1
