@@ -364,6 +364,9 @@ def main():
         P.make_voice_parts_engine_override = True
         os.environ["TTS_ENGINE"] = "gemini"
     starts = P.make_voice_parts(parts, voice, WORK, gap=gap)
+    if os.environ.get("RJ_VOICE", "1") != "0":   # RJ-style studio polish of the narration (tools/rj_voice.py)
+        from tools.rj_voice import polish
+        voice = polish(voice, OUT / "voice_rj.wav", preset=os.environ.get("RJ_PRESET", "male"))
     log(f"voice ready: {P.duration(voice):.1f} s in {len(parts)} parts")
 
     # text pictures
@@ -421,7 +424,11 @@ def main():
     final = OUT / f"{NAME}.mp4"
     T = P.duration(voice)
     if bgm:
-        fc = f"[2:a]volume=0.16,afade=t=out:st={max(T - 3, 0):.2f}:d=3[m];[1:a][m]amix=inputs=2:duration=first:normalize=0[a]"
+        if os.environ.get("RJ_VOICE", "1") != "0":   # radio-style ducking: BGM dips while the voice speaks, rises in pauses
+            from tools.rj_voice import duck_mix_filter
+            fc = duck_mix_filter("1:a", "2:a", music_vol=0.2, total=T)
+        else:
+            fc = f"[2:a]volume=0.16,afade=t=out:st={max(T - 3, 0):.2f}:d=3[m];[1:a][m]amix=inputs=2:duration=first:normalize=0[a]"
         P.run(["ffmpeg", "-y", "-i", str(silent), "-i", str(voice), "-stream_loop", "-1", "-i", str(bgm),
                "-filter_complex", fc, "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-shortest", str(final)])
     else:

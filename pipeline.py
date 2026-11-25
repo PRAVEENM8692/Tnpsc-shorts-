@@ -1574,6 +1574,12 @@ COUNTDOWN_MIN = 3.4   # the 3-2-1 countdown on the question card is shown only i
 # Voice clean-up for clearer speech: cut low rumble, even out loud and soft words, same loudness for every voice
 VOICE_CLEAN = ("highpass=f=70,acompressor=threshold=0.1:ratio=3:attack=5:release=80:makeup=2,"
                "loudnorm=I=-16:TP=-1.5:LRA=9,aresample=44100")
+try:   # RJ-style studio voice (bass/treble/presence EQ, de-esser, compressor, loudness) - tools/rj_voice.py; RJ_VOICE=0 turns it off
+    from tools.rj_voice import chain as _rj_chain
+    if os.environ.get("RJ_VOICE", "1") != "0":
+        VOICE_CLEAN = _rj_chain("shorts")
+except Exception as _e:
+    print("rj_voice not used:", _e)
 
 
 def build_video(images, voice, out, workdir, bgm=None, subs=None, base_video=None, sfx=None):
