@@ -105,6 +105,10 @@ elif NAME == "con1":   # con1: big framed portrait on the left, three-line headl
     import json as _json
     _t = _json.loads(Path("tools/story/con1.json").read_text(encoding="utf-8"))["thumb"]
     LEFT, MID, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), pic(_t[2]), "", "இந்திய அரசியலமைப்பு | பகுதி 1"
+elif NAME == "con2":   # con2: full-width courtroom picture, dark fade on the left with a two-line headline, gold 7-6 badge, round inset of Kesavananda Bharati
+    import json as _json
+    _t = _json.loads(Path("tools/story/con2.json").read_text(encoding="utf-8"))["thumb"]
+    LEFT, MID, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), pic(_t[2]), "", "இந்திய அரசியலமைப்பு | பகுதி 2 | முகவுரை"
 else:   # delhi2: the gentle old king (left, grey) and the man who killed him (right)
     LEFT, RIGHT, BIG, SUB = pic(11), pic(6), "மாமனாரையே கொன்றான்!", "டெல்லி சுல்தானியம் | பகுதி 2"
 BOY, KING = LEFT, RIGHT
@@ -250,6 +254,26 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 <div class="t" style="top:60px">உலகின்</div><div class="t" style="top:180px">நீளமான</div><div class="t" style="top:300px;color:#ffd21f">புத்தகம்!</div>
 <div class="r" style="background-image:url({MID})"></div><div class="n">கையால் எழுதியது</div><div class="b">TNPSC</div>
 <div class="s">{SUB}</div></body></html>"""
+HTML10 = f"""<html><style>
+body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-family:'Noto Sans Tamil',sans-serif;background:#0a1a40}}
+.bg{{position:absolute;left:0;top:0;width:1280px;height:720px;background-size:cover;background-position:center;filter:saturate(1.25) contrast(1.08)}}
+.sh{{position:absolute;left:0;top:0;width:1280px;height:720px;background:linear-gradient(90deg,rgba(6,16,48,.96) 0%,rgba(6,16,48,.88) 38%,rgba(6,16,48,0) 72%)}}
+.t{{position:absolute;left:44px;font-weight:900;white-space:nowrap;line-height:1.15;text-shadow:6px 6px 0 #000,-6px 6px 0 #000,6px -6px 0 #000,-6px -6px 0 #000}}
+.k{{position:absolute;left:46px;top:400px;background:#ffd21f;color:#0a1a40;font-size:132px;font-weight:900;padding:0 34px;border-radius:22px;border:8px solid #fff;
+ transform:rotate(-4deg);font-family:'DejaVu Sans',sans-serif;white-space:nowrap;box-shadow:10px 12px 0 rgba(0,0,0,.6)}}
+.r{{position:absolute;right:46px;top:34px;width:230px;height:230px;border-radius:50%;border:10px solid #fff;background-size:cover;background-position:center;box-shadow:8px 10px 0 rgba(0,0,0,.6)}}
+.n{{position:absolute;right:26px;top:268px;width:270px;text-align:center;font-size:26px;font-weight:900;white-space:nowrap;color:#fff;background:#d91414;border-radius:8px;padding:2px 0}}
+.b{{position:absolute;left:44px;top:26px;background:#111;color:#ffd21f;font-size:34px;font-weight:900;padding:4px 16px;border-radius:12px;border:4px solid #ffd21f;font-family:'DejaVu Sans',sans-serif}}
+.s{{position:absolute;left:44px;bottom:18px;font-size:30px;font-weight:800;white-space:nowrap;color:#fff;text-shadow:3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000}}
+</style><body>
+<div class="bg" style="background-image:url({RIGHT})"></div><div class="sh"></div>
+<div class="b">TNPSC</div>
+<div class="t" style="top:92px;font-size:104px;color:#fff">ஒரே ஒரு</div><div class="t" style="top:214px;font-size:150px;color:#ffd21f">ஓட்டு!</div>
+<div class="k">7 – 6</div>
+<div class="r" style="background-image:url({MID})"></div><div class="n">கேசவானந்த பாரதி வழக்கு</div>
+<div class="s">{SUB}</div></body></html>"""
+if NAME == "con2":
+    HTML = HTML10
 if NAME == "con1":
     HTML = HTML9
 if NAME == "tn2":
@@ -496,7 +520,27 @@ TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ள�
 
 #TNPSC #இந்தியஅரசியலமைப்பு #TNPSCPolity #அம்பேத்கர் #IndianConstitution #TNPSCBites"""
 TAGSCON1 = ["TNPSC", "இந்திய அரசியலமைப்பு", "அரசியல் நிர்ணய சபை", "அம்பேத்கர்", "சம்பகம் துரைராஜன் வழக்கு", "அரசியலமைப்பு தினம்", "Indian Constitution", "Constituent Assembly", "Ambedkar", "TNPSC Polity", "Indian Polity in Tamil", "TNPSC Group 4", "TNPSC Group 2", "TNPSC Bites"]
-TITLE, DESC, TAGS = {"con1": (TITLECON1, DESCCON1, TAGSCON1), "tn6": (TITLETN6, DESCTN6, TAGSTN6), "tn5": (TITLETN5, DESCTN5, TAGSTN5), "tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
+TITLECON2 = "ஒரே ஒரு ஓட்டில் காப்பாற்றப்பட்ட அரசியலமைப்பு! முகவுரையின் கதை | பகுதி 2 | TNPSC"
+DESCCON2 = """இந்திய அரசியலமைப்பு உருவான கதை, பகுதி 2: முகவுரை. "நாங்கள், இந்திய மக்கள்" என்று தொடங்கும் முகவுரையின் கதை, 7க்கு 6 என்ற ஒரே ஒரு ஓட்டு வித்தியாசத்தில் வந்த கேசவானந்த பாரதி தீர்ப்புடன், சுமார் 5 நிமிடத்தில்.
+
+இந்த வீடியோவில்:
+• குறிக்கோள் தீர்மானம் (நேரு): 13.12.1946 முன்வைப்பு, 22.1.1947 ஏற்பு
+• முகவுரையின் 5 சொற்கள்: இறையாண்மை, சமதர்மம், மதச்சார்பின்மை, மக்களாட்சி, குடியரசு
+• 42-வது திருத்தம் 1976, எஸ்.ஆர். பொம்மை வழக்கு (1994)
+• பெருபாரி வழக்கு (1960): முகவுரை அரசியலமைப்பின் பகுதி இல்லை
+• கேசவானந்த பாரதி வழக்கு (24.4.1973): 13 நீதிபதிகள், 7-6, அடிப்படைக் கட்டமைப்புக் கொள்கை
+
+TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ளது. வீடியோவின் இறுதியில் 5 முக்கியத் தேர்வுக் குறிப்புகள் உள்ளன.
+
+இது 5 பகுதித் தொடர். முந்தைய பகுதி: உலகின் மிக நீளமான புத்தகம் (பகுதி 1). அடுத்த பகுதி: அடிப்படை உரிமைகள் மற்றும் மேனகா காந்தி வழக்கு. தவறவிடாமல் இருக்க TNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள், LIKE செய்யுங்கள்.
+
+உங்கள் கருத்து: முகவுரையின் எந்தச் சொல் உங்களுக்கு மிகவும் பிடிக்கும்? கீழே கமெண்டில் சொல்லுங்கள்!
+
+குறிப்பு: இந்த வீடியோவில் உள்ள படங்களும் குரலும் AI மூலம் உருவாக்கப்பட்டவை. படங்கள் கற்பனை ஓவியங்கள், உண்மையான முகங்கள் அல்ல. தேர்வுக்குப் படிக்கும்போது உங்கள் பாடநூலையும் சரிபார்த்துக் கொள்ளுங்கள்.
+
+#TNPSC #இந்தியஅரசியலமைப்பு #முகவுரை #கேசவானந்தபாரதி #IndianConstitution #TNPSCBites"""
+TAGSCON2 = ["TNPSC", "இந்திய அரசியலமைப்பு", "முகவுரை", "கேசவானந்த பாரதி வழக்கு", "அடிப்படைக் கட்டமைப்பு", "பெருபாரி வழக்கு", "42வது திருத்தம்", "Preamble of Indian Constitution", "Kesavananda Bharati case", "Basic structure doctrine", "TNPSC Polity", "Indian Polity in Tamil", "TNPSC Group 4", "TNPSC Group 2", "TNPSC Bites"]
+TITLE, DESC, TAGS = {"con2": (TITLECON2, DESCCON2, TAGSCON2), "con1": (TITLECON1, DESCCON1, TAGSCON1), "tn6": (TITLETN6, DESCTN6, TAGSTN6), "tn5": (TITLETN5, DESCTN5, TAGSTN5), "tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
                      "delhi4": (TITLE4, DESC4, TAGS4)}.get(NAME, (TITLE2, DESC2, TAGS2))
 
 if os.environ.get("THUMB_ONLY_ID"):   # video already on YouTube: only replace its thumbnail with the one just made
