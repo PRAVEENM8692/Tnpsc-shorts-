@@ -120,7 +120,6 @@
   "https://timesofindia.indiatimes.com/education/news/aissms-ioit-organises-international-conference-on-sdg-driven-innovation-and-excellence-awards-2026/articleshow/135454796.cms"
  ],
  "titles": [
-  "Science, sports & world: TNPSC நடப்பு நிகழ்வுகள் | உலக & சுற்றுச்சூழல் முக்கிய தகவல்கள்",
   "Aptitude B: Ratio Shortcut – 23:5 & 2:3 இல் A+B+C = 71 | TNPSC Aptitude",
   "Syllabus lesson A: TNPSC பாலிட்டி: அவசரநிலை சட்டப்பிரிவுகள் முக்கிய 5 தகவல்கள்",
   "Syllabus lesson B: RTI சட்டம் – TNPSC-க்கான 5 முக்கிய குறிப்புகள்",
@@ -199,7 +198,8 @@
   "Aptitude A: மென்சுரேஷன் ஷார்ட்கட் – பாதை பகுதி",
   "Aptitude C: Reasoning: குடும்பம் எத்தனை பேர்? ஷார்ட்கட்",
   "Syllabus lesson A: TNPSC: அடிப்படை உரிமைகள்",
-  "Aptitude A: BODMAS ஷார்ட்கட்: 12 + 30 ÷ 5 of 4 × 2 - 3"
+  "Aptitude A: BODMAS ஷார்ட்கட்: 12 + 30 ÷ 5 of 4 × 2 - 3",
+  "Aptitude C: Reasoning: கைதட்டல் எண்ணிக்கை ஷார்ட்கட்"
  ],
  "done": {
   "20261123": [
@@ -214,7 +214,8 @@
   ],
   "20261125": [
    6,
-   3
+   3,
+   4
   ]
  },
  "tries": {
@@ -525,7 +526,8 @@
   "Article 32 – Heart and Soul: Article 32 ‘Heart and Soul’ என்று Ambedkar கூறினார்; இது 5 writs‑ஐ வழங்குகிறது; இதை நீங்கள் நினைவில் வைத்துக்கொள்ளுங்கள்.",
   "Article 17 – Untouchability: Article 17 அசுத்தமற்றவர்களை (untouchability) நீக்குகிறது; இது Protection of Civil Rights Act‑ல் அமல்படுத்தப்பட்டுள்ளது; முக்கியமான சட்டம்.",
   "High Court vs Supreme Court jurisdiction: High Court‑ன் Article 226 writ jurisdiction, Article 32‑க்கு விட wider, இரு rights‑க்கும், அதனால் case‑களில் பயன்.",
-  "12 + 30 ÷ 5 of 4 × 2 - 3 = ?"
+  "12 + 30 ÷ 5 of 4 × 2 - 3 = ?",
+  "6 பேர் ஒருவருக்கொருவர் கைதட்டினால், மொத்த கைதட்டல்கள்?"
  ],
  "lessons": [
   "Harappan civilisation",
