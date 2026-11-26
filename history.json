@@ -120,7 +120,6 @@
   "https://timesofindia.indiatimes.com/education/news/aissms-ioit-organises-international-conference-on-sdg-driven-innovation-and-excellence-awards-2026/articleshow/135454796.cms"
  ],
  "titles": [
-  "Aptitude B: Ratio Shortcut – 23:5 & 2:3 இல் A+B+C = 71 | TNPSC Aptitude",
   "Syllabus lesson A: TNPSC பாலிட்டி: அவசரநிலை சட்டப்பிரிவுகள் முக்கிய 5 தகவல்கள்",
   "Syllabus lesson B: RTI சட்டம் – TNPSC-க்கான 5 முக்கிய குறிப்புகள்",
   "Tamil Nadu: தமிழ்நாடு அரசு முக்கிய திட்டங்கள் – TNPSC 2026",
@@ -199,14 +198,10 @@
   "Aptitude C: Reasoning: குடும்பம் எத்தனை பேர்? ஷார்ட்கட்",
   "Syllabus lesson A: TNPSC: அடிப்படை உரிமைகள்",
   "Aptitude A: BODMAS ஷார்ட்கட்: 12 + 30 ÷ 5 of 4 × 2 - 3",
-  "Aptitude C: Reasoning: கைதட்டல் எண்ணிக்கை ஷார்ட்கட்"
+  "Aptitude C: Reasoning: கைதட்டல் எண்ணிக்கை ஷார்ட்கட்",
+  "Tamil Nadu: TNPSC: தமிழ்நாடு அரசு சோலார் திட்டங்கள்"
  ],
  "done": {
-  "20261123": [
-   1,
-   3,
-   4
-  ],
   "20261124": [
    2,
    3,
@@ -216,6 +211,9 @@
    6,
    3,
    4
+  ],
+  "20261126": [
+   1
   ]
  },
  "tries": {
@@ -527,7 +525,12 @@
   "Article 17 – Untouchability: Article 17 அசுத்தமற்றவர்களை (untouchability) நீக்குகிறது; இது Protection of Civil Rights Act‑ல் அமல்படுத்தப்பட்டுள்ளது; முக்கியமான சட்டம்.",
   "High Court vs Supreme Court jurisdiction: High Court‑ன் Article 226 writ jurisdiction, Article 32‑க்கு விட wider, இரு rights‑க்கும், அதனால் case‑களில் பயன்.",
   "12 + 30 ÷ 5 of 4 × 2 - 3 = ?",
-  "6 பேர் ஒருவருக்கொருவர் கைதட்டினால், மொத்த கைதட்டல்கள்?"
+  "6 பேர் ஒருவருக்கொருவர் கைதட்டினால், மொத்த கைதட்டல்கள்?",
+  "PM Surya Ghar திட்டம்: PM Surya Ghar: Muft Bijli Yojana 2024-ல் ஒரு கோடி வீடுகளில் கூரை சோலார் அமைத்து, மாதம் 300 யூனிட் மின்சாரம் வழங்கும்.",
+  "சோலார் நிறுவல் மந்தம் 2027: தமிழ்நாடு 2027-ல் புதிய சோலார் நிறுவல்களில் அனுமதி தாமதம், செலவு உயர்வு மற்றும் கொள்கை பிரச்சினைகள் காரணமாக மந்தம் இருக்கும்.",
+  "BESS கட்டாயம்: ஏப்ரல் 2027 முதல் Battery Energy Storage Systems கட்டாயமாக சேர்க்கப்படும்; இது நிறுவல் வேகத்தை மேலும் மந்தமாக்கும்.",
+  "அரிதான ரத்தக் குழு பதிவு: தமிழ்நாடு மாநில ரத்தம் பரிமாற்ற கவுன்சில் அரிதான ரத்தக் குழுக்களின் ஆன்லைன் பதிவு அமைத்து, அனைத்து அனுமதி பெற்ற மையங்களும் பங்கெடுக்கின்றன.",
+  "கல்லூரி ரத்ததான கிளப்புகள்: அனைத்து கல்லூரிகளிலும் Red Ribbon Club இருந்தால் Blood Donor Club உருவாக்க அரசு அனுமதி வழங்கியது."
  ],
  "lessons": [
   "Harappan civilisation",
