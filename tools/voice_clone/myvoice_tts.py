@@ -66,7 +66,11 @@ def _via_space(text):
     global _space
     from gradio_client import Client, handle_file
     if _space is None:
-        _space = Client(os.environ.get("MYVOICE_SPACE", "ai4bharat/IndicF5"), hf_token=os.environ.get("HF_TOKEN"))
+        name, tok = os.environ.get("MYVOICE_SPACE", "ai4bharat/IndicF5"), os.environ.get("HF_TOKEN")
+        try:
+            _space = Client(name, token=tok)          # gradio_client 2.x
+        except TypeError:
+            _space = Client(name, hf_token=tok)       # gradio_client 1.x
     res = _space.predict(text, handle_file(REF), ref_text(), api_name="/synthesize_speech")
     path = res if isinstance(res, str) else (res.get("path") if isinstance(res, dict) else res[0])
     return _read(path)
