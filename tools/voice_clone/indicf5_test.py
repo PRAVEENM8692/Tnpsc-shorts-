@@ -1,9 +1,7 @@
 """Owner's own voice as an AI voice (free): AI4Bharat IndicF5 zero-shot voice cloning, Tamil.
 
-Input : myvoice/ref.wav (decrypted in the workflow from assets/myvoice/ref.enc) + REF_TEXT (exact words spoken in it)
-Output: out/*.mp3 - the same Tamil lines in the owner's cloned voice (raw + RJ-polished) and, for comparison, Gemini Charon.
-CPU only (GitHub Actions), so it is slow but free. The model is gated on Hugging Face: the HF_TOKEN account must have
-pressed 'Agree' on https://hf.co/ai4bharat/IndicF5 once.
+Makes out/*.mp3: each test line in the owner's cloned voice (raw + RJ-polished) and, for comparison, Gemini Charon.
+Engine (MYVOICE_ENGINE): auto = free Hugging Face GPU Space first, then the slow CPU model; or space / cpu.
 """
 import os
 import subprocess
@@ -11,29 +9,22 @@ import sys
 import time
 from pathlib import Path
 
-import numpy as np
-import soundfile as sf
-
 sys.path.insert(0, ".")
+from tools.voice_clone import myvoice_tts as V  # noqa: E402
+from tools.rj_voice import polish  # noqa: E402
+
 OUT = Path("out")
 OUT.mkdir(exist_ok=True)
-REF = "myvoice/ref.wav"
-REF_TEXT = (os.environ.get("REF_TEXT") or "").strip()
-if not REF_TEXT:   # no typed text: let Whisper (large-v3, Tamil) write down what is said in the reference clip
-    from faster_whisper import WhisperModel
-    wm = WhisperModel("large-v3", device="cpu", compute_type="int8")
-    segs, _ = wm.transcribe(REF, language="ta", beam_size=5, vad_filter=False)
-    REF_TEXT = " ".join(s.text.strip() for s in segs).strip()
-    del wm
-print("reference text length:", len(REF_TEXT), "characters", flush=True)   # the words themselves are not printed (public logs)
 
+SHORT = ("ஒரு ராத்திரி, சென்னைக்குப் போற ஒரு சாதாரண ரயில்ல, கோடிக்கணக்கான பணம் இருந்துச்சு. யாருக்கும் தெரியாம, "
+         "அந்த ரயிலோட கூரையைத் துளைச்சு, அந்தப் பணத்தை ஒரு கும்பல் அள்ளிட்டுப் போச்சு. ரயில் நிக்கவே இல்ல. "
+         "யாரும் எதையும் பார்க்கல. ஆனா ரெண்டு வருஷம் கழிச்சு, ஒரே ஒரு செல்போன் சிக்னல், அவங்க எல்லாரையும் காட்டிக் கொடுத்துச்சு. "
+         "அது எப்படி நடந்துச்சு? முழுக் கதையையும் பார்க்கலாம்.")
 LINES = {
     "story": os.environ.get("TEXT_1") or (
         "ஒரு காலத்துல தமிழ்நாட்டை ஆண்ட ஒரு பெரிய வம்சம், திடீர்னு வரலாற்றுல இருந்தே காணாமப் போச்சு. "
         "அவங்க யாரு? என்ன நடந்துச்சு? இன்னைக்கு அந்தக் கதையைத்தான் பார்க்கப் போறோம்."),
-    "crime": os.environ.get("TEXT_2") or (
-        "அந்த ராத்திரி, அந்த வீட்டுக்குள்ள யாருமே போகல, யாருமே வெளியே வரல. ஆனா காலையில கதவைத் திறந்தப்போ, "
-        "போலீஸ் பார்த்தது எல்லாரையும் அதிர வைச்சது. ஒரே ஒரு சின்ன தடயம், இந்த முழு கேஸையும் உடைச்சது."),
+    "crime_short": os.environ.get("TEXT_2") or SHORT,
 }
 
 
@@ -41,29 +32,18 @@ def to_mp3(wav, mp3):
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(wav), "-b:a", "160k", str(mp3)], check=True)
 
 
-from transformers import AutoModel  # noqa: E402
-
-t0 = time.time()
-model = AutoModel.from_pretrained("ai4bharat/IndicF5", trust_remote_code=True, token=os.environ.get("HF_TOKEN"))
-print(f"model loaded in {time.time() - t0:.0f} s", flush=True)
-
-from tools.rj_voice import polish  # noqa: E402
-
+print("reference text length:", len(V.ref_text()), "characters", flush=True)   # the words are not printed (public logs)
 for name, text in LINES.items():
     t0 = time.time()
-    audio = model(text, ref_audio_path=REF, ref_text=REF_TEXT)
-    audio = np.asarray(audio)
-    if audio.dtype == np.int16:
-        audio = audio.astype(np.float32) / 32768.0
-    raw = OUT / f"{name}_my_voice_raw.wav"
-    sf.write(raw, audio, samplerate=24000)
+    raw = V.speak(text, OUT / f"{name}_raw.wav")
     to_mp3(raw, OUT / f"{name}_1_my_ai_voice.mp3")
-    rj = polish(raw, OUT / f"{name}_rj.wav", preset="male")
-    to_mp3(rj, OUT / f"{name}_2_my_ai_voice_RJ.mp3")
-    print(f"{name}: {len(audio) / 24000:.1f} s of audio in {time.time() - t0:.0f} s", flush=True)
+    to_mp3(polish(raw, OUT / f"{name}_rj.wav", preset="male"), OUT / f"{name}_2_my_ai_voice_RJ.mp3")
+    secs = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(raw)],
+                                capture_output=True, text=True).stdout)
+    print(f"{name}: {secs:.1f} s of audio in {time.time() - t0:.0f} s", flush=True)
+print("engine use:", V.STATS, flush=True)
 
-# same lines in Gemini Charon, to compare side by side (skipped quietly if Gemini is not available)
-try:
+try:   # same lines in Gemini Charon, to compare side by side
     import pipeline as P
     os.environ["GEMINI_VOICE"] = "Charon"
     for name, text in LINES.items():

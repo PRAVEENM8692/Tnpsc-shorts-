@@ -9,10 +9,13 @@ on:
         description: "Tamil line 1 (empty = built-in story line)"
         default: ""
       text_2:
-        description: "Tamil line 2 (empty = built-in crime line)"
+        description: "Tamil line 2 (empty = built-in 40 s crime Short line)"
         default: ""
+      engine:
+        description: "auto = free HF GPU Space first, then CPU; space; cpu"
+        default: "auto"
 permissions:
-  contents: read
+  contents: write
 jobs:
   clone:
     runs-on: ubuntu-latest
@@ -28,7 +31,7 @@ jobs:
           pip install -r requirements.txt
           pip install torch torchaudio torchcodec --index-url https://download.pytorch.org/whl/cpu
           pip install git+https://github.com/ai4bharat/IndicF5.git
-          pip install "transformers==4.50.0" "datasets==3.6.0" soundfile numpy faster-whisper
+          pip install "transformers==4.50.0" "datasets==3.6.0" soundfile numpy faster-whisper gradio_client
       - name: Decrypt the reference voice
         env:
           MYVOICE_KEY: ${{ secrets.MYVOICE_KEY }}
@@ -43,6 +46,7 @@ jobs:
           MYVOICE_KEY: ${{ secrets.MYVOICE_KEY }}
           TEXT_1: ${{ github.event.inputs.text_1 }}
           TEXT_2: ${{ github.event.inputs.text_2 }}
+          MYVOICE_ENGINE: ${{ github.event.inputs.engine }}
         run: |
           if [ -f "$REF_TEXT_FILE" ]; then
             export REF_TEXT="$(openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in "$REF_TEXT_FILE" -pass env:MYVOICE_KEY)"
@@ -53,3 +57,10 @@ jobs:
           name: my-voice-samples
           path: out/*.mp3
           retention-days: 1
+      - name: Keep an encrypted copy on the myvoice-samples branch (the repo is public; same MYVOICE_KEY)
+        env:
+          MYVOICE_KEY: ${{ secrets.MYVOICE_KEY }}
+        run: |
+          mkdir -p enc && for f in out/*.mp3; do openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in "$f" -out "enc/$(basename "$f").enc" -pass env:MYVOICE_KEY; done
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan myvoice-samples && git rm -rfq --cached . && git add enc && git commit -qm "encrypted voice samples ${GITHUB_RUN_ID}" && git push -f origin myvoice-samples
