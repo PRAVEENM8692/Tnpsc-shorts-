@@ -1,0 +1,21 @@
+name: set-thumbs
+# Run by hand only: puts the chosen thumbnails from tools/story/thumbs/<videoId>.jpg on those YouTube videos.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python tools/story/set_thumbs.py
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
