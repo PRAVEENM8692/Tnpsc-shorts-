@@ -16,6 +16,8 @@ import numpy as np
 import soundfile as sf
 
 REF = os.environ.get("MYVOICE_REF", "myvoice/ref.wav")
+EMO_DIR = Path(os.environ.get("MYVOICE_EMO", "myvoice/emo"))   # optional: one reference clip per mood + texts.json
+MOODS = ("hook", "calm", "suspense", "twist", "question", "sad", "success", "end")
 SR = 24000
 _ref_text = None
 _cpu_model = None
@@ -34,6 +36,14 @@ def ref_text():
             t = " ".join(s.text.strip() for s in segs).strip()
         _ref_text = t
     return _ref_text
+
+
+def ref_for(mood=None):
+    """(clip, exact words) for a mood; the default storytelling clip when the mood has no clip."""
+    if mood and (EMO_DIR / f"{mood}.wav").exists() and (EMO_DIR / "texts.json").exists():
+        import json
+        return str(EMO_DIR / f"{mood}.wav"), json.loads((EMO_DIR / "texts.json").read_text(encoding="utf-8"))[mood]
+    return REF, ref_text()
 
 
 def chunks(text, limit=220):
@@ -62,8 +72,9 @@ def _read(path):
     return a
 
 
-def _via_space(text):
+def _via_space(text, ref=None, rtext=None):
     global _space
+    ref, rtext = ref or REF, rtext or ref_text()
     from gradio_client import Client, handle_file
     if _space is None:
         name, tok = os.environ.get("MYVOICE_SPACE", "ai4bharat/IndicF5"), os.environ.get("HF_TOKEN")
@@ -71,24 +82,27 @@ def _via_space(text):
             _space = Client(name, token=tok)          # gradio_client 2.x
         except TypeError:
             _space = Client(name, hf_token=tok)       # gradio_client 1.x
-    res = _space.predict(text, handle_file(REF), ref_text(), api_name="/synthesize_speech")
+    res = _space.predict(text, handle_file(ref), rtext, api_name="/synthesize_speech")
     path = res if isinstance(res, str) else (res.get("path") if isinstance(res, dict) else res[0])
     return _read(path)
 
 
-def _via_cpu(text):
+def _via_cpu(text, ref=None, rtext=None):
     global _cpu_model
+    ref, rtext = ref or REF, rtext or ref_text()
     if _cpu_model is None:
         from transformers import AutoModel
         _cpu_model = AutoModel.from_pretrained("ai4bharat/IndicF5", trust_remote_code=True, token=os.environ.get("HF_TOKEN"))
-    a = np.asarray(_cpu_model(text, ref_audio_path=REF, ref_text=ref_text()))
+    a = np.asarray(_cpu_model(text, ref_audio_path=ref, ref_text=rtext))
     if a.dtype == np.int16:
         a = a.astype(np.float32) / 32768.0
     return a
 
 
-def speak(text, out_wav, gap=0.25, engine=None):
-    """Write text in the owner's AI voice to out_wav (24 kHz mono). engine: 'space', 'cpu' or None (= space, then cpu)."""
+def speak(text, out_wav, gap=0.25, engine=None, mood=None):
+    """Write text in the owner's AI voice to out_wav (24 kHz mono). engine: 'space', 'cpu' or None (= space, then cpu).
+    mood: one of MOODS to speak with that mood's reference clip (falls back to the default clip)."""
+    ref, rtext = ref_for(mood)
     engine = engine or os.environ.get("MYVOICE_ENGINE", "auto")
     pieces, silence = [], np.zeros(int(SR * gap), dtype=np.float32)
     space_ok = engine in ("auto", "space")
@@ -97,7 +111,7 @@ def speak(text, out_wav, gap=0.25, engine=None):
         if space_ok:
             t0 = time.time()
             try:
-                a = _via_space(part)
+                a = _via_space(part, ref, rtext)
                 STATS["space"] += 1
                 STATS["space_seconds"] += time.time() - t0
             except Exception as e:  # noqa: BLE001  (busy Space / GPU quota used up / network)
@@ -107,7 +121,7 @@ def speak(text, out_wav, gap=0.25, engine=None):
                 space_ok = False
         if a is None:
             t0 = time.time()
-            a = _via_cpu(part)
+            a = _via_cpu(part, ref, rtext)
             STATS["cpu"] += 1
             STATS["cpu_seconds"] += time.time() - t0
         pieces += [a, silence]

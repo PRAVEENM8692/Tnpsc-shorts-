@@ -14,6 +14,9 @@ on:
       engine:
         description: "auto = free HF GPU Space first, then CPU; space; cpu"
         default: "auto"
+      test:
+        description: "basic = 2 lines; moods = one line per mood with that mood's own reference clip"
+        default: "moods"
 permissions:
   contents: write
 jobs:
@@ -38,6 +41,11 @@ jobs:
         run: |
           mkdir -p myvoice
           openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in assets/myvoice/ref.enc -out myvoice/ref.wav -pass env:MYVOICE_KEY
+          if [ -d assets/myvoice/emo ]; then
+            mkdir -p myvoice/emo
+            for f in assets/myvoice/emo/*.enc; do b=$(basename "$f" .enc); [ "$b" = texts ] && o=myvoice/emo/texts.json || o=myvoice/emo/$b.wav
+              openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in "$f" -out "$o" -pass env:MYVOICE_KEY; done
+          fi
       - name: Make the samples
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -51,7 +59,7 @@ jobs:
           if [ -f "$REF_TEXT_FILE" ]; then
             export REF_TEXT="$(openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in "$REF_TEXT_FILE" -pass env:MYVOICE_KEY)"
           fi
-          python tools/voice_clone/indicf5_test.py
+          if [ "${{ github.event.inputs.test }}" = "basic" ]; then python tools/voice_clone/indicf5_test.py; else python tools/voice_clone/mood_test.py; fi
       - uses: actions/upload-artifact@v4
         with:
           name: my-voice-samples
