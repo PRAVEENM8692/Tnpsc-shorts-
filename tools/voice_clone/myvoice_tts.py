@@ -19,6 +19,7 @@ REF = os.environ.get("MYVOICE_REF", "myvoice/ref.wav")
 EMO_DIR = Path(os.environ.get("MYVOICE_EMO", "myvoice/emo"))   # optional: one reference clip per mood + texts.json
 MOODS = ("hook", "calm", "suspense", "twist", "question", "sad", "success", "end")
 SR = 24000
+TEMPO = float(os.environ.get("MYVOICE_TEMPO") or 0.88)   # owner 2026-11-27: the AI voice ran a bit fast; 0.88 = 12% slower, same pitch
 _ref_text = None
 _cpu_model = None
 _space = None
@@ -126,4 +127,8 @@ def speak(text, out_wav, gap=0.25, engine=None, mood=None):
             STATS["cpu_seconds"] += time.time() - t0
         pieces += [a, silence]
     sf.write(out_wav, np.concatenate(pieces[:-1]) if pieces else silence, SR)
+    if abs(TEMPO - 1.0) > 0.01:   # slow down (or speed up) without changing the pitch of the voice
+        tmp = str(out_wav) + ".tempo.wav"
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(out_wav), "-af", f"atempo={TEMPO}", "-ar", str(SR), tmp], check=True)
+        os.replace(tmp, out_wav)
     return Path(out_wav)
