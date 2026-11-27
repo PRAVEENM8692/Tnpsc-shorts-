@@ -109,6 +109,10 @@ elif NAME == "con2":   # con2: full-width courtroom picture, dark fade on the le
     import json as _json
     _t = _json.loads(Path("tools/story/con2.json").read_text(encoding="utf-8"))["thumb"]
     LEFT, MID, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), pic(_t[2]), "", "இந்திய அரசியலமைப்பு | பகுதி 2 | முகவுரை"
+elif NAME == "con3":   # con3: split layout - big passport picture left with a red stamp, golden-triangle picture right-top, verdict picture right-bottom, headline band across the bottom
+    import json as _json
+    _t = _json.loads(Path("tools/story/con3.json").read_text(encoding="utf-8"))["thumb"]
+    LEFT, MID, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), pic(_t[2]), "", "இந்திய அரசியலமைப்பு | பகுதி 3 | அடிப்படை உரிமைகள்"
 else:   # delhi2: the gentle old king (left, grey) and the man who killed him (right)
     LEFT, RIGHT, BIG, SUB = pic(11), pic(6), "மாமனாரையே கொன்றான்!", "டெல்லி சுல்தானியம் | பகுதி 2"
 BOY, KING = LEFT, RIGHT
@@ -272,8 +276,27 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 <div class="k">7 – 6</div>
 <div class="r" style="background-image:url({MID})"></div><div class="n">கேசவானந்த பாரதி</div>
 <div class="s">{SUB}</div></body></html>"""
+HTML11 = f"""<html><style>
+body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-family:'Noto Sans Tamil',sans-serif;background:#140a0a}}
+.p{{position:absolute;left:0;top:0;width:700px;height:590px;background-size:cover;background-position:center;filter:saturate(1.2) contrast(1.1)}}
+.q{{position:absolute;left:712px;top:0;width:568px;height:290px;background-size:cover;background-position:center;filter:saturate(1.25)}}
+.v{{position:absolute;left:712px;top:300px;width:568px;height:290px;background-size:cover;background-position:center;filter:saturate(1.2)}}
+.st{{position:absolute;left:36px;top:300px;background:rgba(200,12,12,.92);color:#fff;font-size:92px;font-weight:900;padding:0 28px;border:8px solid #fff;border-radius:14px;
+ transform:rotate(-8deg);white-space:nowrap;box-shadow:8px 10px 0 rgba(0,0,0,.6)}}
+.ql{{position:absolute;left:726px;top:236px;background:#ffd21f;color:#111;font-size:34px;font-weight:900;padding:0 16px;border-radius:8px;white-space:nowrap}}
+.vl{{position:absolute;left:726px;top:536px;background:#fff;color:#111;font-size:34px;font-weight:900;padding:0 16px;border-radius:8px;white-space:nowrap}}
+.h{{position:absolute;left:0;top:590px;width:1280px;height:130px;background:#ffd21f}}
+.t{{position:absolute;left:0;top:590px;width:1280px;text-align:center;font-size:84px;font-weight:900;color:#111;white-space:nowrap;line-height:1.15}}
+.s{{position:absolute;left:0;top:684px;width:1280px;text-align:center;font-size:30px;font-weight:800;white-space:nowrap;color:#111}}
+.b{{position:absolute;left:22px;top:20px;background:#111;color:#ffd21f;font-size:34px;font-weight:900;padding:4px 16px;border-radius:12px;border:4px solid #ffd21f;font-family:'DejaVu Sans',sans-serif}}
+</style><body>
+<div class="p" style="background-image:url({LEFT})"></div><div class="q" style="background-image:url({RIGHT})"></div><div class="v" style="background-image:url({MID})"></div>
+<div class="b">TNPSC</div><div class="st">பறிமுதல்!</div><div class="ql">தங்க முக்கோணம்</div><div class="vl">1978 தீர்ப்பு</div>
+<div class="h"></div><div class="t">காரணமே இல்லை?</div><div class="s">{SUB}</div></body></html>"""
 if NAME == "con2":
     HTML = HTML10
+if NAME == "con3":
+    HTML = HTML11
 if NAME == "con1":
     HTML = HTML9
 if NAME == "tn2":
@@ -540,7 +563,28 @@ TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ள�
 
 #TNPSC #இந்தியஅரசியலமைப்பு #முகவுரை #கேசவானந்தபாரதி #IndianConstitution #TNPSCBites"""
 TAGSCON2 = ["TNPSC", "இந்திய அரசியலமைப்பு", "முகவுரை", "கேசவானந்த பாரதி வழக்கு", "அடிப்படைக் கட்டமைப்பு", "பெருபாரி வழக்கு", "42வது திருத்தம்", "Preamble of Indian Constitution", "Kesavananda Bharati case", "Basic structure doctrine", "TNPSC Polity", "Indian Polity in Tamil", "TNPSC Group 4", "TNPSC Group 2", "TNPSC Bites"]
-TITLE, DESC, TAGS = {"con2": (TITLECON2, DESCCON2, TAGSCON2), "con1": (TITLECON1, DESCCON1, TAGSCON1), "tn6": (TITLETN6, DESCTN6, TAGSTN6), "tn5": (TITLETN5, DESCTN5, TAGSTN5), "tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
+TITLECON3 = "பாஸ்போர்ட்டைப் பறித்த அரசு! உரிமைகளையே மாற்றிய மேனகா காந்தி வழக்கு | பகுதி 3 | TNPSC"
+DESCCON3 = """இந்திய அரசியலமைப்பு உருவான கதை, பகுதி 3: அடிப்படை உரிமைகள். 1977-ல் மேனகா காந்தியின் பாஸ்போர்ட்டைக் காரணமே சொல்லாமல் அரசு பறிமுதல் செய்தது. அந்த வழக்கு சரத்து 21-க்கே புது அர்த்தம் தந்த கதை, சுமார் 6 நிமிடத்தில்.
+
+இந்த வீடியோவில்:
+• அடிப்படை உரிமைகள்: பகுதி III, சரத்து 12–35, ஆறு உரிமைகள்
+• நேரு அறிக்கை 1928, ஜே.பி. கிருபளானி உப குழு
+• பிஜோ இம்மானுவேல் வழக்கு (1986): தேசிய கீதம் பாட மறுத்த குழந்தைகள்
+• சொத்துரிமை நீக்கம்: 44-வது திருத்தம் 1978, சரத்து 300A
+• ஏ.கே. கோபாலன் (1950) மற்றும் மேனகா காந்தி (25.1.1978): தங்க முக்கோணம் சரத்து 14, 19, 21
+• புட்டசாமி வழக்கு (24.8.2017): தனிமை உரிமை; சரத்து 21A (2002); சரத்து 32
+
+TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ளது. வீடியோவின் இறுதியில் 5 முக்கியத் தேர்வுக் குறிப்புகள் உள்ளன.
+
+இது 5 பகுதித் தொடர். முந்தைய பகுதி: முகவுரையின் கதை (பகுதி 2). அடுத்த பகுதி: வழிகாட்டு நெறிகளும் அடிப்படைக் கடமைகளும். தவறவிடாமல் இருக்க TNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள், LIKE செய்யுங்கள்.
+
+உங்கள் கருத்து: எந்த அடிப்படை உரிமை உங்களுக்கு மிக முக்கியம்? கீழே கமெண்டில் சொல்லுங்கள்!
+
+குறிப்பு: இந்த வீடியோவில் உள்ள படங்களும் குரலும் AI மூலம் உருவாக்கப்பட்டவை. படங்கள் கற்பனை ஓவியங்கள், உண்மையான முகங்கள் அல்ல. தேர்வுக்குப் படிக்கும்போது உங்கள் பாடநூலையும் சரிபார்த்துக் கொள்ளுங்கள்.
+
+#TNPSC #இந்தியஅரசியலமைப்பு #அடிப்படைஉரிமைகள் #மேனகாகாந்திவழக்கு #IndianConstitution #TNPSCBites"""
+TAGSCON3 = ["TNPSC", "இந்திய அரசியலமைப்பு", "அடிப்படை உரிமைகள்", "மேனகா காந்தி வழக்கு", "சரத்து 21", "தங்க முக்கோணம்", "புட்டசாமி வழக்கு", "Fundamental Rights", "Maneka Gandhi case", "Article 21", "Golden triangle", "TNPSC Polity", "Indian Polity in Tamil", "TNPSC Group 4", "TNPSC Group 2", "TNPSC Bites"]
+TITLE, DESC, TAGS = {"con3": (TITLECON3, DESCCON3, TAGSCON3), "con2": (TITLECON2, DESCCON2, TAGSCON2), "con1": (TITLECON1, DESCCON1, TAGSCON1), "tn6": (TITLETN6, DESCTN6, TAGSTN6), "tn5": (TITLETN5, DESCTN5, TAGSTN5), "tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
                      "delhi4": (TITLE4, DESC4, TAGS4)}.get(NAME, (TITLE2, DESC2, TAGS2))
 
 if os.environ.get("THUMB_ONLY_ID"):   # video already on YouTube: only replace its thumbnail with the one just made
