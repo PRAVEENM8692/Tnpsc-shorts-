@@ -314,6 +314,9 @@ with sync_playwright() as pw:
     pg.wait_for_timeout(400)
     pg.screenshot(path=str(thumb), type="jpeg", quality=92)
     b.close()
+if NAME == "con3" and Path("tools/story/con3_thumb.jpg").exists():   # con3 thumbnail: the picture the owner chose (generated with gpt-image-2), Tamil text already in it
+    import shutil
+    shutil.copy("tools/story/con3_thumb.jpg", str(thumb))
 P.log(f"thumbnail ready: {thumb.stat().st_size // 1024} KB")
 
 TITLE1 = "அடிமையாக விற்கப்பட்டவன் டெல்லியின் அரசனான கதை! | டெல்லி சுல்தானியம் பகுதி 1 | TNPSC"
