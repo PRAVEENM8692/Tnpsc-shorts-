@@ -113,6 +113,10 @@ elif NAME == "con3":   # con3: split layout - big passport picture left with a r
     import json as _json
     _t = _json.loads(Path("tools/story/con3.json").read_text(encoding="utf-8"))["thumb"]
     LEFT, MID, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), pic(_t[2]), "", "இந்திய அரசியலமைப்பு | பகுதி 3 | அடிப்படை உரிமைகள்"
+elif NAME == "con4":   # con4: the owner supplies the thumbnail (ChatGPT); this simple layout is only the fallback preview
+    import json as _json
+    _t = _json.loads(Path("tools/story/con4.json").read_text(encoding="utf-8"))["thumb"]
+    LEFT, MID, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), pic(_t[2]), "கோர்ட்டில் கேட்க முடியாத சட்டம்!", "இந்திய அரசியலமைப்பு | பகுதி 4 | வழிகாட்டு நெறிகள்"
 else:   # delhi2: the gentle old king (left, grey) and the man who killed him (right)
     LEFT, RIGHT, BIG, SUB = pic(11), pic(6), "மாமனாரையே கொன்றான்!", "டெல்லி சுல்தானியம் | பகுதி 2"
 BOY, KING = LEFT, RIGHT
@@ -295,8 +299,18 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 <div class="h"></div><div class="t">காரணமே இல்லை?</div><div class="s">{SUB}</div></body></html>"""
 if NAME == "con2":
     HTML = HTML10
+HTML12 = f"""<html><style>
+body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-family:'Noto Sans Tamil',sans-serif;background:#0a1a40}}
+.p{{position:absolute;left:0;top:0;width:1280px;height:600px;background-size:cover;background-position:center}}
+.h{{position:absolute;left:0;top:600px;width:1280px;height:120px;background:#ffd21f}}
+.t{{position:absolute;left:0;top:598px;width:1280px;text-align:center;font-size:66px;font-weight:900;color:#111;white-space:nowrap}}
+.s{{position:absolute;left:0;top:676px;width:1280px;text-align:center;font-size:28px;font-weight:800;color:#111;white-space:nowrap}}
+.b{{position:absolute;left:22px;top:20px;background:#111;color:#ffd21f;font-size:34px;font-weight:900;padding:4px 16px;border-radius:12px;border:4px solid #ffd21f;font-family:'DejaVu Sans',sans-serif}}
+</style><body><div class="p" style="background-image:url({MID})"></div><div class="b">TNPSC</div><div class="h"></div><div class="t">{BIG}</div><div class="s">{SUB}</div></body></html>"""
 if NAME == "con3":
     HTML = HTML11
+if NAME == "con4":
+    HTML = HTML12
 if NAME == "con1":
     HTML = HTML9
 if NAME == "tn2":
@@ -314,9 +328,9 @@ with sync_playwright() as pw:
     pg.wait_for_timeout(400)
     pg.screenshot(path=str(thumb), type="jpeg", quality=92)
     b.close()
-if NAME == "con3" and Path("tools/story/con3_thumb.jpg").exists():   # con3 thumbnail: the picture the owner chose (generated with gpt-image-2), Tamil text already in it
+if Path(f"tools/story/{NAME}_thumb.jpg").exists():   # the picture the owner made in ChatGPT, Tamil text already in it
     import shutil
-    shutil.copy("tools/story/con3_thumb.jpg", str(thumb))
+    shutil.copy(f"tools/story/{NAME}_thumb.jpg", str(thumb))
 P.log(f"thumbnail ready: {thumb.stat().st_size // 1024} KB")
 
 TITLE1 = "அடிமையாக விற்கப்பட்டவன் டெல்லியின் அரசனான கதை! | டெல்லி சுல்தானியம் பகுதி 1 | TNPSC"
@@ -587,7 +601,29 @@ TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ள�
 
 #TNPSC #இந்தியஅரசியலமைப்பு #அடிப்படைஉரிமைகள் #மேனகாகாந்திவழக்கு #IndianConstitution #TNPSCBites"""
 TAGSCON3 = ["TNPSC", "இந்திய அரசியலமைப்பு", "அடிப்படை உரிமைகள்", "மேனகா காந்தி வழக்கு", "சரத்து 21", "தங்க முக்கோணம்", "புட்டசாமி வழக்கு", "Fundamental Rights", "Maneka Gandhi case", "Article 21", "Golden triangle", "TNPSC Polity", "Indian Polity in Tamil", "TNPSC Group 4", "TNPSC Group 2", "TNPSC Bites"]
-TITLE, DESC, TAGS = {"con3": (TITLECON3, DESCCON3, TAGSCON3), "con2": (TITLECON2, DESCCON2, TAGSCON2), "con1": (TITLECON1, DESCCON1, TAGSCON1), "tn6": (TITLETN6, DESCTN6, TAGSTN6), "tn5": (TITLETN5, DESCTN5, TAGSTN5), "tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
+TITLECON4 = "கோர்ட்டில் கேட்க முடியாத சட்டம்! வழிகாட்டு நெறிகளும் கடமைகளும் | பகுதி 4 | TNPSC"
+DESCCON4 = """இந்திய அரசியலமைப்பு உருவான கதை, பகுதி 4: வழிகாட்டு நெறிகளும் அடிப்படைக் கடமைகளும். 179 ரூபாய் 20 பைசா ஜீவனாம்சத்துக்காக நடந்த ஷா பானோ வழக்கில் தொடங்கி, நீதிமன்றத்தில் கேட்க முடியாத சட்டங்களின் கதை, சுமார் 6 நிமிடத்தில்.
+
+இந்த வீடியோவில்:
+• வழிகாட்டு நெறிகள்: பகுதி IV, சரத்து 36–51; சரத்து 37; சம்பகம் வழக்கு (1951)
+• ஹுசைனாரா காத்துன் வழக்கு (1979): சரத்து 39A, விரைவான விசாரணை
+• சரத்து 45: 1950-ல் 10 ஆண்டுக் காலக்கெடு, 2002-ல் சரத்து 21A (86-வது திருத்தம்)
+• சரத்து 40: பஞ்சாயத்து, 73-வது திருத்தம் 1992
+• ஷா பானோ வழக்கு (23.4.1985) மற்றும் சரத்து 44: பொது சிவில் சட்டம்
+• மினர்வா மில்ஸ் வழக்கு (1980): உரிமை-நெறி இணக்கம், அடிப்படைக் கட்டமைப்பு
+• அடிப்படைக் கடமைகள்: 42-வது திருத்தம் 1976, சரத்து 51A, 11 கடமைகள்
+
+TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ளது. வீடியோவின் இறுதியில் 5 முக்கியத் தேர்வுக் குறிப்புகள் உள்ளன.
+
+இது 5 பகுதித் தொடர். முந்தைய பகுதி: அடிப்படை உரிமைகள் (பகுதி 3). அடுத்த பகுதி: நாடாளுமன்றம், குடியரசுத் தலைவர், நீதித்துறை. தவறவிடாமல் இருக்க TNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள், LIKE செய்யுங்கள்.
+
+உங்கள் கருத்து: பொது சிவில் சட்டம் பற்றி உங்கள் கருத்து என்ன? கீழே கமெண்டில் சொல்லுங்கள்!
+
+குறிப்பு: இந்த வீடியோவில் உள்ள படங்களும் குரலும் AI மூலம் உருவாக்கப்பட்டவை. படங்கள் கற்பனை ஓவியங்கள், உண்மையான முகங்கள் அல்ல. தேர்வுக்குப் படிக்கும்போது உங்கள் பாடநூலையும் சரிபார்த்துக் கொள்ளுங்கள்.
+
+#TNPSC #இந்தியஅரசியலமைப்பு #வழிகாட்டுநெறிகள் #அடிப்படைக்கடமைகள் #IndianConstitution #TNPSCBites"""
+TAGSCON4 = ["TNPSC", "இந்திய அரசியலமைப்பு", "வழிகாட்டு நெறிகள்", "அடிப்படைக் கடமைகள்", "ஷா பானோ வழக்கு", "மினர்வா மில்ஸ் வழக்கு", "சரத்து 51A", "Directive Principles", "Fundamental Duties", "Shah Bano case", "Minerva Mills case", "TNPSC Polity", "Indian Polity in Tamil", "TNPSC Group 4", "TNPSC Group 2", "TNPSC Bites"]
+TITLE, DESC, TAGS = {"con4": (TITLECON4, DESCCON4, TAGSCON4), "con3": (TITLECON3, DESCCON3, TAGSCON3), "con2": (TITLECON2, DESCCON2, TAGSCON2), "con1": (TITLECON1, DESCCON1, TAGSCON1), "tn6": (TITLETN6, DESCTN6, TAGSTN6), "tn5": (TITLETN5, DESCTN5, TAGSTN5), "tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
                      "delhi4": (TITLE4, DESC4, TAGS4)}.get(NAME, (TITLE2, DESC2, TAGS2))
 
 if os.environ.get("THUMB_ONLY_ID"):   # video already on YouTube: only replace its thumbnail with the one just made
