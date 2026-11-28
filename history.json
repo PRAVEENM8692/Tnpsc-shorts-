@@ -120,7 +120,6 @@
   "https://timesofindia.indiatimes.com/education/news/aissms-ioit-organises-international-conference-on-sdg-driven-innovation-and-excellence-awards-2026/articleshow/135454796.cms"
  ],
  "titles": [
-  "Science, sports & world: TNPSC நடப்பு நிகழ்வுகள் | சர்வதேச அமைதிப்பணி & உயிர்க்கோளக் காப்பகங்கள்",
   "Aptitude B: நேரம்-தூரம் ஷார்ட்கட்: வேக சராசரி 24 km/h | TNPSC Aptitude",
   "Syllabus lesson A: லோக்‌பால் & லோக்‌யுக்தா – 5 முக்கிய புள்ளிகள்",
   "Syllabus lesson B: குடியரசுத் தலைவர் 5 முக்கிய அதிகாரங்கள் – TNPSC",
@@ -199,14 +198,10 @@
   "Aptitude C: Reasoning: Ranking & Order – மொத்த மாணவர்கள் ஷார்ட்கட்",
   "India government schemes: TNPSC: மத்திய அரசு வேலை வாய்ப்பு திட்டங்கள்",
   "Aptitude A: Time & Work ஷார்ட்கட் – 8 & 12 நாட்கள்",
-  "Aptitude C: Reasoning: திசை உணர்வு – தொடக்க இடம் எத்தனை?"
+  "Aptitude C: Reasoning: திசை உணர்வு – தொடக்க இடம் எத்தனை?",
+  "Syllabus lesson B: TNPSC: Directive Principles & Fundamental Duties"
  ],
  "done": {
-  "20261125": [
-   6,
-   3,
-   4
-  ],
   "20261126": [
    1,
    3,
@@ -216,6 +211,9 @@
    2,
    3,
    4
+  ],
+  "20261128": [
+   7
   ]
  },
  "tries": {
@@ -541,7 +539,12 @@
   "PANI Project துணை கடல் கேபிள்: ஒடிசா மாநிலம் 8 அண்டமான் தீவுகளை submarine optical fibre மூலம் இணைக்கிறது, IT மற்றும் தொலைத்தொடர்பு வேலைகள்.",
   "FSSAI நீர் பரிசோதனை கட்டாயம்: 2026 முதல் பாட்டில் நீர் மாதிரி ஒவ்வொரு ஆறு மாதத்துக்கும் பரிசோதனை, லேப் மற்றும் தரக் கட்டுப்பாட்டு பணிகள் அதிகரிக்கும்.",
   "A 8 நாட்களில், B 12 நாட்களில் வேலை முடிக்கிறான். சேர்ந்து எத்தனை நாட்களில் முடியும்?",
-  "9 km N, 4 km E, 6 km S → தொடக்க இடம் எத்தனை km?"
+  "9 km N, 4 km E, 6 km S → தொடக்க இடம் எத்தனை km?",
+  "DP-ன் மூலாதாரம்: Directive Principles Part IV (Articles 36–51) Irish Constitution 1937-ல் இருந்து வந்தது.",
+  "ஆர்டிகிள் 37: ஆர்டிகிள் 37 DP-ஐ சட்டரீதியாக அமல்படுத்த முடியாது, ஆனால் அரசின் கடமை.",
+  "ஆர்டிகிள் 44: ஆர்டிகிள் 44 எல்லா குடிமக்களுக்கும் Uniform Civil Code-ஐ கோருது.",
+  "ஆர்டிகிள் 50: ஆர்டிகிள் 50 நீதித்துறை மற்றும் நிர்வாகத்தை பிரிக்கிறது, இதனால் நீதித்துறை சுயாதீனமாக இருக்கும்.",
+  "Minerva Mills 1980: Minerva Mills 1980‑ல் உச்ச நீதிமன்றம் DP மற்றும் Fundamental Rights சமநிலையிலிருக்க வேண்டும் என கூறியது."
  ],
  "lessons": [
   "Harappan civilisation",
@@ -563,6 +566,7 @@
   "Parliament: Lok Sabha and Rajya Sabha",
   "Supreme Court and High Courts",
   "Shah Jahan and Aurangzeb",
-  "Fundamental Rights"
+  "Fundamental Rights",
+  "Directive Principles and Fundamental Duties"
  ]
 }
