@@ -117,6 +117,10 @@ elif NAME == "con4":   # con4: the owner supplies the thumbnail (ChatGPT); this 
     import json as _json
     _t = _json.loads(Path("tools/story/con4.json").read_text(encoding="utf-8"))["thumb"]
     LEFT, MID, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), pic(_t[2]), "கோர்ட்டில் கேட்க முடியாத சட்டம்!", "இந்திய அரசியலமைப்பு | பகுதி 4 | வழிகாட்டு நெறிகள்"
+elif NAME == "con5":   # con5: the owner supplies the thumbnail (ChatGPT); this simple layout is only the fallback preview
+    import json as _json
+    _t = _json.loads(Path("tools/story/con5.json").read_text(encoding="utf-8"))["thumb"]
+    LEFT, MID, RIGHT, BIG, SUB = pic(_t[0]), pic(_t[1]), pic(_t[2]), "அரசியலமைப்பை மாற்ற முடியுமா?", "இந்திய அரசியலமைப்பு | பகுதி 5 | இறுதிப் பகுதி"
 else:   # delhi2: the gentle old king (left, grey) and the man who killed him (right)
     LEFT, RIGHT, BIG, SUB = pic(11), pic(6), "மாமனாரையே கொன்றான்!", "டெல்லி சுல்தானியம் | பகுதி 2"
 BOY, KING = LEFT, RIGHT
@@ -309,7 +313,7 @@ body{{margin:0;width:1280px;height:720px;position:relative;overflow:hidden;font-
 </style><body><div class="p" style="background-image:url({MID})"></div><div class="b">TNPSC</div><div class="h"></div><div class="t">{BIG}</div><div class="s">{SUB}</div></body></html>"""
 if NAME == "con3":
     HTML = HTML11
-if NAME == "con4":
+if NAME in ("con4", "con5"):
     HTML = HTML12
 if NAME == "con1":
     HTML = HTML9
@@ -623,7 +627,27 @@ TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ள�
 
 #TNPSC #இந்தியஅரசியலமைப்பு #வழிகாட்டுநெறிகள் #அடிப்படைக்கடமைகள் #IndianConstitution #TNPSCBites"""
 TAGSCON4 = ["TNPSC", "இந்திய அரசியலமைப்பு", "வழிகாட்டு நெறிகள்", "அடிப்படைக் கடமைகள்", "ஷா பானோ வழக்கு", "மினர்வா மில்ஸ் வழக்கு", "சரத்து 51A", "Directive Principles", "Fundamental Duties", "Shah Bano case", "Minerva Mills case", "TNPSC Polity", "Indian Polity in Tamil", "TNPSC Group 4", "TNPSC Group 2", "TNPSC Bites"]
-TITLE, DESC, TAGS = {"con4": (TITLECON4, DESCCON4, TAGSCON4), "con3": (TITLECON3, DESCCON3, TAGSCON3), "con2": (TITLECON2, DESCCON2, TAGSCON2), "con1": (TITLECON1, DESCCON1, TAGSCON1), "tn6": (TITLETN6, DESCTN6, TAGSTN6), "tn5": (TITLETN5, DESCTN5, TAGSTN5), "tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
+TITLECON5 = "ஒரு துறவி, ஒரு பிரதமர், 13 நீதிபதிகள்! அரசியலமைப்பைக் காத்த வழக்கு | பகுதி 5 | TNPSC"
+DESCCON5 = """இந்திய அரசியலமைப்பு உருவான கதை, இறுதிப் பகுதி 5: நாடாளுமன்றம், குடியரசுத் தலைவர், நீதித்துறை. ஒரு துறவியின் வழக்கு எப்படி நம் அரசியலமைப்பைக் காத்தது என்ற கதை, சுமார் 6 நிமிடத்தில்.
+
+இந்த வீடியோவில்:
+• கேசவானந்த பாரதி வழக்கு (1973): 13 நீதிபதிகள், 7-6, அடிப்படைக் கட்டமைப்புக் கோட்பாடு, சரத்து 368
+• இந்திரா காந்தி - ராஜ் நாராயண் வழக்கு: அலகாபாத் தீர்ப்பு 12.6.1975, நெருக்கடி நிலை
+• குடியரசுத் தலைவர்: சரத்து 74, சரத்து 123 அவசரச் சட்டம், பாக்கெட் வீட்டோ
+• எஸ்.ஆர். போம்மை வழக்கு (1994): சரத்து 356, பெரும்பான்மையை நிரூபிக்கும் இடம் சட்டசபை
+• சரத்து 32, சரத்து 226: நீதிமன்றங்களின் அதிகாரம்
+
+TNPSC Group 1, 2, 4 தேர்வுக்கும் பயனுள்ளது. வீடியோவின் இறுதியில் 5 முக்கியத் தேர்வுக் குறிப்புகள் உள்ளன.
+
+இது 5 பகுதித் தொடரின் இறுதிப் பகுதி. முந்தைய பகுதிகள்: பகுதி 4 வழிகாட்டு நெறிகள் https://youtube.com/watch?v=Q0zyNHulwLQ ; பகுதி 3 அடிப்படை உரிமைகள் https://youtube.com/watch?v=e6P6hrwDB90 . TNPSC Bites சேனலை SUBSCRIBE செய்யுங்கள், LIKE செய்யுங்கள்.
+
+உங்கள் கருத்து: நாடாளுமன்றம் அரசியலமைப்பை எவ்வளவு வரை மாற்றலாம்? கீழே கமெண்டில் சொல்லுங்கள்!
+
+குறிப்பு: இந்த வீடியோவில் உள்ள படங்களும் குரலும் AI மூலம் உருவாக்கப்பட்டவை. படங்கள் கற்பனை ஓவியங்கள், உண்மையான முகங்கள் அல்ல. தேர்வுக்குப் படிக்கும்போது உங்கள் பாடநூலையும் சரிபார்த்துக் கொள்ளுங்கள்.
+
+#TNPSC #இந்தியஅரசியலமைப்பு #கேசவானந்தாவழக்கு #அடிப்படைக்கட்டமைப்பு #IndianConstitution #TNPSCBites"""
+TAGSCON5 = ["TNPSC", "இந்திய அரசியலமைப்பு", "கேசவானந்த பாரதி வழக்கு", "அடிப்படைக் கட்டமைப்பு", "போம்மை வழக்கு", "சரத்து 356", "குடியரசுத் தலைவர்", "Kesavananda Bharati case", "Basic Structure doctrine", "Bommai case", "Article 356", "TNPSC Polity", "Indian Polity in Tamil", "TNPSC Group 4", "TNPSC Group 2", "TNPSC Bites"]
+TITLE, DESC, TAGS = {"con5": (TITLECON5, DESCCON5, TAGSCON5), "con4": (TITLECON4, DESCCON4, TAGSCON4), "con3": (TITLECON3, DESCCON3, TAGSCON3), "con2": (TITLECON2, DESCCON2, TAGSCON2), "con1": (TITLECON1, DESCCON1, TAGSCON1), "tn6": (TITLETN6, DESCTN6, TAGSTN6), "tn5": (TITLETN5, DESCTN5, TAGSTN5), "tn4": (TITLETN4, DESCTN4, TAGSTN4), "tn3": (TITLETN3, DESCTN3, TAGSTN3), "tn2": (TITLETN2, DESCTN2, TAGSTN2), "tn1": (TITLETN1, DESCTN1, TAGSTN1), "delhi1": (TITLE1, DESC1, TAGS1), "delhi3": (TITLE3, DESC3, TAGS3),
                      "delhi4": (TITLE4, DESC4, TAGS4)}.get(NAME, (TITLE2, DESC2, TAGS2))
 
 if os.environ.get("THUMB_ONLY_ID"):   # video already on YouTube: only replace its thumbnail with the one just made
